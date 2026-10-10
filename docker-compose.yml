@@ -1,0 +1,50 @@
+services:
+  postgres_db:
+    image: postgres:16-alpine
+    container_name: rentatools_postgres
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-renta_herramientas_db}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-renta_herramientas_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rentatools_network
+
+  pgadmin_web:
+    image: dpage/pgadmin4:latest
+    container_name: rentatools_pgadmin
+    restart: unless-stopped
+    depends_on:
+      postgres_db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@rentatools.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-Admin123456!}
+    ports:
+      - "${PGADMIN_PORT:-8082}:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - rentatools_network
+
+volumes:
+  postgres_data:
+  pgadmin_data:
+
+networks:
+  rentatools_network:
+    driver: bridge
