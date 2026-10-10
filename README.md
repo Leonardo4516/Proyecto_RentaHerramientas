@@ -1,6 +1,6 @@
 # 🏗️ Plataforma de Renta de Herramientas y Equipos de Construcción
 
-> **Proyecto Oficial:** `Proyecto_RentaHerramientas_HernandezLeonardo`  
+> **Proyecto Oficial:** `Proyecto_RentaHerramientas`  
 > **Arquitectura:** DDD Hexagonal Multi-módulo + Spring Boot 3.4 / 4.0 (Java 21)  
 > **Base de Datos:** PostgreSQL 16 con Normalización estricta **4FN**  
 > **Seguridad:** Spring Security 6 con JWT (RBAC)  
@@ -24,7 +24,7 @@ Plataforma empresarial tipo marketplace B2B/B2C para la gestión, reserva, alqui
 ## 🧱 Arquitectura Hexagonal (DDD Multi-módulo)
 
 ```
-Proyecto_RentaHerramientas_HernandezLeonardo/
+Proyecto_RentaHerramientas/
 ├── domain/            # Entidades puras, Value Objects, Puertos y Excepciones
 ├── application/       # Casos de uso y DTOs de entrada/salida
 ├── infrastructure/    # Adaptadores Spring Boot, JPA, Seguridad JWT, WebSockets y PDF
