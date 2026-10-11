@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RentaTools PRO | Plataforma Empresarial de Alquiler de Maquinaria</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Montserrat:wght@700;800&display=swap" rel="stylesheet">
+
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- FontAwesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Leaflet Map CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <!-- SweetAlert2 CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
+  <!-- Custom Stylesheet (Glassmorphism + Neumorphism) -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- 1. BARRA DE NAVEGACIÓN FLOTANTE (GLASSMORPHIC NAVBAR) -->
+  <nav class="navbar navbar-expand-lg glass-panel floating-navbar">
+    <div class="container-fluid px-0">
+      <a class="navbar-brand d-flex align-items-center" href="#" onclick="App.switchView('catalog'); return false;">
+        <i class="fa fa-truck-monster text-warning me-2 fa-lg"></i>
+        <span>RENTA</span>TOOLS <span class="ms-1 badge bg-warning text-dark py-1 px-2 rounded-pill small" style="font-size: 0.65rem;">PRO</span>
+      </a>
+
+      <button class="navbar-toggler border-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+        <span class="navbar-toggler-icon" style="filter: invert(1);"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navbarContent">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3">
+          <li class="nav-item">
+            <a class="nav-link active" id="nav-catalog" href="#" onclick="App.switchView('catalog'); return false;">
+              <i class="fa fa-th-large me-1"></i> Catálogo & Mapa
+            </a>
+          </li>
+          <li class="nav-item" id="nav-client-dashboard" style="display: none;">
+            <a class="nav-link" id="nav-client-dashboard-link" href="#" onclick="App.switchView('client-dashboard'); return false;">
+              <i class="fa fa-file-invoice-dollar me-1"></i> Mis Alquileres
+            </a>
+          </li>
+          <li class="nav-item" id="nav-provider-dashboard" style="display: none;">
+            <a class="nav-link" id="nav-provider-dashboard-link" href="#" onclick="App.switchView('provider-dashboard'); return false;">
+              <i class="fa fa-dolly-flatbed me-1"></i> Gestión Proveedor
+            </a>
+          </li>
+          <li class="nav-item" id="nav-admin-dashboard" style="display: none;">
+            <a class="nav-link" id="nav-admin-dashboard-link" href="#" onclick="App.switchView('admin-dashboard'); return false;">
+              <i class="fa fa-chart-line me-1"></i> Panel Admin
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/swagger-ui.html" target="_blank">
+              <i class="fa fa-book-open me-1 text-info"></i> Swagger API
+            </a>
+          </li>
+        </ul>
+
+        <!-- Lado Derecho: Estado WebSocket, Campana Notificaciones y Cuenta -->
+        <div class="d-flex align-items-center gap-2">
+          <!-- Indicador WebSocket -->
+          <span id="ws-status-indicator" class="badge bg-secondary">
+            <i class="fa fa-plug me-1"></i> Conectando...
+          </span>
+
+          <!-- Campana de Notificaciones Push -->
+          <div class="dropdown">
+            <button class="btn btn-neu notification-bell dropdown-toggle text-light" type="button" id="notifDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="fa fa-bell text-warning"></i>
+              <span id="notif-badge" class="notification-badge" style="display: none;">0</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end glass-modal p-2 shadow-lg" aria-labelledby="notifDropdown" id="notif-list" style="width: 320px;">
+              <li class="dropdown-item text-muted text-center py-3">Sin notificaciones</li>
+            </ul>
+          </div>
+
+          <!-- Acciones de Invitado -->
+          <div id="nav-guest-actions" class="d-flex gap-2">
+            <button class="btn btn-neu" onclick="App.openAuthModal('login')">
+              <i class="fa fa-sign-in-alt me-1"></i> Iniciar Sesión
+            </button>
+            <button class="btn btn-neu-amber" onclick="App.openAuthModal('register')">
+              <i class="fa fa-user-plus me-1"></i> Registrarse
+            </button>
+          </div>
+
+          <!-- Acciones de Usuario Logueado -->
+          <div id="nav-user-actions" class="dropdown" style="display: none;">
+            <button class="btn btn-neu dropdown-toggle d-flex align-items-center" type="button" data-bs-toggle="dropdown">
+              <span id="nav-user-role-badge" class="badge badge-role me-2">CLIENTE</span>
+              <span id="nav-user-name" class="fw-bold text-light">Usuario</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end glass-modal p-2">
+              <li><a class="dropdown-item text-light" href="#" onclick="App.switchView('client-dashboard'); return false;"><i class="fa fa-history me-2 text-warning"></i>Historial de Pagos</a></li>
+              <li><hr class="dropdown-divider border-secondary"></li>
+              <li><a class="dropdown-item text-danger" href="#" onclick="App.logout(); return false;"><i class="fa fa-sign-out-alt me-2"></i>Cerrar Sesión</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- CONTENEDOR PRINCIPAL -->
+  <main class="container-xl">
+
+    <!-- ==================== VISTA 1: CATÁLOGO Y MAPA INTERACTIVO ==================== -->
+    <div id="view-catalog" class="app-view">
+      <!-- Hero Banner -->
+      <div class="glass-panel p-4 p-md-5 mb-4 position-relative overflow-hidden text-center text-md-start">
+        <div class="row align-items-center">
+          <div class="col-md-8">
+            <span class="badge bg-warning text-dark fw-bold px-3 py-1 mb-2">MARKETPLACE B2B & B2C</span>
+            <h1 class="display-5 fw-extrabold text-light mb-2">Renta de Maquinaria Pesada & Equipos</h1>
+            <p class="lead text-muted mb-4">Disponibilidad en tiempo real, geolocalización inteligente en obra, cálculo fiscal automático y facturación electrónica con firma DIAN.</p>
+            <div class="d-flex flex-wrap gap-2 justify-content-center justify-content-md-start">
+              <span class="badge bg-dark border border-secondary text-light p-2"><i class="fa fa-shield-alt text-warning me-1"></i> Depósito Protegido</span>
+              <span class="badge bg-dark border border-secondary text-light p-2"><i class="fa fa-file-pdf text-danger me-1"></i> Facturación en PDF</span>
+              <span class="badge bg-dark border border-secondary text-light p-2"><i class="fa fa-bolt text-info me-1"></i> WebSocket Push</span>
+            </div>
+          </div>
+          <div class="col-md-4 text-center mt-4 mt-md-0 d-none d-md-block">
+            <i class="fa fa-hard-hat fa-6x text-warning opacity-75"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Barra de Filtros, Búsqueda y Slider Geográfico -->
+      <div class="glass-panel p-3 mb-4">
+        <div class="row g-3 align-items-center">
+          <div class="col-md-6 col-lg-5">
+            <div class="input-group">
+              <span class="input-group-text bg-transparent border-0 text-warning"><i class="fa fa-search"></i></span>
+              <input type="text" id="search-input" class="form-control input-neu" placeholder="Buscar retroexcavadoras, andamios, mezcladoras...">
+            </div>
+          </div>
+          <div class="col-md-6 col-lg-4">
+            <div class="d-flex align-items-center gap-2">
+              <i class="fa fa-crosshairs text-info"></i>
+              <label for="radius-slider" class="small text-muted text-nowrap">Radio a tu obra:</label>
+              <input type="range" class="form-range" id="radius-slider" min="5" max="50" step="5" value="20">
+              <span id="radius-value" class="badge bg-info text-dark fw-bold text-nowrap">20 km</span>
+            </div>
+          </div>
+          <div class="col-lg-3 text-end d-none d-lg-block">
+            <span class="small text-muted"><i class="fa fa-map-marked-alt text-warning me-1"></i> Mapa de Maquinaria Cercana</span>
+          </div>
+        </div>
+
+        <!-- Píldoras de Categorías -->
+        <div class="category-pills mt-3">
+          <div class="category-pill active" data-category="TODAS"><i class="fa fa-layer-group me-1"></i> Todas</div>
+          <div class="category-pill" data-category="MAQUINARIA PESADA"><i class="fa fa-truck-pickup me-1"></i> Maquinaria Pesada</div>
+          <div class="category-pill" data-category="GENERACIÓN"><i class="fa fa-lightbulb me-1"></i> Iluminación & Generación</div>
+          <div class="category-pill" data-category="CONCRETO"><i class="fa fa-industry me-1"></i> Concreto & Mezcla</div>
+          <div class="category-pill" data-category="ALTURAS"><i class="fa fa-building me-1"></i> Alturas & Andamios</div>
+          <div class="category-pill" data-category="POTENCIA"><i class="fa fa-tools me-1"></i> Herramientas Potencia</div>
+          <div class="category-pill" data-category="COMPACTACIÓN"><i class="fa fa-compress-arrows-alt me-1"></i> Compactación</div>
+        </div>
+      </div>
+
+      <!-- Mapa Interactivo Leaflet Embebido -->
+      <div class="glass-panel p-3 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-2 px-2">
+          <span class="fw-bold text-light"><i class="fa fa-map-pin text-warning me-2"></i>Ubicación de Equipos y Radio de Entrega</span>
+          <small class="text-muted"><i class="fa fa-circle text-info me-1"></i> Círculo cian representa tu zona de cobertura</small>
+        </div>
+        <div id="map-container"></div>
+      </div>
+
+      <!-- Grilla de Tarjetas de Herramientas -->
+      <div class="row" id="tools-grid">
+        <!-- Renderizado dinámicamente con JavaScript -->
+      </div>
+    </div>
+
+    <!-- ==================== VISTA 2: DASHBOARD CLIENTE (ALQUILERES & FACTURAS) ==================== -->
+    <div id="view-client-dashboard" class="app-view" style="display: none;">
+      <div class="glass-panel p-4 mb-4">
+        <h3 class="fw-bold text-light mb-1"><i class="fa fa-file-invoice text-warning me-2"></i>Mis Alquileres & Facturación</h3>
+        <p class="text-muted small mb-4">Consulta el estado de tus alquileres, confirma pagos pendientes y descarga comprobantes legales en PDF.</p>
+
+        <div class="table-responsive">
+          <table class="table table-dark table-hover align-middle mb-0" style="background: transparent;">
+            <thead>
+              <tr class="text-secondary small border-secondary">
+                <th># RESERVA</th>
+                <th>EQUIPO / MAQUINARIA</th>
+                <th>PERIODO</th>
+                <th>TOTAL FACTURADO</th>
+                <th>ESTADO</th>
+                <th>FACTURA PDF</th>
+              </tr>
+            </thead>
+            <tbody id="client-rentals-list">
+              <!-- Renderizado dinámicamente -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== VISTA 3: DASHBOARD PROVEEDOR ==================== -->
+    <div id="view-provider-dashboard" class="app-view" style="display: none;">
+      <div class="glass-panel p-4 mb-4">
+        <h3 class="fw-bold text-light mb-1"><i class="fa fa-dolly text-warning me-2"></i>Panel de Control del Proveedor</h3>
+        <p class="text-muted small mb-4">Administración de inventario, aprobación de reservas entrantes y actas de devolución/daños.</p>
+
+        <div class="table-responsive">
+          <table class="table table-dark table-hover align-middle mb-0" style="background: transparent;">
+            <thead>
+              <tr class="text-secondary small border-secondary">
+                <th># ID</th>
+                <th>EQUIPO</th>
+                <th>CLIENTE</th>
+                <th>DÍAS</th>
+                <th>VALOR TOTAL</th>
+                <th>ESTADO</th>
+                <th>ACCIONES</th>
+              </tr>
+            </thead>
+            <tbody id="provider-requests-list">
+              <!-- Renderizado dinámicamente -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== VISTA 4: DASHBOARD ADMINISTRADOR ==================== -->
+    <div id="view-admin-dashboard" class="app-view" style="display: none;">
+      <h3 class="fw-bold text-light mb-3"><i class="fa fa-chart-pie text-warning me-2"></i>Métricas de Negocio & KPIs Globales</h3>
+
+      <!-- Tarjetas de Métricas -->
+      <div class="row g-3 mb-4">
+        <div class="col-md-3">
+          <div class="glass-card stat-card">
+            <span class="text-muted small text-uppercase">Ingresos Totales</span>
+            <div class="stat-value text-warning" id="admin-total-revenue">$ 18.450.000</div>
+            <span class="small text-success"><i class="fa fa-arrow-up me-1"></i>+14.2% este mes</span>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="glass-card stat-card cyan">
+            <span class="text-muted small text-uppercase">Alquileres Activos</span>
+            <div class="stat-value text-info" id="admin-active-rentals">14</div>
+            <span class="small text-muted">En obra actualmente</span>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="glass-card stat-card">
+            <span class="text-muted small text-uppercase">Tasa de Ocupación</span>
+            <div class="stat-value text-light" id="admin-occupancy">76.5%</div>
+            <span class="small text-warning">Flota en operación</span>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="glass-card stat-card cyan">
+            <span class="text-muted small text-uppercase">Usuarios Registrados</span>
+            <div class="stat-value text-info" id="admin-total-users">45</div>
+            <span class="small text-muted">Clientes y Proveedores</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actividades Recientes -->
+      <div class="glass-panel p-4">
+        <h5 class="fw-bold text-light mb-3"><i class="fa fa-history text-warning me-2"></i>Flujo de Actividades del Marketplace</h5>
+        <ul class="list-group list-group-flush" id="admin-activities-list">
+          <!-- Renderizado dinámicamente -->
+        </ul>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ==================== MODAL DE RESERVA & COTIZACIÓN DINÁMICA ==================== -->
+  <div class="modal fade" id="bookingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content glass-modal">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold text-warning"><i class="fa fa-calculator me-2"></i>Cotización & Reserva de Maquinaria</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="row g-4">
+            <div class="col-md-5">
+              <img id="book-tool-img" src="" class="img-fluid rounded mb-3 shadow" style="width: 100%; height: 160px; object-fit: cover;" alt="Equipo">
+              <h5 id="book-tool-name" class="fw-bold text-light mb-1">Nombre</h5>
+              <div class="text-muted small mb-2">Tarifa base: <span id="book-tool-rate" class="text-warning fw-bold"></span></div>
+              <div class="text-muted small">Garantía retornable: <span id="book-tool-deposit" class="text-light fw-bold"></span></div>
+            </div>
+            <div class="col-md-7">
+              <h6 class="text-light fw-bold mb-3">Selecciona el periodo de alquiler:</h6>
+              <div class="row g-2 mb-3">
+                <div class="col-6">
+                  <label class="small text-muted">Fecha de Inicio:</label>
+                  <input type="date" id="book-start-date" class="form-control input-neu">
+                </div>
+                <div class="col-6">
+                  <label class="small text-muted">Fecha de Devolución:</label>
+                  <input type="date" id="book-end-date" class="form-control input-neu">
+                </div>
+              </div>
+
+              <!-- Desglose de Liquidación Dinámica -->
+              <div class="p-3 rounded" style="background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.08);">
+                <div class="d-flex justify-content-between mb-1">
+                  <span class="text-muted small">Días de uso:</span>
+                  <span id="quote-days" class="text-light fw-bold">0 días</span>
+                </div>
+                <div class="d-flex justify-content-between mb-1">
+                  <span class="text-muted small">Subtotal Alquiler:</span>
+                  <span id="quote-subtotal" class="text-light fw-bold">$ 0</span>
+                </div>
+                <div class="d-flex justify-content-between mb-1">
+                  <span class="text-muted small">Depósito de Garantía:</span>
+                  <span id="quote-deposit" class="text-info fw-bold">$ 0</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                  <span class="text-muted small">IVA (19%):</span>
+                  <span id="quote-iva" class="text-light fw-bold">$ 0</span>
+                </div>
+                <hr class="border-secondary my-2">
+                <div class="d-flex justify-content-between align-items-center">
+                  <span class="fw-bold text-light">TOTAL ESTIMADO:</span>
+                  <span id="quote-total" class="h4 text-warning fw-extrabold mb-0">$ 0</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-neu" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-neu-amber" onclick="App.proceedToPaymentFromBooking()">
+            <i class="fa fa-credit-card me-2"></i> Confirmar y Proceder al Pago
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL DE PAGO SIMULADO ==================== -->
+  <div class="modal fade" id="paymentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content glass-modal">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold text-warning"><i class="fa fa-shield-alt me-2"></i>Pasarela de Pago Segura</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="mb-3 text-center">
+            <h6 id="pay-tool-title" class="text-light mb-1">Equipo</h6>
+            <div id="pay-summary-total" class="h3 text-warning fw-extrabold">$ 0</div>
+            <div id="pay-summary-breakdown" class="small text-muted">Desglose</div>
+          </div>
+
+          <label class="small text-muted mb-2">Selecciona tu medio de pago:</label>
+          <div class="d-flex gap-2 mb-3">
+            <input type="radio" class="btn-check" name="paymentMethod" id="pay-pse" value="PSE" checked>
+            <label class="btn btn-neu flex-grow-1" for="pay-pse"><i class="fa fa-university me-1"></i> PSE</label>
+
+            <input type="radio" class="btn-check" name="paymentMethod" id="pay-card" value="CREDIT_CARD">
+            <label class="btn btn-neu flex-grow-1" for="pay-card"><i class="fa fa-credit-card me-1"></i> Tarjeta</label>
+
+            <input type="radio" class="btn-check" name="paymentMethod" id="pay-trans" value="BANK_TRANSFER">
+            <label class="btn btn-neu flex-grow-1" for="pay-trans"><i class="fa fa-exchange-alt me-1"></i> Transf.</label>
+          </div>
+
+          <!-- Campos PSE -->
+          <div id="pse-fields">
+            <div class="mb-3">
+              <label class="small text-muted">Banco:</label>
+              <select class="form-select input-neu">
+                <option>Bancolombia</option>
+                <option>Banco de Bogotá</option>
+                <option>Davivienda</option>
+                <option>Nequi</option>
+                <option>DaviPlata</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="small text-muted">Correo PSE registrado:</label>
+              <input type="email" class="form-control input-neu" placeholder="tu-correo@banco.com" value="cliente@constructora.com">
+            </div>
+          </div>
+
+          <!-- Campos Tarjeta -->
+          <div id="card-fields" style="display: none;">
+            <div class="mb-2">
+              <label class="small text-muted">Número de Tarjeta:</label>
+              <input type="text" class="form-control input-neu" placeholder="4500 •••• •••• 1234">
+            </div>
+            <div class="row g-2 mb-3">
+              <div class="col-6">
+                <input type="text" class="form-control input-neu" placeholder="MM/AA">
+              </div>
+              <div class="col-6">
+                <input type="password" class="form-control input-neu" placeholder="CVC" maxlength="4">
+              </div>
+            </div>
+          </div>
+
+          <!-- Campos Transferencia -->
+          <div id="transfer-fields" style="display: none;">
+            <div class="alert alert-dark border-secondary small text-muted">
+              Transfiere a la Cuenta Corriente Bancolombia No. 458-982145-02 a nombre de <strong>RentaTools Colombia SAS</strong>.
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-neu" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-neu-amber" onclick="App.submitPayment()">
+            <i class="fa fa-check-circle me-2"></i> Pagar y Emitir Factura
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL DE AUTENTICACIÓN (LOGIN / REGISTRO) ==================== -->
+  <div class="modal fade" id="authModal" tabindex="-1" aria-hidden="true" data-mode="login">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content glass-modal">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold text-warning" id="auth-modal-title">Iniciar Sesión</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <!-- Campos de Login -->
+          <div id="login-fields">
+            <div class="mb-3">
+              <label class="small text-muted">Usuario o Correo:</label>
+              <input type="text" id="login-id" class="form-control input-neu" placeholder="admin, proveedor o cliente" value="cliente">
+            </div>
+            <div class="mb-3">
+              <label class="small text-muted">Contraseña:</label>
+              <input type="password" id="login-pass" class="form-control input-neu" placeholder="Contraseña" value="Cliente123!">
+            </div>
+            <div class="small text-muted mb-3">
+              💡 <em>Usuarios demo: <code>admin</code> (Admin123!), <code>proveedor</code> (Proveedor123!), <code>cliente</code> (Cliente123!)</em>
+            </div>
+          </div>
+
+          <!-- Campos de Registro -->
+          <div id="register-fields" style="display: none;">
+            <div class="row g-2 mb-2">
+              <div class="col-6">
+                <label class="small text-muted">Usuario:</label>
+                <input type="text" id="reg-username" class="form-control input-neu" placeholder="usuario123">
+              </div>
+              <div class="col-6">
+                <label class="small text-muted">Rol:</label>
+                <select id="reg-role" class="form-select input-neu">
+                  <option value="ROLE_CLIENTE">Cliente Arrendatario</option>
+                  <option value="ROLE_PROVEEDOR">Proveedor Maquinaria</option>
+                </select>
+              </div>
+            </div>
+            <div class="mb-2">
+              <label class="small text-muted">Nombre Completo o Razón Social:</label>
+              <input type="text" id="reg-fullname" class="form-control input-neu" placeholder="Ej. Constructora Andina SAS">
+            </div>
+            <div class="row g-2 mb-2">
+              <div class="col-6">
+                <label class="small text-muted">Correo Electrónico:</label>
+                <input type="email" id="reg-email" class="form-control input-neu" placeholder="correo@empresa.com">
+              </div>
+              <div class="col-6">
+                <label class="small text-muted">Contraseña:</label>
+                <input type="password" id="reg-password" class="form-control input-neu" placeholder="Mínimo 6 caracteres">
+              </div>
+            </div>
+            <div class="row g-2 mb-2">
+              <div class="col-6">
+                <label class="small text-muted">NIT / Cédula:</label>
+                <input type="text" id="reg-taxid" class="form-control input-neu" placeholder="900.123.456-7">
+              </div>
+              <div class="col-6">
+                <label class="small text-muted">Teléfono Móvil:</label>
+                <input type="text" id="reg-phone" class="form-control input-neu" placeholder="+57 300 0000000">
+              </div>
+            </div>
+            <div class="mb-2">
+              <label class="small text-muted">Nombre de la Empresa:</label>
+              <input type="text" id="reg-company" class="form-control input-neu" placeholder="Opcional">
+            </div>
+            <div class="mb-3">
+              <label class="small text-muted">Dirección Operativa en Obra:</label>
+              <input type="text" id="reg-address" class="form-control input-neu" placeholder="Calle 100 # 15-20">
+            </div>
+          </div>
+
+          <div class="text-center mt-2">
+            <a href="#" id="auth-mode-toggle" class="small text-info text-decoration-none" onclick="App.toggleAuthMode(); return false;">
+              ¿No tienes cuenta? Regístrate aquí
+            </a>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-neu" data-bs-dismiss="modal">Cerrar</button>
+          <button type="button" class="btn btn-neu-amber" id="btn-auth-submit" onclick="App.submitAuth()">
+            Entrar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL DE INSPECCIÓN DE DEVOLUCIÓN (PROVEEDOR) ==================== -->
+  <div class="modal fade" id="returnInspectionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content glass-modal">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold text-warning"><i class="fa fa-clipboard-check me-2"></i>Acta de Devolución & Inspección Técnica</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <input type="hidden" id="return-rental-id">
+          <div class="mb-3">
+            <label class="small text-muted">Observaciones del estado mecánico y físico:</label>
+            <textarea id="return-notes" class="form-control input-neu" rows="3" placeholder="Equipo limpio, horómetro verificado, sin fugas hidráulicas..."></textarea>
+          </div>
+          <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" id="damage-check" onchange="document.getElementById('damage-cost-container').style.display = this.checked ? 'block' : 'none';">
+            <label class="form-check-label text-light small" for="damage-check">¿Se detectaron averías o daños fuera del desgaste normal?</label>
+          </div>
+          <div id="damage-cost-container" style="display: none;" class="mb-3">
+            <label class="small text-danger">Valor estimado de reparación (a descontar de la garantía):</label>
+            <input type="number" id="damage-cost" class="form-control input-neu" placeholder="0">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-neu" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-neu-cyan" onclick="App.submitReturnInspection()">
+            <i class="fa fa-save me-1"></i> Guardar Acta & Finalizar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts: Bootstrap, Leaflet, SockJS, Stomp, SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- Módulos de la Aplicación -->
+  <script src="js/api.js"></script>
+  <script src="js/websocket.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
