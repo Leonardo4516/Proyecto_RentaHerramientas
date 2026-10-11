@@ -69,7 +69,7 @@
         </ul>
 
         <!-- Lado Derecho: Estado WebSocket, Campana Notificaciones y Cuenta -->
-        <div class="d-flex align-items-center gap-2">
+        <div class="d-flex align-items-center gap-2 navbar-actions-group">
           <!-- Indicador WebSocket -->
           <span id="ws-status-indicator" class="badge bg-secondary">
             <i class="fa fa-plug me-1"></i> Conectando...
@@ -81,7 +81,7 @@
               <i class="fa fa-bell text-warning"></i>
               <span id="notif-badge" class="notification-badge" style="display: none;">0</span>
             </button>
-            <ul class="dropdown-menu dropdown-menu-end glass-modal p-2 shadow-lg" aria-labelledby="notifDropdown" id="notif-list" style="width: 320px;">
+            <ul class="dropdown-menu dropdown-menu-end glass-modal p-2 shadow-lg notification-dropdown-menu" aria-labelledby="notifDropdown" id="notif-list">
               <li class="dropdown-item text-muted text-center py-3">Sin notificaciones</li>
             </ul>
           </div>
@@ -173,7 +173,7 @@
 
       <!-- Mapa Interactivo Leaflet Embebido -->
       <div class="glass-panel p-3 mb-4">
-        <div class="d-flex justify-content-between align-items-center mb-2 px-2">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 px-2 gap-2">
           <span class="fw-bold text-light"><i class="fa fa-map-pin text-warning me-2"></i>Ubicación de Equipos y Radio de Entrega</span>
           <small class="text-muted"><i class="fa fa-circle text-info me-1"></i> Círculo cian representa tu zona de cobertura</small>
         </div>
@@ -245,28 +245,28 @@
 
       <!-- Tarjetas de Métricas -->
       <div class="row g-3 mb-4">
-        <div class="col-md-3">
+        <div class="col-12 col-sm-6 col-xl-3">
           <div class="glass-card stat-card">
             <span class="text-muted small text-uppercase">Ingresos Totales</span>
             <div class="stat-value text-warning" id="admin-total-revenue">$ 18.450.000</div>
             <span class="small text-success"><i class="fa fa-arrow-up me-1"></i>+14.2% este mes</span>
           </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-12 col-sm-6 col-xl-3">
           <div class="glass-card stat-card cyan">
             <span class="text-muted small text-uppercase">Alquileres Activos</span>
             <div class="stat-value text-info" id="admin-active-rentals">14</div>
             <span class="small text-muted">En obra actualmente</span>
           </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-12 col-sm-6 col-xl-3">
           <div class="glass-card stat-card">
             <span class="text-muted small text-uppercase">Tasa de Ocupación</span>
             <div class="stat-value text-light" id="admin-occupancy">76.5%</div>
             <span class="small text-warning">Flota en operación</span>
           </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-12 col-sm-6 col-xl-3">
           <div class="glass-card stat-card cyan">
             <span class="text-muted small text-uppercase">Usuarios Registrados</span>
             <div class="stat-value text-info" id="admin-total-users">45</div>
@@ -297,7 +297,7 @@
         <div class="modal-body p-4">
           <div class="row g-4">
             <div class="col-md-5">
-              <img id="book-tool-img" src="" class="img-fluid rounded mb-3 shadow" style="width: 100%; height: 160px; object-fit: cover;" alt="Equipo">
+              <img id="book-tool-img" src="" class="img-fluid rounded mb-3 shadow" style="width: 100%; height: 160px; object-fit: cover;" alt="Equipo" onerror="this.onerror=null; this.src=window.TOOL_FALLBACK_IMG;">
               <h5 id="book-tool-name" class="fw-bold text-light mb-1">Nombre</h5>
               <div class="text-muted small mb-2">Tarifa base: <span id="book-tool-rate" class="text-warning fw-bold"></span></div>
               <div class="text-muted small">Garantía retornable: <span id="book-tool-deposit" class="text-light fw-bold"></span></div>
@@ -305,11 +305,11 @@
             <div class="col-md-7">
               <h6 class="text-light fw-bold mb-3">Selecciona el periodo de alquiler:</h6>
               <div class="row g-2 mb-3">
-                <div class="col-6">
+                <div class="col-12 col-sm-6">
                   <label class="small text-muted">Fecha de Inicio:</label>
                   <input type="date" id="book-start-date" class="form-control input-neu">
                 </div>
-                <div class="col-6">
+                <div class="col-12 col-sm-6">
                   <label class="small text-muted">Fecha de Devolución:</label>
                   <input type="date" id="book-end-date" class="form-control input-neu">
                 </div>
@@ -457,11 +457,11 @@
           <!-- Campos de Registro -->
           <div id="register-fields" style="display: none;">
             <div class="row g-2 mb-2">
-              <div class="col-6">
+              <div class="col-12 col-sm-6">
                 <label class="small text-muted">Usuario:</label>
                 <input type="text" id="reg-username" class="form-control input-neu" placeholder="usuario123">
               </div>
-              <div class="col-6">
+              <div class="col-12 col-sm-6">
                 <label class="small text-muted">Rol:</label>
                 <select id="reg-role" class="form-select input-neu">
                   <option value="ROLE_CLIENTE">Cliente Arrendatario</option>
@@ -474,21 +474,21 @@
               <input type="text" id="reg-fullname" class="form-control input-neu" placeholder="Ej. Constructora Andina SAS">
             </div>
             <div class="row g-2 mb-2">
-              <div class="col-6">
+              <div class="col-12 col-sm-6">
                 <label class="small text-muted">Correo Electrónico:</label>
                 <input type="email" id="reg-email" class="form-control input-neu" placeholder="correo@empresa.com">
               </div>
-              <div class="col-6">
+              <div class="col-12 col-sm-6">
                 <label class="small text-muted">Contraseña:</label>
                 <input type="password" id="reg-password" class="form-control input-neu" placeholder="Mínimo 6 caracteres">
               </div>
             </div>
             <div class="row g-2 mb-2">
-              <div class="col-6">
+              <div class="col-12 col-sm-6">
                 <label class="small text-muted">NIT / Cédula:</label>
                 <input type="text" id="reg-taxid" class="form-control input-neu" placeholder="900.123.456-7">
               </div>
-              <div class="col-6">
+              <div class="col-12 col-sm-6">
                 <label class="small text-muted">Teléfono Móvil:</label>
                 <input type="text" id="reg-phone" class="form-control input-neu" placeholder="+57 300 0000000">
               </div>

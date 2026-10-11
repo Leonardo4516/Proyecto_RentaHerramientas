@@ -1,3 +1,6 @@
+const TOOL_FALLBACK_SVG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='400' viewBox='0 0 600 400'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%230f172a'/%3E%3Cstop offset='100%25' stop-color='%231e293b'/%3E%3C/linearGradient%3E%3ClinearGradient id='gold' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f59e0b'/%3E%3Cstop offset='100%25' stop-color='%23d97706'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='600' height='400' fill='url(%23bg)'/%3E%3Ccircle cx='300' cy='160' r='55' fill='none' stroke='url(%23gold)' stroke-width='4' stroke-dasharray='6 6' opacity='0.6'/%3E%3Cpath d='M275 145 h50 v25 h-50 z M265 170 h70 v15 h-70 z M280 125 h40 v20 h-40 z' fill='url(%23gold)'/%3E%3Ctext x='300' y='265' text-anchor='middle' fill='%23f8fafc' font-family='sans-serif' font-size='20' font-weight='700'%3ERENTATOOLS PRO%3C/text%3E%3Ctext x='300' y='295' text-anchor='middle' fill='%2394a3b8' font-family='sans-serif' font-size='13'%3EEquipo de Construcción Verificado%3C/text%3E%3C/svg%3E";
+window.TOOL_FALLBACK_IMG = TOOL_FALLBACK_SVG;
+
 const App = (() => {
   let allTools = [];
   let filteredTools = [];
@@ -107,7 +110,7 @@ const App = (() => {
       <div class="col-md-6 col-lg-4 mb-4">
         <div class="card glass-card h-100 p-0 overflow-hidden">
           <div class="position-relative">
-            <img src="${t.imageUrl || 'https://images.unsplash.com/photo-1579781354186-012d7cadb2b1?w=600'}" class="card-img-top" style="height: 200px; object-fit: cover;" alt="${t.name}">
+            <img src="${t.imageUrl || window.TOOL_FALLBACK_IMG}" class="card-img-top" style="height: 200px; object-fit: cover;" alt="${t.name}" onerror="this.onerror=null; this.src=window.TOOL_FALLBACK_IMG;">
             <div class="position-absolute top-0 start-0 m-3">
               <span class="badge ${t.status === 'DISPONIBLE' ? 'badge-available' : 'badge-rented'}">
                 <i class="fa ${t.status === 'DISPONIBLE' ? 'fa-check-circle' : 'fa-clock'} me-1"></i> ${t.status}
@@ -168,7 +171,11 @@ const App = (() => {
     document.getElementById('book-tool-name').textContent = tool.name;
     document.getElementById('book-tool-rate').textContent = `${API.formatCurrency(tool.dailyRate)} / día`;
     document.getElementById('book-tool-deposit').textContent = API.formatCurrency(tool.depositAmount);
-    document.getElementById('book-tool-img').src = tool.imageUrl || '';
+    const bookImg = document.getElementById('book-tool-img');
+    if (bookImg) {
+      bookImg.src = tool.imageUrl || window.TOOL_FALLBACK_IMG;
+      bookImg.onerror = function() { this.onerror = null; this.src = window.TOOL_FALLBACK_IMG; };
+    }
 
     // Fechas por defecto: Mañana y 4 días después
     const today = new Date();
@@ -494,8 +501,11 @@ const App = (() => {
 
     if (viewName === 'catalog') {
       setTimeout(() => {
-        if (MapManager) MapManager.init();
-      }, 100);
+        if (typeof MapManager !== 'undefined' && MapManager) {
+          MapManager.init();
+          if (MapManager.invalidateSize) MapManager.invalidateSize();
+        }
+      }, 150);
     } else if (viewName === 'client-dashboard') {
       loadClientRentals();
     } else if (viewName === 'provider-dashboard') {
