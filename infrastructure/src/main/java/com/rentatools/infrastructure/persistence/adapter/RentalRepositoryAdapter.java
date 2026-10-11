@@ -1,0 +1,88 @@
+package com.rentatools.infrastructure.persistence.adapter;
+
+import com.rentatools.domain.rental.BookingStatus;
+import com.rentatools.domain.rental.DateRange;
+import com.rentatools.domain.rental.RentalBooking;
+import com.rentatools.domain.rental.RentalRepository;
+import com.rentatools.infrastructure.persistence.entity.RentalEntity;
+import com.rentatools.infrastructure.persistence.repository.RentalJpaRepository;
+import org.springframework.stereotype.Component;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+@Component
+public class RentalRepositoryAdapter implements RentalRepository {
+
+    private final RentalJpaRepository rentalJpaRepository;
+
+    public RentalRepositoryAdapter(RentalJpaRepository rentalJpaRepository) {
+        this.rentalJpaRepository = rentalJpaRepository;
+    }
+
+    @Override
+    public RentalBooking save(RentalBooking domain) {
+        RentalEntity entity = new RentalEntity();
+        entity.setId(domain.getId());
+        entity.setClientId(domain.getClientId());
+        entity.setToolId(domain.getToolId());
+        entity.setStartDate(domain.getDateRange().startDate());
+        entity.setEndDate(domain.getDateRange().endDate());
+        entity.setTotalDays(domain.getDateRange().totalDays());
+        entity.setDailyRate(domain.getDailyRate());
+        entity.setDepositAmount(domain.getDepositAmount());
+        entity.setSubtotal(domain.getSubtotal());
+        entity.setStatus(domain.getStatus().name());
+        entity.setDeliveryAddress(domain.getDeliveryAddress());
+        entity.setNotes(domain.getNotes());
+        entity.setCreatedAt(domain.getCreatedAt());
+
+        RentalEntity saved = rentalJpaRepository.save(entity);
+        return toDomain(saved);
+    }
+
+    @Override
+    public Optional<RentalBooking> findById(UUID id) {
+        return rentalJpaRepository.findById(id).map(this::toDomain);
+    }
+
+    @Override
+    public List<RentalBooking> findByClientId(UUID clientId) {
+        return rentalJpaRepository.findByClientId(clientId).stream().map(this::toDomain).toList();
+    }
+
+    @Override
+    public List<RentalBooking> findByToolId(UUID toolId) {
+        return rentalJpaRepository.findByToolId(toolId).stream().map(this::toDomain).toList();
+    }
+
+    @Override
+    public List<RentalBooking> findActiveRentalsByToolId(UUID toolId) {
+        return rentalJpaRepository.findActiveRentalsByToolId(toolId).stream().map(this::toDomain).toList();
+    }
+
+    @Override
+    public boolean hasOverlappingBookings(UUID toolId, LocalDate startDate, LocalDate endDate) {
+        return rentalJpaRepository.existsOverlappingBooking(toolId, startDate, endDate);
+    }
+
+    private RentalBooking toDomain(RentalEntity e) {
+        DateRange dateRange = new DateRange(e.getStartDate(), e.getEndDate());
+        BookingStatus status = BookingStatus.valueOf(e.getStatus());
+        return new RentalBooking(
+                e.getId(),
+                e.getClientId(),
+                e.getToolId(),
+                dateRange,
+                e.getDailyRate(),
+                e.getDepositAmount(),
+                e.getSubtotal(),
+                status,
+                e.getDeliveryAddress(),
+                e.getNotes(),
+                e.getCreatedAt()
+        );
+    }
+}
