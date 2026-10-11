@@ -112,7 +112,7 @@ public class InfrastructureApplication {
                 invoice.setIssueDate(LocalDateTime.now().minusDays(1));
                 invoice.setDueDate(LocalDateTime.now().plusDays(2));
 
-                InvoiceItem item = new InvoiceItem(1L, 1L, "Retroexcavadora CAT 420F2", new BigDecimal("450000"), 3);
+                InvoiceItem item = new InvoiceItem(null, 1L, "Retroexcavadora CAT 420F2", new BigDecimal("450000"), 3);
                 invoice.addItem(item);
                 invoice.recalculateTotals();
 

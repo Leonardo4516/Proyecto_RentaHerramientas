@@ -78,7 +78,9 @@ public class InvoiceAdapter implements InvoiceRepository {
             List<InvoiceItemJpaEntity> itemEntities = new ArrayList<>();
             for (InvoiceItem item : inv.getItems()) {
                 InvoiceItemJpaEntity ie = new InvoiceItemJpaEntity();
-                ie.setId(item.getId());
+                if (inv.getId() != null) {
+                    ie.setId(item.getId());
+                }
                 ie.setToolId(item.getToolId());
                 ie.setToolName(item.getToolName());
                 ie.setDailyRate(item.getDailyRate());

@@ -47,10 +47,9 @@ public class GenerateInvoiceUseCase {
         invoice.setClientTaxId(request.getClientTaxId() != null ? request.getClientTaxId() : "900.000.000-1");
         invoice.setDepositAmount(request.getDepositAmount());
 
-        long itemId = 1;
         for (InvoiceItemDto itemDto : request.getItems()) {
             InvoiceItem item = new InvoiceItem(
-                    itemId++,
+                    null,
                     itemDto.getToolId(),
                     itemDto.getToolName(),
                     itemDto.getDailyRate(),
