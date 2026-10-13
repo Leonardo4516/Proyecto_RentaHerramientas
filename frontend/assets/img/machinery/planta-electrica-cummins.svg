@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500" fill="none">
+  <defs>
+    <linearGradient id="bgGen" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b1120" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    <linearGradient id="cumminsGreen" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#059669" />
+      <stop offset="100%" stop-color="#047857" />
+    </linearGradient>
+    <linearGradient id="panelDark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    <pattern id="gridGen" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <rect width="800" height="500" fill="url(#bgGen)" />
+  <rect width="800" height="500" fill="url(#gridGen)" />
+  <circle cx="400" cy="240" r="160" fill="rgba(5, 150, 105, 0.05)" />
+  <line x1="60" y1="420" x2="740" y2="420" stroke="rgba(245, 158, 11, 0.3)" stroke-width="2" stroke-dasharray="8 6" />
+
+  <!-- PLANTA ELÉCTRICA DIÉSEL 50kVA INSONORIZADA -->
+  <g transform="translate(180, 100)">
+    <!-- Cabina Insonorizada Silent Canopy -->
+    <rect x="40" y="50" width="360" height="230" rx="12" fill="url(#panelDark)" stroke="#059669" stroke-width="3" />
+
+    <!-- Franja Verde Cummins / Marca -->
+    <rect x="40" y="160" width="360" height="25" fill="url(#cumminsGreen)" />
+    <text x="220" y="177" text-anchor="middle" fill="#f8fafc" font-family="'Montserrat', sans-serif" font-size="12" font-weight="900" letter-spacing="3">CUMMINS POWER 50 kVA</text>
+
+    <!-- Puertas Laterales de Mantenimiento con Cerradura -->
+    <rect x="60" y="70" width="95" height="180" rx="6" fill="#0f172a" stroke="#334155" stroke-width="2" />
+    <circle cx="140" cy="160" r="4" fill="#f59e0b" />
+    <!-- Rejillas de Ventilación Acústica -->
+    <g fill="#1e293b">
+      <rect x="75" y="85" width="65" height="4" rx="2" />
+      <rect x="75" y="95" width="65" height="4" rx="2" />
+      <rect x="75" y="105" width="65" height="4" rx="2" />
+      <rect x="75" y="115" width="65" height="4" rx="2" />
+    </g>
+
+    <rect x="175" y="70" width="130" height="180" rx="6" fill="#0f172a" stroke="#334155" stroke-width="2" />
+    <circle cx="285" cy="160" r="4" fill="#f59e0b" />
+
+    <!-- Panel de Control Digital DeepSea / Pantalla LCD -->
+    <rect x="320" y="70" width="65" height="90" rx="4" fill="#020617" stroke="#38bdf8" stroke-width="2" />
+    <!-- Display LCD Azul -->
+    <rect x="328" y="80" width="49" height="30" rx="2" fill="rgba(6, 182, 212, 0.2)" stroke="#06b6d4" stroke-width="1" />
+    <text x="352" y="95" text-anchor="middle" fill="#38bdf8" font-family="monospace" font-size="9" font-weight="bold">220V 60Hz</text>
+    <text x="352" y="105" text-anchor="middle" fill="#10b981" font-family="monospace" font-size="8">READY 50kVA</text>
+    <!-- Botón Paro de Emergencia Tipo Hongo -->
+    <circle cx="352" cy="130" r="8" fill="#ef4444" stroke="#991b1b" stroke-width="1.5" />
+
+    <!-- Chasis Base con Tanque de Diésel Incorporado y Bolsillos para Montacargas -->
+    <rect x="30" y="275" width="380" height="35" rx="4" fill="#020617" stroke="#475569" stroke-width="2" />
+    <!-- Bolsillos para uñas de montacargas -->
+    <rect x="90" y="285" width="60" height="18" rx="2" fill="#334155" />
+    <rect x="290" y="285" width="60" height="18" rx="2" fill="#334155" />
+
+    <!-- Silenciador de Escape Superior con Tapa Antilluvia -->
+    <rect x="340" y="20" width="20" height="32" rx="2" fill="#64748b" />
+    <polygon points="335,20 365,20 350,8" fill="#94a3b8" />
+    <!-- Cáncamo Central de Izaje -->
+    <circle cx="220" cy="40" r="14" fill="none" stroke="#f59e0b" stroke-width="5" />
+  </g>
+
+  <!-- Ficha Técnica Inferior -->
+  <text x="400" y="445" text-anchor="middle" fill="#f8fafc" font-family="'Montserrat', system-ui, sans-serif" font-size="20" font-weight="800">PLANTA ELÉCTRICA DIÉSEL 50 kVA INSONORIZADA</text>
+  <text x="400" y="470" text-anchor="middle" fill="#94a3b8" font-family="'Inter', system-ui, sans-serif" font-size="13">Generador Trifásico 220V/440V • Cabina Acústica 68 dBA • Autonomía 12 Horas</text>
+</svg>

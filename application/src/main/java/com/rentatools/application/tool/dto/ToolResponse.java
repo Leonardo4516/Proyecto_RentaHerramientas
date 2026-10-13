@@ -56,7 +56,7 @@ public record ToolResponse(
     }
 
     public String getImageUrl() {
-        return images != null && !images.isEmpty() ? images.get(0) : "https://images.unsplash.com/photo-1578575437130-527eed3abbec?w=800&auto=format&fit=crop";
+        return images != null && !images.isEmpty() ? images.get(0) : "/assets/img/machinery/placeholder-tool.svg";
     }
 
     public String getCategory() {

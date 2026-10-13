@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500" fill="none">
+  <defs>
+    <linearGradient id="bgGraco" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b1120" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    <linearGradient id="gracoBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#1d4ed8" />
+    </linearGradient>
+    <linearGradient id="chromeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f8fafc" />
+      <stop offset="100%" stop-color="#94a3b8" />
+    </linearGradient>
+    <pattern id="gridGraco" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <rect width="800" height="500" fill="url(#bgGraco)" />
+  <rect width="800" height="500" fill="url(#gridGraco)" />
+  <circle cx="400" cy="240" r="160" fill="rgba(37, 99, 235, 0.05)" />
+  <line x1="60" y1="420" x2="740" y2="420" stroke="rgba(245, 158, 11, 0.3)" stroke-width="2" stroke-dasharray="8 6" />
+
+  <!-- EQUIPO DE PINTURA AIRLESS GRACO ULTRAMAX -->
+  <g transform="translate(200, 60)">
+    <!-- Carro Tubular de Transporte Cromado Hi-Boy -->
+    <path d="M80 60 L140 260 L230 260" stroke="url(#chromeGrad)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M70 60 L90 60" stroke="#0f172a" stroke-width="10" stroke-linecap="round" />
+
+    <!-- Enrollador de Manguera Superior -->
+    <rect x="70" y="110" width="30" height="60" rx="4" fill="#334155" stroke="#64748b" stroke-width="2" />
+    <path d="M75 120 C110 120 110 160 75 160" stroke="#3b82f6" stroke-width="4" fill="none" />
+
+    <!-- Bloque Motor Eléctrico MaxPower Graco Azul -->
+    <rect x="130" y="110" width="130" height="85" rx="8" fill="url(#gracoBlue)" stroke="#60a5fa" stroke-width="2" />
+    <text x="195" y="150" text-anchor="middle" fill="#ffffff" font-family="sans-serif" font-size="18" font-weight="900" letter-spacing="1">GRACO</text>
+    <text x="195" y="172" text-anchor="middle" fill="#93c5fd" font-family="sans-serif" font-size="11" font-weight="bold">Ultra Max II 695</text>
+
+    <!-- Pantalla Digital SmartControl de Presión (PSI) -->
+    <rect x="215" y="125" width="40" height="25" rx="3" fill="#0f172a" stroke="#38bdf8" stroke-width="1.5" />
+    <text x="235" y="142" text-anchor="middle" fill="#38bdf8" font-family="monospace" font-size="9" font-weight="bold">3300</text>
+
+    <!-- Bomba de Pistón Endurance Cromada ProConnect -->
+    <rect x="150" y="195" width="40" height="70" rx="4" fill="url(#chromeGrad)" stroke="#475569" stroke-width="2" />
+    <line x1="150" y1="220" x2="190" y2="220" stroke="#334155" stroke-width="3" />
+    <!-- Válvula de Cebado / Drenaje Prime/Spray -->
+    <circle cx="135" cy="225" r="8" fill="#ef4444" stroke="#ffffff" stroke-width="1.5" />
+
+    <!-- Tubo de Succión Rígido con Filtro de Malla al Cubo -->
+    <path d="M170 265 L170 345 L150 365" stroke="#cbd5e1" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+    <rect x="135" y="360" width="25" height="18" rx="3" fill="#64748b" stroke="#e2e8f0" stroke-width="1.5" />
+    <!-- Manguera de Retorno Transparente -->
+    <path d="M135 235 L125 350" stroke="#38bdf8" stroke-width="3" stroke-dasharray="3 3" />
+
+    <!-- Manguera BlueMax II de Alta Presión de 15 Metros -->
+    <path d="M190 240 Q250 250 290 190 Q330 130 380 180" fill="none" stroke="#2563eb" stroke-width="6" stroke-linecap="round" />
+
+    <!-- Pistola de Pulverización Graco Contractor PC -->
+    <g transform="translate(370, 160) rotate(15)">
+      <path d="M0 0 L20 0 L15 35 L0 35 Z" fill="#334155" stroke="#64748b" stroke-width="1.5" />
+      <line x1="12" y1="12" x2="8" y2="28" stroke="#38bdf8" stroke-width="3" stroke-linecap="round" />
+      <line x1="20" y1="5" x2="60" y2="5" stroke="#e2e8f0" stroke-width="5" stroke-linecap="round" />
+      <!-- Boquilla RAC X Azul con Portaboquillas -->
+      <polygon points="60,0 72,5 60,10" fill="#2563eb" stroke="#60a5fa" stroke-width="1" />
+      <!-- Abanico de Pulverización Atomizada de Pintura Ultra Fina -->
+      <path d="M72 5 L135 -25 L135 35 Z" fill="rgba(59, 130, 246, 0.3)" />
+      <line x1="72" y1="5" x2="135" y2="5" stroke="#93c5fd" stroke-width="1.5" stroke-dasharray="3 2" />
+    </g>
+
+    <!-- Rueda Semineumática con Rayos Cromados -->
+    <g transform="translate(230, 310)">
+      <circle cx="0" cy="0" r="48" fill="#0f172a" stroke="#475569" stroke-width="4" />
+      <circle cx="0" cy="0" r="26" fill="url(#chromeGrad)" stroke="#94a3b8" stroke-width="2" />
+      <circle cx="0" cy="0" r="10" fill="#2563eb" />
+      <line x1="-20" y1="0" x2="20" y2="0" stroke="#475569" stroke-width="2" />
+      <line x1="0" y1="-20" x2="0" y2="20" stroke="#475569" stroke-width="2" />
+    </g>
+
+    <!-- Patas de Apoyo Frontales con Regatones de Goma -->
+    <line x1="140" y1="260" x2="130" y2="340" stroke="url(#chromeGrad)" stroke-width="8" stroke-linecap="round" />
+    <rect x="120" y="340" width="20" height="15" rx="3" fill="#0f172a" />
+  </g>
+
+  <!-- Placa Informativa -->
+  <g transform="translate(400, 435)">
+    <rect x="-190" y="0" width="380" height="42" rx="21" fill="rgba(15, 23, 42, 0.9)" stroke="#2563eb" stroke-width="1.5" />
+    <text x="0" y="26" text-anchor="middle" fill="#f8fafc" font-family="sans-serif" font-size="14" font-weight="bold" letter-spacing="1">EQUIPO DE PINTURA AIRLESS • GRACO ULTRAMAX</text>
+  </g>
+</svg>

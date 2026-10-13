@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500" fill="none">
+  <defs>
+    <linearGradient id="bgComp" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b1120" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    <linearGradient id="sullairGreen" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#16a34a" />
+      <stop offset="100%" stop-color="#15803d" />
+    </linearGradient>
+    <linearGradient id="canopyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f8fafc" />
+      <stop offset="100%" stop-color="#cbd5e1" />
+    </linearGradient>
+    <pattern id="gridComp" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <rect width="800" height="500" fill="url(#bgComp)" />
+  <rect width="800" height="500" fill="url(#gridComp)" />
+  <circle cx="400" cy="240" r="160" fill="rgba(22, 163, 74, 0.05)" />
+  <line x1="60" y1="420" x2="740" y2="420" stroke="rgba(245, 158, 11, 0.3)" stroke-width="2" stroke-dasharray="8 6" />
+
+  <!-- COMPRESOR PORTÁTIL DE AIRE DIÉSEL 185 CFM SULLAIR -->
+  <g transform="translate(180, 100)">
+    <!-- Chasis / Carrocería Tipo Remolque -->
+    <!-- Carcasa Canopy Principal -->
+    <path d="M70 120 Q70 80 120 80 L320 80 Q350 80 350 120 L350 250 L60 250 L60 140 Z" fill="url(#canopyGrad)" stroke="#64748b" stroke-width="3" />
+    
+    <!-- Franja Verde Sullair -->
+    <path d="M60 210 L350 210 L350 245 L60 245 Z" fill="url(#sullairGreen)" />
+    <text x="205" y="235" text-anchor="middle" fill="#ffffff" font-family="sans-serif" font-size="18" font-weight="900" letter-spacing="2">SULLAIR 185</text>
+
+    <!-- Rejillas de Ventilación Frontales y Laterales -->
+    <g fill="#0f172a">
+      <rect x="90" y="110" width="10" height="70" rx="3" />
+      <rect x="110" y="110" width="10" height="70" rx="3" />
+      <rect x="130" y="110" width="10" height="70" rx="3" />
+      <rect x="150" y="110" width="10" height="70" rx="3" />
+    </g>
+
+    <!-- Panel de Control y Válvulas Neumáticas Traseras -->
+    <rect x="290" y="120" width="45" height="65" rx="4" fill="#0f172a" stroke="#f59e0b" stroke-width="2" />
+    <circle cx="312" cy="140" r="10" fill="#38bdf8" stroke="#ffffff" stroke-width="1.5" />
+    <!-- Válvulas de Salida de Aire 3/4" Chicago Couplings -->
+    <circle cx="305" cy="168" r="5" fill="#f59e0b" />
+    <circle cx="320" cy="168" r="5" fill="#f59e0b" />
+
+    <!-- Escape / Silenciador Superior -->
+    <rect x="230" y="55" width="20" height="28" rx="4" fill="#334155" stroke="#94a3b8" stroke-width="1.5" />
+    <path d="M225 55 L255 55" stroke="#475569" stroke-width="3" />
+
+    <!-- Lanza de Remolque con Enganche de Ojo / Bola -->
+    <path d="M60 250 L-40 290 L-70 290" stroke="#f59e0b" stroke-width="6" stroke-linecap="round" />
+    <!-- Rueda Jockey de Apoyo -->
+    <line x1="-30" y1="290" x2="-30" y2="330" stroke="#64748b" stroke-width="4" />
+    <circle cx="-30" cy="335" r="10" fill="#0f172a" stroke="#94a3b8" stroke-width="2" />
+    <circle cx="-75" cy="290" r="7" fill="none" stroke="#f59e0b" stroke-width="4" />
+
+    <!-- Parachoques y Luces Traseras -->
+    <rect x="350" y="240" width="15" height="20" fill="#ef4444" stroke="#7f1d1d" stroke-width="1.5" />
+
+    <!-- Guardabarros y Eje con Neumáticos -->
+    <path d="M150 250 A 65 65 0 0 1 290 250 Z" fill="#0f172a" stroke="#475569" stroke-width="2" />
+    
+    <!-- Rueda de Alta Velocidad para Carretera -->
+    <g transform="translate(220, 275)">
+      <circle cx="0" cy="0" r="52" fill="#0f172a" stroke="#475569" stroke-width="4" />
+      <circle cx="0" cy="0" r="30" fill="#e2e8f0" stroke="#94a3b8" stroke-width="2" />
+      <circle cx="0" cy="0" r="10" fill="#0f172a" />
+      <!-- Pernos de Rin -->
+      <circle cx="-16" cy="0" r="3" fill="#64748b" />
+      <circle cx="16" cy="0" r="3" fill="#64748b" />
+      <circle cx="0" cy="-16" r="3" fill="#64748b" />
+      <circle cx="0" cy="16" r="3" fill="#64748b" />
+    </g>
+  </g>
+
+  <!-- Placa Informativa -->
+  <g transform="translate(400, 435)">
+    <rect x="-190" y="0" width="380" height="42" rx="21" fill="rgba(15, 23, 42, 0.9)" stroke="#16a34a" stroke-width="1.5" />
+    <text x="0" y="26" text-anchor="middle" fill="#f8fafc" font-family="sans-serif" font-size="14" font-weight="bold" letter-spacing="1">COMPRESOR DIÉSEL 185 CFM • SULLAIR</text>
+  </g>
+</svg>

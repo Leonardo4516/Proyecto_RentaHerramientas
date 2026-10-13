@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500" fill="none">
+  <defs>
+    <linearGradient id="bgAlla" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b1120" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    <linearGradient id="wackerGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#facc15" />
+      <stop offset="100%" stop-color="#ca8a04" />
+    </linearGradient>
+    <pattern id="gridAlla" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <rect width="800" height="500" fill="url(#bgAlla)" />
+  <rect width="800" height="500" fill="url(#gridAlla)" />
+  <circle cx="400" cy="240" r="160" fill="rgba(250, 204, 21, 0.05)" />
+  <line x1="60" y1="420" x2="740" y2="420" stroke="rgba(245, 158, 11, 0.3)" stroke-width="2" stroke-dasharray="8 6" />
+
+  <!-- ALLANADORA DE CONCRETO HELICÓPTERO WACKER NEUSON CT 36 -->
+  <g transform="translate(240, 70)">
+    <!-- Aro Protector Circular de Aspas (Diámetro 36") -->
+    <ellipse cx="160" cy="300" rx="150" ry="45" fill="none" stroke="#64748b" stroke-width="6" />
+    <ellipse cx="160" cy="300" rx="140" ry="40" fill="none" stroke="#475569" stroke-width="2" stroke-dasharray="6 4" />
+
+    <!-- 4 Aspas / Paletas de Pulido y Acabado -->
+    <g transform="translate(160, 300)">
+      <polygon points="0,0 120,-15 130,-5 10,10" fill="#94a3b8" stroke="#f8fafc" stroke-width="1.5" />
+      <polygon points="0,0 -120,15 -130,5 -10,-10" fill="#94a3b8" stroke="#f8fafc" stroke-width="1.5" />
+      <polygon points="0,0 10,-35 25,-32 15,0" fill="#cbd5e1" stroke="#f8fafc" stroke-width="1.5" />
+      <polygon points="0,0 -10,35 -25,32 -15,0" fill="#cbd5e1" stroke="#f8fafc" stroke-width="1.5" />
+      <!-- Caja de Engranajes Central -->
+      <circle cx="0" cy="0" r="22" fill="#0f172a" stroke="#ca8a04" stroke-width="3" />
+      <circle cx="0" cy="0" r="10" fill="#ca8a04" />
+    </g>
+
+    <!-- Motor Honda GX160 a Gasolina Central -->
+    <rect x="110" y="150" width="100" height="90" rx="8" fill="#dc2626" stroke="#991b1b" stroke-width="2" />
+    <!-- Tapa y Filtro Ciclónico -->
+    <rect x="90" y="165" width="25" height="40" rx="4" fill="#0f172a" />
+    <!-- Tanque de Combustible Superior -->
+    <rect x="120" y="125" width="80" height="30" rx="6" fill="#f8fafc" stroke="#64748b" stroke-width="1.5" />
+    <!-- Escape Protector Metálico -->
+    <rect x="205" y="165" width="20" height="35" rx="3" fill="#334155" stroke="#f59e0b" stroke-width="1" />
+
+    <!-- Columna y Mástil de Control -->
+    <path d="M160 180 L160 80 L70 30" fill="none" stroke="#ca8a04" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M160 180 L160 80 L70 30" fill="none" stroke="#facc15" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+
+    <!-- Manillar Tipo Bicicleta Ergonómico -->
+    <g transform="translate(70, 30)">
+      <line x1="-35" y1="-15" x2="35" y2="15" stroke="#0f172a" stroke-width="10" stroke-linecap="round" />
+      <!-- Puños de Goma con Absorción -->
+      <circle cx="-35" cy="-15" r="8" fill="#ca8a04" />
+      <circle cx="35" cy="15" r="8" fill="#ca8a04" />
+      <!-- Perilla de Inclinación de Aspas (Pitch Control) -->
+      <circle cx="0" cy="0" r="14" fill="#0f172a" stroke="#f59e0b" stroke-width="3" />
+      <!-- Palanca de Hombre Muerto (Seguridad) -->
+      <path d="M-25 -5 L25 15" stroke="#ef4444" stroke-width="3" />
+    </g>
+  </g>
+
+  <!-- Ficha Técnica Inferior -->
+  <text x="400" y="445" text-anchor="middle" fill="#f8fafc" font-family="'Montserrat', system-ui, sans-serif" font-size="20" font-weight="800">ALLANADORA DE CONCRETO HELICÓPTERO 36"</text>
+  <text x="400" y="470" text-anchor="middle" fill="#94a3b8" font-family="'Inter', system-ui, sans-serif" font-size="13">Diámetro de Rotor 915 mm • Motor 5.5 hp • Control de Inclinación Mecánico</text>
+</svg>

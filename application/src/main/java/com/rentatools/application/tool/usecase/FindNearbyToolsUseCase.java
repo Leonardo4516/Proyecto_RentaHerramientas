@@ -28,7 +28,10 @@ public class FindNearbyToolsUseCase {
                             .filter(ToolImage::isCover)
                             .map(ToolImage::getImageUrl)
                             .findFirst()
-                            .orElse(t.getImages().isEmpty() ? null : t.getImages().get(0).getImageUrl());
+                            .orElse(t.getImages().isEmpty() ? "/assets/img/machinery/placeholder-tool.svg" : t.getImages().get(0).getImageUrl());
+                    if (cover == null || cover.isBlank()) {
+                        cover = "/assets/img/machinery/placeholder-tool.svg";
+                    }
                     return new NearbyToolResponse(
                             t.getId(),
                             t.getCode(),

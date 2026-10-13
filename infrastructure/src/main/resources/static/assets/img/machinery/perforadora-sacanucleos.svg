@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500" fill="none">
+  <defs>
+    <linearGradient id="bgHilti" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b1120" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    <linearGradient id="hiltiRed" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#dc2626" />
+      <stop offset="100%" stop-color="#991b1b" />
+    </linearGradient>
+    <linearGradient id="coreBit" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#cbd5e1" />
+      <stop offset="100%" stop-color="#64748b" />
+    </linearGradient>
+    <pattern id="gridHilti" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <rect width="800" height="500" fill="url(#bgHilti)" />
+  <rect width="800" height="500" fill="url(#gridHilti)" />
+  <circle cx="400" cy="240" r="160" fill="rgba(220, 38, 38, 0.05)" />
+  <line x1="60" y1="420" x2="740" y2="420" stroke="rgba(245, 158, 11, 0.3)" stroke-width="2" stroke-dasharray="8 6" />
+
+  <!-- PERFORADORA SACANÚCLEOS DIAMANTADA HILTI DD 250 -->
+  <g transform="translate(230, 40)">
+    <!-- Base de Anclaje de Columna al Piso / Ventosa de Vacío -->
+    <rect x="20" y="340" width="160" height="24" rx="4" fill="#334155" stroke="#64748b" stroke-width="2" />
+    <!-- Tornillos Niveladores de Base -->
+    <circle cx="35" cy="352" r="6" fill="#f59e0b" />
+    <circle cx="165" cy="352" r="6" fill="#f59e0b" />
+    <circle cx="100" cy="352" r="8" fill="#0f172a" stroke="#ef4444" stroke-width="2" />
+
+    <!-- Columna / Carril Dentado de Perforación Pesado -->
+    <rect x="85" y="40" width="30" height="300" rx="3" fill="#cbd5e1" stroke="#475569" stroke-width="2" />
+    <!-- Cremallera de Avance Mecánico -->
+    <line x1="110" y1="45" x2="110" y2="335" stroke="#0f172a" stroke-width="4" stroke-dasharray="3 3" />
+    <text x="100" y="55" text-anchor="middle" fill="#0f172a" font-family="sans-serif" font-size="9" font-weight="bold">TOP</text>
+
+    <!-- Tirante de Apoyo Posterior Inclinado -->
+    <line x1="100" y1="120" x2="40" y2="340" stroke="#64748b" stroke-width="6" stroke-linecap="round" />
+
+    <!-- Carro de Desplazamiento y Motor Hilti Rojo DD 250 -->
+    <g transform="translate(100, 110)">
+      <!-- Carro Guía sobre Columna -->
+      <rect x="0" y="0" width="35" height="110" rx="4" fill="#1e293b" stroke="#f59e0b" stroke-width="2" />
+      <!-- Volante de Avance en Estrella (Maneral 3 Brazos) -->
+      <circle cx="-15" cy="40" r="12" fill="#0f172a" stroke="#f59e0b" stroke-width="2" />
+      <line x1="-35" y1="40" x2="5" y2="40" stroke="#f59e0b" stroke-width="4" stroke-linecap="round" />
+      <line x1="-15" y1="20" x2="-15" y2="60" stroke="#f59e0b" stroke-width="4" stroke-linecap="round" />
+
+      <!-- Bloque Motor Eléctrico 3200W Hilti Rojo -->
+      <path d="M35 15 L145 15 Q155 15 155 25 L155 90 Q155 100 145 100 L35 100 Z" fill="url(#hiltiRed)" stroke="#ef4444" stroke-width="2" />
+      <text x="95" y="55" text-anchor="middle" fill="#ffffff" font-family="sans-serif" font-size="20" font-weight="900" letter-spacing="1">HILTI</text>
+      <text x="95" y="75" text-anchor="middle" fill="#fef2f2" font-family="sans-serif" font-size="11" font-weight="bold">DD 250</text>
+
+      <!-- Entrada de Agua para Refrigeración de Broca con Válvula -->
+      <rect x="145" y="45" width="20" height="12" rx="2" fill="#38bdf8" />
+      <circle cx="165" cy="51" r="5" fill="#0284c7" />
+
+      <!-- Caja de Cambios de 4 Velocidades y Eje Husillo -->
+      <path d="M120 100 L120 125 L150 125 L150 100 Z" fill="#334155" stroke="#64748b" stroke-width="1.5" />
+      <rect x="125" y="125" width="20" height="15" fill="#f59e0b" />
+
+      <!-- Broca Sacanúcleos Diamantada Cilindro 300mm -->
+      <rect x="100" y="140" width="70" height="140" rx="3" fill="url(#coreBit)" stroke="#475569" stroke-width="2" />
+      <!-- Estrías de Evacuación de Lodos -->
+      <line x1="120" y1="150" x2="120" y2="270" stroke="#334155" stroke-width="2" stroke-dasharray="6 4" />
+      <line x1="150" y1="150" x2="150" y2="270" stroke="#334155" stroke-width="2" stroke-dasharray="6 4" />
+      <!-- Segmentos de Diamante Soldados con Láser en la Corona -->
+      <rect x="100" y="275" width="70" height="12" fill="#f59e0b" stroke="#d97706" stroke-width="1.5" />
+      <g fill="#0f172a">
+        <rect x="104" y="278" width="6" height="8" rx="1" />
+        <rect x="118" y="278" width="6" height="8" rx="1" />
+        <rect x="132" y="278" width="6" height="8" rx="1" />
+        <rect x="146" y="278" width="6" height="8" rx="1" />
+        <rect x="160" y="278" width="6" height="8" rx="1" />
+      </g>
+      <!-- Gotas / Aspersión de Agua Refrigerante -->
+      <circle cx="95" cy="285" r="3" fill="#38bdf8" />
+      <circle cx="175" cy="285" r="3" fill="#38bdf8" />
+    </g>
+  </g>
+
+  <!-- Placa Informativa -->
+  <g transform="translate(400, 435)">
+    <rect x="-190" y="0" width="380" height="42" rx="21" fill="rgba(15, 23, 42, 0.9)" stroke="#dc2626" stroke-width="1.5" />
+    <text x="0" y="26" text-anchor="middle" fill="#f8fafc" font-family="sans-serif" font-size="14" font-weight="bold" letter-spacing="1">PERFORADORA DIAMANTADA • HILTI DD 250</text>
+  </g>
+</svg>
