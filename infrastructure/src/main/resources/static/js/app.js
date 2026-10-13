@@ -434,6 +434,11 @@ const App = (() => {
 
     try {
       const rentals = await API.rentals.getAll();
+      if (!rentals || rentals.length === 0) {
+        container.innerHTML = `<tr><td colspan="7" class="text-center text-slate-300 py-4"><i class="fa fa-inbox me-2 text-warning"></i>No hay solicitudes de alquiler registradas actualmente</td></tr>`;
+        return;
+      }
+
       container.innerHTML = rentals.map(r => `
         <tr>
           <td>#${r.id}</td>
@@ -542,8 +547,14 @@ const App = (() => {
     const targetView = document.getElementById(`view-${viewName}`);
     if (targetView) targetView.style.display = 'block';
 
-    const targetNav = document.getElementById(`nav-${viewName}`);
-    if (targetNav) targetNav.classList.add('active');
+    const targetNavLink = document.getElementById(`nav-${viewName}-link`) || document.getElementById(`nav-${viewName}`);
+    if (targetNavLink) {
+      if (targetNavLink.classList.contains('nav-link')) {
+        targetNavLink.classList.add('active');
+      } else {
+        targetNavLink.querySelector('.nav-link')?.classList.add('active');
+      }
+    }
 
     if (viewName === 'catalog') {
       const mapCollapseEl = document.getElementById('map-collapse-container');
@@ -573,12 +584,19 @@ const App = (() => {
     const dropdownNameEl = document.getElementById('nav-user-dropdown-name');
     const dropdownEmailEl = document.getElementById('nav-user-dropdown-email');
     const roleBadge = document.getElementById('nav-user-role-badge');
+    const clientDropdownItem = document.getElementById('dropdown-client-item');
     const providerDropdownItem = document.getElementById('dropdown-provider-item');
     const adminDropdownItem = document.getElementById('dropdown-admin-item');
 
     if (user) {
-      if (guestNav) guestNav.style.display = 'none';
-      if (userNav) userNav.style.display = 'block';
+      if (guestNav) {
+        guestNav.style.setProperty('display', 'none', 'important');
+        guestNav.classList.add('d-none');
+      }
+      if (userNav) {
+        userNav.style.setProperty('display', 'block', 'important');
+        userNav.classList.remove('d-none');
+      }
 
       const displayName = user.fullName || user.username || 'Usuario';
       // Primer nombre para la píldora compacta
@@ -625,12 +643,19 @@ const App = (() => {
         if (clientHeaderTitle) clientHeaderTitle.textContent = 'Mis Alquileres & Facturación';
       }
 
-      // Enlaces contextuales en el menú desplegable del avatar
+      // Enlaces contextuales en el menú desplegable del avatar (Cliente, Proveedor, Admin)
+      if (clientDropdownItem) clientDropdownItem.style.display = (user.role === 'ROLE_CLIENTE' || user.role === 'ROLE_ADMIN') ? 'block' : 'none';
       if (providerDropdownItem) providerDropdownItem.style.display = (user.role === 'ROLE_PROVEEDOR' || user.role === 'ROLE_ADMIN') ? 'block' : 'none';
       if (adminDropdownItem) adminDropdownItem.style.display = (user.role === 'ROLE_ADMIN') ? 'block' : 'none';
     } else {
-      if (guestNav) guestNav.style.display = 'flex';
-      if (userNav) userNav.style.display = 'none';
+      if (guestNav) {
+        guestNav.style.setProperty('display', 'flex', 'important');
+        guestNav.classList.remove('d-none');
+      }
+      if (userNav) {
+        userNav.style.setProperty('display', 'none', 'important');
+        userNav.classList.add('d-none');
+      }
 
       const clientNav = document.getElementById('nav-client-dashboard');
       const providerNav = document.getElementById('nav-provider-dashboard');
@@ -638,6 +663,10 @@ const App = (() => {
       if (clientNav) clientNav.style.display = 'none';
       if (providerNav) providerNav.style.display = 'none';
       if (adminNav) adminNav.style.display = 'none';
+
+      if (clientDropdownItem) clientDropdownItem.style.display = 'none';
+      if (providerDropdownItem) providerDropdownItem.style.display = 'none';
+      if (adminDropdownItem) adminDropdownItem.style.display = 'none';
 
       const clientNavLabel = document.getElementById('nav-client-dashboard-label');
       const clientDropdownLabel = document.getElementById('dropdown-client-label');

@@ -740,11 +740,33 @@ label.text-muted {
   color: #fbbf24 !important;
 }
 
+/* --- GUEST & USER ACTIONS VISIBILITY --- */
+.guest-actions-group,
+#nav-guest-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#nav-guest-actions.d-none,
+#nav-guest-actions[style*="none"] {
+  display: none !important;
+}
+
+#nav-user-actions.d-none,
+#nav-user-actions[style*="none"] {
+  display: none !important;
+}
+
 /* --- NOTIFICATIONS BELL & DROPDOWN --- */
 .notification-bell {
   position: relative;
   cursor: pointer;
   padding: 8px 12px;
+}
+
+.notification-bell.dropdown-toggle::after {
+  display: none !important;
 }
 
 .notification-badge {

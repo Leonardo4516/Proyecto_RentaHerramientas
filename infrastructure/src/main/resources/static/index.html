@@ -77,7 +77,7 @@
           </div>
 
           <!-- Acciones de Invitado -->
-          <div id="nav-guest-actions" class="d-flex gap-2">
+          <div id="nav-guest-actions" class="guest-actions-group">
             <button class="btn btn-neu btn-sm px-3" onclick="App.openAuthModal('login')">
               <i class="fa fa-sign-in-alt me-1"></i> Iniciar Sesión
             </button>
@@ -100,7 +100,7 @@
                   <span id="nav-user-role-badge" class="badge badge-role">CLIENTE</span>
                 </div>
               </li>
-              <li><a class="dropdown-item text-light" href="#" onclick="App.switchView('client-dashboard'); return false;"><i class="fa fa-history me-2 text-warning"></i><span id="dropdown-client-label">Mis Alquileres & Facturas</span></a></li>
+              <li id="dropdown-client-item"><a class="dropdown-item text-light" href="#" onclick="App.switchView('client-dashboard'); return false;"><i class="fa fa-history me-2 text-warning"></i><span id="dropdown-client-label">Mis Alquileres & Facturas</span></a></li>
               <li id="dropdown-provider-item" style="display: none;"><a class="dropdown-item text-light" href="#" onclick="App.switchView('provider-dashboard'); return false;"><i class="fa fa-dolly-flatbed me-2 text-warning"></i>Gestión Proveedor</a></li>
               <li id="dropdown-admin-item" style="display: none;"><a class="dropdown-item text-light" href="#" onclick="App.switchView('admin-dashboard'); return false;"><i class="fa fa-chart-line me-2 text-warning"></i>Panel Admin</a></li>
               <li><hr class="dropdown-divider border-secondary border-opacity-25 my-1"></li>
