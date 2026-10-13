@@ -1,13 +1,12 @@
 package com.rentatools.infrastructure.persistence.entity;
 
 import jakarta.persistence.*;
-import java.util.UUID;
-
 @Entity
 @Table(name = "tool_specifications")
 public class ToolSpecificationEntity {
     @Id
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tool_id", nullable = false)
@@ -21,15 +20,15 @@ public class ToolSpecificationEntity {
 
     public ToolSpecificationEntity() {}
 
-    public ToolSpecificationEntity(UUID id, ToolEntity tool, String specName, String specValue) {
+    public ToolSpecificationEntity(Long id, ToolEntity tool, String specName, String specValue) {
         this.id = id;
         this.tool = tool;
         this.specName = specName;
         this.specValue = specValue;
     }
 
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
     public ToolEntity getTool() { return tool; }
     public void setTool(ToolEntity tool) { this.tool = tool; }
     public String getSpecName() { return specName; }

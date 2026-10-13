@@ -13,8 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
-
 @Component
 public class ToolRepositoryAdapter implements ToolRepository {
 
@@ -68,7 +66,7 @@ public class ToolRepositoryAdapter implements ToolRepository {
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<Tool> findById(UUID id) {
+    public Optional<Tool> findById(Long id) {
         return toolJpaRepository.findById(id).map(this::toDomain);
     }
 
@@ -86,13 +84,13 @@ public class ToolRepositoryAdapter implements ToolRepository {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Tool> findByCategoryId(UUID categoryId) {
+    public List<Tool> findByCategoryId(Long categoryId) {
         return toolJpaRepository.findByCategoryId(categoryId).stream().map(this::toDomain).toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<Tool> findByProviderId(UUID providerId) {
+    public List<Tool> findByProviderId(Long providerId) {
         return toolJpaRepository.findByProviderId(providerId).stream().map(this::toDomain).toList();
     }
 

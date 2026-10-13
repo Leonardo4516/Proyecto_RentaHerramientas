@@ -6,12 +6,10 @@ import com.rentatools.domain.tool.ToolSpecification;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
-
 public record ToolResponse(
-        UUID id,
-        UUID providerId,
-        UUID categoryId,
+        Long id,
+        Long providerId,
+        Long categoryId,
         String code,
         String name,
         String brand,

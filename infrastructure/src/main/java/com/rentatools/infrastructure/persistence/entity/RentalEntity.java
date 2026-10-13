@@ -4,19 +4,18 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.UUID;
-
 @Entity
 @Table(name = "rentals")
 public class RentalEntity {
     @Id
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @Column(name = "client_id", nullable = false)
-    private UUID clientId;
+    private Long clientId;
 
     @Column(name = "tool_id", nullable = false)
-    private UUID toolId;
+    private Long toolId;
 
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate;
@@ -50,12 +49,12 @@ public class RentalEntity {
 
     public RentalEntity() {}
 
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
-    public UUID getClientId() { return clientId; }
-    public void setClientId(UUID clientId) { this.clientId = clientId; }
-    public UUID getToolId() { return toolId; }
-    public void setToolId(UUID toolId) { this.toolId = toolId; }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public Long getClientId() { return clientId; }
+    public void setClientId(Long clientId) { this.clientId = clientId; }
+    public Long getToolId() { return toolId; }
+    public void setToolId(Long toolId) { this.toolId = toolId; }
     public LocalDate getStartDate() { return startDate; }
     public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
     public LocalDate getEndDate() { return endDate; }

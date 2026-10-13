@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "billing_invoices")
+@Table(name = "invoices")
 public class InvoiceJpaEntity {
 
     @Id
@@ -35,9 +35,16 @@ public class InvoiceJpaEntity {
     private LocalDateTime issueDate;
     private LocalDateTime dueDate;
 
+    @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal subtotal;
+
+    @Column(name = "tax_amount", nullable = false, precision = 12, scale = 2)
     private BigDecimal taxAmount;
+
+    @Column(name = "deposit_amount", nullable = false, precision = 12, scale = 2)
     private BigDecimal depositAmount;
+
+    @Column(name = "total_amount", nullable = false, precision = 12, scale = 2)
     private BigDecimal totalAmount;
 
     private boolean paid;
@@ -45,7 +52,7 @@ public class InvoiceJpaEntity {
     private LocalDateTime pdfGeneratedAt;
 
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
-    @JoinColumn(name = "invoice_id")
+    @JoinColumn(name = "invoice_id", nullable = false)
     private List<InvoiceItemJpaEntity> items = new ArrayList<>();
 
     public InvoiceJpaEntity() {}

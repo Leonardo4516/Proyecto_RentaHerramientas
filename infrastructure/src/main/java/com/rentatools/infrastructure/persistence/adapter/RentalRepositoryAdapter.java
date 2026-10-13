@@ -11,8 +11,6 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
-
 @Component
 public class RentalRepositoryAdapter implements RentalRepository {
 
@@ -44,22 +42,22 @@ public class RentalRepositoryAdapter implements RentalRepository {
     }
 
     @Override
-    public Optional<RentalBooking> findById(UUID id) {
+    public Optional<RentalBooking> findById(Long id) {
         return rentalJpaRepository.findById(id).map(this::toDomain);
     }
 
     @Override
-    public List<RentalBooking> findByClientId(UUID clientId) {
+    public List<RentalBooking> findByClientId(Long clientId) {
         return rentalJpaRepository.findByClientId(clientId).stream().map(this::toDomain).toList();
     }
 
     @Override
-    public List<RentalBooking> findByToolId(UUID toolId) {
+    public List<RentalBooking> findByToolId(Long toolId) {
         return rentalJpaRepository.findByToolId(toolId).stream().map(this::toDomain).toList();
     }
 
     @Override
-    public List<RentalBooking> findActiveRentalsByToolId(UUID toolId) {
+    public List<RentalBooking> findActiveRentalsByToolId(Long toolId) {
         return rentalJpaRepository.findActiveRentalsByToolId(toolId).stream().map(this::toDomain).toList();
     }
 
@@ -69,7 +67,7 @@ public class RentalRepositoryAdapter implements RentalRepository {
     }
 
     @Override
-    public boolean hasOverlappingBookings(UUID toolId, LocalDate startDate, LocalDate endDate) {
+    public boolean hasOverlappingBookings(Long toolId, LocalDate startDate, LocalDate endDate) {
         return rentalJpaRepository.existsOverlappingBooking(toolId, startDate, endDate);
     }
 

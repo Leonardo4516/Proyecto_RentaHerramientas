@@ -15,7 +15,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "billing_payments")
+@Table(name = "payments")
 public class PaymentJpaEntity {
 
     @Id
@@ -25,17 +25,18 @@ public class PaymentJpaEntity {
     private Long invoiceId;
     private Long rentalId;
     private Long clientId;
+    @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal amount;
 
     @Enumerated(EnumType.STRING)
-    @Column(length = 30)
+    @Column(name = "payment_method", nullable = false, length = 50)
     private PaymentMethod paymentMethod;
 
     @Enumerated(EnumType.STRING)
     @Column(length = 30)
     private PaymentStatus status;
 
-    @Column(length = 100)
+    @Column(name = "transaction_reference", unique = true, nullable = false, length = 100)
     private String transactionReference;
 
     private LocalDateTime paymentDate;

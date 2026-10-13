@@ -13,7 +13,7 @@ import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "app_users")
+@Table(name = "users")
 public class UserJpaEntity {
 
     @Id
@@ -26,10 +26,10 @@ public class UserJpaEntity {
     @Column(unique = true, nullable = false, length = 120)
     private String email;
 
-    @Column(nullable = false, length = 255)
+    @Column(name = "password_hash", nullable = false, length = 255)
     private String password;
 
-    @Column(nullable = false, length = 120)
+    @Column(name = "full_name", nullable = false, length = 150)
     private String fullName;
 
     @Column(length = 30)
@@ -42,20 +42,8 @@ public class UserJpaEntity {
     @Column(nullable = false)
     private boolean active = true;
 
+    @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
-
-    // Campos del perfil de Cliente
-    private String companyName;
-    private String taxId;
-    private String address;
-    private String city;
-    private String preferredPaymentMethod;
-
-    // Campos del perfil de Proveedor
-    private String businessName;
-    private String commercialRegistry;
-    private Double rating = 5.0;
-    private Boolean verified = false;
 
     public UserJpaEntity() {}
 
@@ -129,77 +117,5 @@ public class UserJpaEntity {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
-    }
-
-    public String getCompanyName() {
-        return companyName;
-    }
-
-    public void setCompanyName(String companyName) {
-        this.companyName = companyName;
-    }
-
-    public String getTaxId() {
-        return taxId;
-    }
-
-    public void setTaxId(String taxId) {
-        this.taxId = taxId;
-    }
-
-    public String getAddress() {
-        return address;
-    }
-
-    public void setAddress(String address) {
-        this.address = address;
-    }
-
-    public String getCity() {
-        return city;
-    }
-
-    public void setCity(String city) {
-        this.city = city;
-    }
-
-    public String getPreferredPaymentMethod() {
-        return preferredPaymentMethod;
-    }
-
-    public void setPreferredPaymentMethod(String preferredPaymentMethod) {
-        this.preferredPaymentMethod = preferredPaymentMethod;
-    }
-
-    public String getBusinessName() {
-        return businessName;
-    }
-
-    public void setBusinessName(String businessName) {
-        this.businessName = businessName;
-    }
-
-    public String getCommercialRegistry() {
-        return commercialRegistry;
-    }
-
-    public void setCommercialRegistry(String commercialRegistry) {
-        this.commercialRegistry = commercialRegistry;
-    }
-
-    public Double getRating() {
-        return rating;
-    }
-
-    public void setRating(Double rating) {
-        this.rating = rating;
-    }
-
-    public Boolean getVerified() {
-        return verified;
-    }
-
-    public void setVerified(Boolean verified) {
-        this.verified = verified;
     }
 }

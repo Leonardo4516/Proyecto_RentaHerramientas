@@ -1,5 +1,6 @@
 package com.rentatools.infrastructure.persistence.billing;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -9,17 +10,26 @@ import jakarta.persistence.Table;
 import java.math.BigDecimal;
 
 @Entity
-@Table(name = "billing_invoice_items")
+@Table(name = "invoice_items")
 public class InvoiceItemJpaEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "tool_id")
     private Long toolId;
+
+    @Column(name = "tool_name", nullable = false, length = 150)
     private String toolName;
+
+    @Column(name = "daily_rate", nullable = false, precision = 12, scale = 2)
     private BigDecimal dailyRate;
+
+    @Column(nullable = false)
     private int days;
+
+    @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal subtotal;
 
     public InvoiceItemJpaEntity() {}

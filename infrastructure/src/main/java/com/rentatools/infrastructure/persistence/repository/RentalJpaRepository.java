@@ -8,15 +8,13 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
-
 @Repository
-public interface RentalJpaRepository extends JpaRepository<RentalEntity, UUID> {
-    List<RentalEntity> findByClientId(UUID clientId);
-    List<RentalEntity> findByToolId(UUID toolId);
+public interface RentalJpaRepository extends JpaRepository<RentalEntity, Long> {
+    List<RentalEntity> findByClientId(Long clientId);
+    List<RentalEntity> findByToolId(Long toolId);
 
     @Query("SELECT r FROM RentalEntity r WHERE r.toolId = :toolId AND r.status IN ('PENDIENTE', 'CONFIRMADA', 'EN_CURSO')")
-    List<RentalEntity> findActiveRentalsByToolId(@Param("toolId") UUID toolId);
+    List<RentalEntity> findActiveRentalsByToolId(@Param("toolId") Long toolId);
 
     /**
      * Comprueba si existe solapamiento:
@@ -31,7 +29,7 @@ public interface RentalJpaRepository extends JpaRepository<RentalEntity, UUID> {
           AND r.endDate >= :startDate
     """)
     boolean existsOverlappingBooking(
-            @Param("toolId") UUID toolId,
+            @Param("toolId") Long toolId,
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate
     );

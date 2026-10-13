@@ -108,10 +108,10 @@ public class RentaToolsApplication extends SpringBootServletInitializer {
             }
 
             // 4. Factura inicial semilla para el cliente
-            if (savedClient != null && invoiceRepository.findByRentalId(101L).isEmpty()) {
+            if (savedClient != null && invoiceRepository.findByRentalId(1L).isEmpty()) {
                 Invoice invoice = new Invoice();
                 invoice.setInvoiceNumber("INV-202610-1001");
-                invoice.setRentalId(101L);
+                invoice.setRentalId(1L);
                 invoice.setClientId(savedClient.getId());
                 invoice.setClientName(savedClient.getFullName());
                 invoice.setClientTaxId("900.765.432-1");

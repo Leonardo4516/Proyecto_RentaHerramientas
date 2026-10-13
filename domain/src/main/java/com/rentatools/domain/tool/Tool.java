@@ -6,12 +6,10 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
-
 public class Tool {
-    private final UUID id;
-    private final UUID providerId;
-    private final UUID categoryId;
+    private final Long id;
+    private final Long providerId;
+    private final Long categoryId;
     private final String code;
     private String name;
     private String brand;
@@ -25,7 +23,7 @@ public class Tool {
     private final List<ToolImage> images;
     private final List<ToolSpecification> specifications;
 
-    public Tool(UUID id, UUID providerId, UUID categoryId, String code, String name, String brand,
+    public Tool(Long id, Long providerId, Long categoryId, String code, String name, String brand,
                 String model, BigDecimal dailyPrice, BigDecimal depositAmount, ToolStatus status,
                 int accumulatedRentalDays, GeoCoordinates coordinates, Instant createdAt,
                 List<ToolImage> images, List<ToolSpecification> specifications) {
@@ -35,7 +33,7 @@ public class Tool {
         if (depositAmount == null || depositAmount.compareTo(BigDecimal.ZERO) < 0) {
             throw new BusinessRuleValidationException("El depósito de garantía no puede ser negativo.");
         }
-        this.id = id != null ? id : UUID.randomUUID();
+        this.id = id != null ? id : null;
         this.providerId = providerId;
         this.categoryId = categoryId;
         this.code = code;
@@ -73,9 +71,9 @@ public class Tool {
         }
     }
 
-    public UUID getId() { return id; }
-    public UUID getProviderId() { return providerId; }
-    public UUID getCategoryId() { return categoryId; }
+    public Long getId() { return id; }
+    public Long getProviderId() { return providerId; }
+    public Long getCategoryId() { return categoryId; }
     public String getCode() { return code; }
     public String getName() { return name; }
     public String getBrand() { return brand; }

@@ -1,10 +1,8 @@
 package com.rentatools.application.tool.dto;
 
 import java.math.BigDecimal;
-import java.util.UUID;
-
 public record NearbyToolResponse(
-        UUID id,
+        Long id,
         String code,
         String name,
         String brand,

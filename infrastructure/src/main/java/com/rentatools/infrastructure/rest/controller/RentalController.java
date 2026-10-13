@@ -18,8 +18,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
-
 @RestController
 @RequestMapping("/api/v1/rentals")
 @Tag(name = "Reservas y Alquileres", description = "Endpoints para verificación de solapamiento, solicitudes de alquiler y cambios de estado")
@@ -50,7 +48,7 @@ public class RentalController {
     @GetMapping("/check-availability")
     @Operation(summary = "Comprobar disponibilidad de una herramienta sin solapamiento de fechas")
     public ResponseEntity<AvailabilityCheckResponse> checkAvailability(
-            @RequestParam UUID toolId,
+            @RequestParam Long toolId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
     ) {
@@ -69,7 +67,7 @@ public class RentalController {
 
     @GetMapping("/tool/{toolId}")
     @Operation(summary = "Listar reservas activas de una herramienta")
-    public ResponseEntity<List<RentalResponse>> getToolRentals(@PathVariable UUID toolId) {
+    public ResponseEntity<List<RentalResponse>> getToolRentals(@PathVariable Long toolId) {
         List<RentalResponse> rentals = rentalRepository.findByToolId(toolId).stream()
                 .map(RentalResponse::fromDomain)
                 .toList();
@@ -79,7 +77,7 @@ public class RentalController {
     @PutMapping("/{id}/status")
     @Operation(summary = "Cambiar estado de una reserva (Aprobar, Rechazar, Iniciar, Cancelar)")
     public ResponseEntity<RentalResponse> updateStatus(
-            @PathVariable UUID id,
+            @PathVariable Long id,
             @RequestParam(required = false) BookingStatus newStatus,
             @RequestParam(required = false) String reason,
             @RequestBody(required = false) java.util.Map<String, String> body
@@ -98,7 +96,7 @@ public class RentalController {
     @PostMapping("/{id}/return")
     @Operation(summary = "Registrar devolución de maquinaria e inspección de daños")
     public ResponseEntity<RentalResponse> returnRental(
-            @PathVariable UUID id,
+            @PathVariable Long id,
             @RequestBody(required = false) java.util.Map<String, Object> returnData
     ) {
         RentalResponse updated = changeRentalStatusUseCase.execute(id, BookingStatus.COMPLETADA, "Devolución e inspección registrada");

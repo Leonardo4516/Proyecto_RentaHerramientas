@@ -8,8 +8,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
-
 @Component
 public class ToolCategoryRepositoryAdapter implements ToolCategoryRepository {
     private final ToolCategoryJpaRepository jpaRepository;
@@ -32,7 +30,7 @@ public class ToolCategoryRepositoryAdapter implements ToolCategoryRepository {
     }
 
     @Override
-    public Optional<ToolCategory> findById(UUID id) {
+    public Optional<ToolCategory> findById(Long id) {
         return jpaRepository.findById(id).map(this::toDomain);
     }
 

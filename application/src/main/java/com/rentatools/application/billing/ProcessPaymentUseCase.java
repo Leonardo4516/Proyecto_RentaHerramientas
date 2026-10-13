@@ -14,8 +14,6 @@ import com.rentatools.domain.notification.port.NotificationPort;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.UUID;
-
 public class ProcessPaymentUseCase {
     private final PaymentRepository paymentRepository;
     private final InvoiceRepository invoiceRepository;
@@ -53,7 +51,7 @@ public class ProcessPaymentUseCase {
             }
         }
 
-        String reference = request.getTransactionReference() != null ? request.getTransactionReference() : "TXN-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        String reference = request.getTransactionReference() != null ? request.getTransactionReference() : "TXN-" + System.currentTimeMillis();
 
         Payment payment = new Payment();
         payment.setInvoiceId(invoice.getId());
