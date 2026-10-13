@@ -100,9 +100,26 @@ public class ToolCatalogFallbackController {
     @PutMapping("/rentals/{id}/status")
     @Operation(summary = "Actualizar estado de reserva", description = "Permite al proveedor aprobar o rechazar una reserva")
     public ResponseEntity<Map<String, Object>> updateRentalStatus(@PathVariable Long id, @RequestBody Map<String, String> statusBody) {
+        String newStatus = statusBody.get("status");
         for (Map<String, Object> r : RENTALS) {
-            if (id.equals(r.get("id"))) {
-                r.put("status", statusBody.get("status"));
+            Object rId = r.get("id");
+            if (rId != null && ((Number) rId).longValue() == id) {
+                r.put("status", newStatus);
+                Object toolIdObj = r.get("toolId");
+                if (toolIdObj != null) {
+                    long toolId = ((Number) toolIdObj).longValue();
+                    for (Map<String, Object> t : TOOLS) {
+                        Object tId = t.get("id");
+                        if (tId != null && ((Number) tId).longValue() == toolId) {
+                            if ("CONFIRMADA".equalsIgnoreCase(newStatus)) {
+                                t.put("status", "ALQUILADA");
+                            } else if ("RECHAZADA".equalsIgnoreCase(newStatus) || "CANCELADA".equalsIgnoreCase(newStatus) || "DEVUELTO".equalsIgnoreCase(newStatus)) {
+                                t.put("status", "DISPONIBLE");
+                            }
+                            break;
+                        }
+                    }
+                }
                 return ResponseEntity.ok(r);
             }
         }
@@ -113,11 +130,23 @@ public class ToolCatalogFallbackController {
     @Operation(summary = "Registrar devolución e inspección de daños", description = "Registra el acta de entrega final del equipo y la liberación de garantía")
     public ResponseEntity<Map<String, Object>> returnRental(@PathVariable Long id, @RequestBody Map<String, Object> returnData) {
         for (Map<String, Object> r : RENTALS) {
-            if (id.equals(r.get("id"))) {
+            Object rId = r.get("id");
+            if (rId != null && ((Number) rId).longValue() == id) {
                 r.put("status", "DEVUELTO");
                 r.put("returnNotes", returnData.get("notes"));
                 r.put("damageDetected", returnData.get("damageDetected"));
                 r.put("damageCost", returnData.get("damageCost"));
+                Object toolIdObj = r.get("toolId");
+                if (toolIdObj != null) {
+                    long toolId = ((Number) toolIdObj).longValue();
+                    for (Map<String, Object> t : TOOLS) {
+                        Object tId = t.get("id");
+                        if (tId != null && ((Number) tId).longValue() == toolId) {
+                            t.put("status", "DISPONIBLE");
+                            break;
+                        }
+                    }
+                }
                 return ResponseEntity.ok(r);
             }
         }

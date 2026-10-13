@@ -786,7 +786,27 @@ label.text-muted {
   max-width: 92vw !important;
   right: 0 !important;
   left: auto !important;
-  padding: 10px !important;
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.notif-header {
+  background: rgba(15, 23, 42, 0.98);
+}
+
+.notif-clear-btn {
+  color: #94a3b8;
+  font-size: 0.75rem;
+  transition: color 0.2s ease;
+}
+
+.notif-clear-btn:hover {
+  color: #f87171 !important;
+}
+
+.notif-scroll-area {
+  max-height: 360px;
+  overflow-y: auto;
 }
 
 .notification-dropdown-menu .dropdown-item.notif-item {
@@ -796,6 +816,7 @@ label.text-muted {
   margin-bottom: 6px;
   padding: 10px 12px !important;
   white-space: normal !important;
+  cursor: default;
 }
 
 .notification-dropdown-menu .dropdown-item.notif-item:hover {
@@ -813,6 +834,11 @@ label.text-muted {
 .notif-item-time {
   color: #94a3b8 !important;
   font-size: 0.75rem;
+}
+
+.input-neu.is-invalid {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.35) !important;
 }
 
 /* --- MAP TOGGLE SECTION & ANIMATIONS --- */

@@ -92,6 +92,55 @@ const App = (() => {
       });
     });
 
+    // Formateo dinámico y remoción de errores en campos de tarjeta de crédito/débito
+    const cardNumberInput = document.getElementById('card-number');
+    const cardExpiryInput = document.getElementById('card-expiry');
+    const cardCvcInput = document.getElementById('card-cvc');
+    const cardHolderInput = document.getElementById('card-holder-name');
+
+    if (cardNumberInput) {
+      cardNumberInput.addEventListener('input', (e) => {
+        let val = e.target.value.replace(/\D/g, '').substring(0, 16);
+        let formatted = val.match(/.{1,4}/g)?.join(' ') || val;
+        e.target.value = formatted;
+        e.target.classList.remove('is-invalid');
+      });
+    }
+
+    if (cardExpiryInput) {
+      cardExpiryInput.addEventListener('input', (e) => {
+        let val = e.target.value.replace(/\D/g, '').substring(0, 4);
+        if (val.length >= 3) {
+          e.target.value = `${val.substring(0, 2)}/${val.substring(2)}`;
+        } else {
+          e.target.value = val;
+        }
+        e.target.classList.remove('is-invalid');
+      });
+    }
+
+    if (cardCvcInput) {
+      cardCvcInput.addEventListener('input', (e) => {
+        e.target.value = e.target.value.replace(/\D/g, '').substring(0, 4);
+        e.target.classList.remove('is-invalid');
+      });
+    }
+
+    if (cardHolderInput) {
+      cardHolderInput.addEventListener('input', (e) => {
+        e.target.classList.remove('is-invalid');
+      });
+    }
+
+    const pseBankSelect = document.getElementById('pse-bank');
+    const pseEmailInput = document.getElementById('pse-email');
+    if (pseBankSelect) {
+      pseBankSelect.addEventListener('change', () => pseBankSelect.classList.remove('is-invalid'));
+    }
+    if (pseEmailInput) {
+      pseEmailInput.addEventListener('input', () => pseEmailInput.classList.remove('is-invalid'));
+    }
+
     // Suscripción a eventos WebSocket para refresco en tiempo real
     RealtimeManager.onNotification((notif) => {
       if (notif.channel === 'Catálogo') {
@@ -298,6 +347,117 @@ const App = (() => {
     const q = activeToolForBooking.calculatedQuote;
     const selectedMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value || 'PSE';
 
+    // VALIDACIÓN ESTRICTA DE CAMPOS OBLIGATORIOS SEGÚN MÉTODO DE PAGO
+    if (selectedMethod === 'CREDIT_CARD' || selectedMethod === 'DEBIT_CARD') {
+      const holderInput = document.getElementById('card-holder-name');
+      const numberInput = document.getElementById('card-number');
+      const expiryInput = document.getElementById('card-expiry');
+      const cvcInput = document.getElementById('card-cvc');
+
+      const holder = (holderInput?.value || '').trim();
+      const rawNumber = (numberInput?.value || '').replace(/\s+/g, '');
+      const expiry = (expiryInput?.value || '').trim();
+      const cvc = (cvcInput?.value || '').trim();
+
+      let hasError = false;
+      let errorMsg = '';
+
+      if (!holder || holder.length < 3) {
+        holderInput?.classList.add('is-invalid');
+        hasError = true;
+        errorMsg = 'Ingresa el nombre del titular tal como aparece en la tarjeta.';
+      } else {
+        holderInput?.classList.remove('is-invalid');
+      }
+
+      if (!rawNumber || rawNumber.length < 15 || rawNumber.length > 16 || !/^\d+$/.test(rawNumber)) {
+        numberInput?.classList.add('is-invalid');
+        hasError = true;
+        if (!errorMsg) errorMsg = 'El número de tarjeta debe tener entre 15 y 16 dígitos válidos.';
+      } else {
+        numberInput?.classList.remove('is-invalid');
+      }
+
+      // Validar formato MM/AA y que la tarjeta no esté vencida
+      const expiryMatch = expiry.match(/^(0[1-9]|1[0-2])\/(\d{2})$/);
+      if (!expiryMatch) {
+        expiryInput?.classList.add('is-invalid');
+        hasError = true;
+        if (!errorMsg) errorMsg = 'La fecha de expiración debe tener formato MM/AA válido (ej. 12/28).';
+      } else {
+        const expMonth = parseInt(expiryMatch[1], 10);
+        const expYear = parseInt('20' + expiryMatch[2], 10);
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1; // 1 - 12
+        if (expYear < currentYear || (expYear === currentYear && expMonth < currentMonth)) {
+          expiryInput?.classList.add('is-invalid');
+          hasError = true;
+          if (!errorMsg) errorMsg = 'La tarjeta de crédito/débito ingresada se encuentra vencida.';
+        } else {
+          expiryInput?.classList.remove('is-invalid');
+        }
+      }
+
+      if (!cvc || cvc.length < 3 || cvc.length > 4 || !/^\d+$/.test(cvc)) {
+        cvcInput?.classList.add('is-invalid');
+        hasError = true;
+        if (!errorMsg) errorMsg = 'El código CVC / CVV debe contener 3 o 4 dígitos.';
+      } else {
+        cvcInput?.classList.remove('is-invalid');
+      }
+
+      if (hasError) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Datos de Tarjeta Incompletos',
+          text: errorMsg,
+          confirmButtonColor: '#f59e0b',
+          background: '#0f172a',
+          color: '#f8fafc'
+        });
+        return;
+      }
+    } else if (selectedMethod === 'PSE') {
+      const bankSelect = document.getElementById('pse-bank');
+      const emailInput = document.getElementById('pse-email');
+
+      const bank = bankSelect?.value;
+      const email = (emailInput?.value || '').trim();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      let hasError = false;
+      let errorMsg = '';
+
+      if (!bank) {
+        bankSelect?.classList.add('is-invalid');
+        hasError = true;
+        errorMsg = 'Debes seleccionar una entidad bancaria para continuar con PSE.';
+      } else {
+        bankSelect?.classList.remove('is-invalid');
+      }
+
+      if (!email || !emailRegex.test(email)) {
+        emailInput?.classList.add('is-invalid');
+        hasError = true;
+        if (!errorMsg) errorMsg = 'Ingresa un correo electrónico registrado en PSE válido.';
+      } else {
+        emailInput?.classList.remove('is-invalid');
+      }
+
+      if (hasError) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Datos de PSE Incompletos',
+          text: errorMsg,
+          confirmButtonColor: '#f59e0b',
+          background: '#0f172a',
+          color: '#f8fafc'
+        });
+        return;
+      }
+    }
+
     Swal.fire({
       title: 'Procesando Transacción...',
       text: 'Conectando con la pasarela de pagos segura y emitiendo factura electrónica...',
@@ -350,6 +510,14 @@ const App = (() => {
         notes: `Pago verificado vía ${selectedMethod} para ${activeToolForBooking.name}`
       });
 
+      // 4. Confirmar automáticamente el estado de la reserva al estar pagada
+      await API.rentals.updateStatus(rental.id, 'CONFIRMADA');
+
+      // Actualizar datos en memoria y vistas
+      await loadTools();
+      loadClientRentals();
+      loadProviderRequests();
+
       // Cerrar modal de pago
       const payModal = bootstrap.Modal.getInstance(document.getElementById('paymentModal'));
       if (payModal) payModal.hide();
@@ -359,7 +527,8 @@ const App = (() => {
         title: '¡Pago y Reserva Confirmados!',
         html: `
           <p class="text-light">Tu transacción <strong>${payment.transactionReference}</strong> fue aprobada exitosamente.</p>
-          <p class="text-muted small">Se ha emitido la factura oficial <strong>${invoice.invoiceNumber}</strong>.</p>
+          <div class="mb-2"><span class="badge bg-success px-3 py-2 fs-6"><i class="fa fa-check-circle me-1"></i> Estado: CONFIRMADA</span></div>
+          <p class="text-muted small mt-2">Se ha emitido la factura oficial <strong>${invoice.invoiceNumber}</strong> con firma digital.</p>
           <div class="mt-3">
             <a href="${API.invoices.downloadPdfUrl(invoice.id)}" target="_blank" class="btn btn-neu-amber py-2 px-4">
               <i class="fa fa-file-pdf me-2"></i> Descargar Factura Oficial PDF
@@ -478,6 +647,8 @@ const App = (() => {
         background: '#0f172a',
         color: '#f8fafc'
       });
+      await loadTools();
+      loadClientRentals();
       loadProviderRequests();
     } catch (e) {
       Swal.fire('Error', e.message, 'error');
@@ -507,6 +678,8 @@ const App = (() => {
         background: '#0f172a',
         color: '#f8fafc'
       });
+      await loadTools();
+      loadClientRentals();
       loadProviderRequests();
     } catch (e) {
       Swal.fire('Error', e.message, 'error');
@@ -675,6 +848,11 @@ const App = (() => {
       if (clientDropdownLabel) clientDropdownLabel.textContent = 'Mis Alquileres & Facturas';
       if (clientHeaderTitle) clientHeaderTitle.textContent = 'Mis Alquileres & Facturación';
     }
+
+    // Cargar notificaciones persistentes del usuario activo o limpiar para invitado
+    if (typeof RealtimeManager !== 'undefined' && RealtimeManager.loadUserNotifications) {
+      RealtimeManager.loadUserNotifications();
+    }
   }
 
   function openAuthModal(mode = 'login') {
@@ -789,6 +967,9 @@ const App = (() => {
   function logout() {
     API.setToken(null);
     API.setUser(null);
+    if (typeof RealtimeManager !== 'undefined' && RealtimeManager.disconnect) {
+      RealtimeManager.disconnect();
+    }
     checkAuthStatus();
     switchView('catalog');
     Swal.fire({
