@@ -97,15 +97,15 @@ const RealtimeManager = (() => {
     }
     if (list) {
       if (notifications.length === 0) {
-        list.innerHTML = '<li class="dropdown-item text-muted text-center py-3">Sin notificaciones pendientes</li>';
+        list.innerHTML = '<li class="p-3 text-center small text-slate-300" style="color: #cbd5e1 !important;"><i class="fa fa-bell-slash me-2 text-warning"></i>Sin notificaciones pendientes</li>';
       } else {
         list.innerHTML = notifications.slice(0, 5).map(n => `
-          <li class="dropdown-item border-bottom border-secondary py-2 text-wrap" style="max-width: 300px;">
-            <div class="d-flex justify-content-between">
-              <span class="badge bg-warning text-dark">${n.channel}</span>
-              <small class="text-secondary">${n.time}</small>
+          <li class="dropdown-item notif-item mb-2 p-2">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span class="badge bg-warning text-dark fw-bold px-2 py-0" style="font-size: 0.72rem;">${n.channel}</span>
+              <span class="notif-item-time">${n.time}</span>
             </div>
-            <div class="small text-light mt-1">${n.content}</div>
+            <div class="notif-item-content mt-1">${n.content}</div>
           </li>
         `).join('');
       }

@@ -48,7 +48,7 @@
           </li>
           <li class="nav-item" id="nav-client-dashboard" style="display: none;">
             <a class="nav-link" id="nav-client-dashboard-link" href="#" onclick="App.switchView('client-dashboard'); return false;">
-              <i class="fa fa-file-invoice-dollar me-1"></i> Mis Alquileres
+              <i class="fa fa-file-invoice-dollar me-1"></i> <span id="nav-client-dashboard-label">Mis Alquileres</span>
             </a>
           </li>
           <li class="nav-item" id="nav-provider-dashboard" style="display: none;">
@@ -61,21 +61,10 @@
               <i class="fa fa-chart-line me-1"></i> Panel Admin
             </a>
           </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/swagger-ui.html" target="_blank">
-              <i class="fa fa-book-open me-1 text-info"></i> Swagger API
-            </a>
-          </li>
         </ul>
 
-        <!-- Lado Derecho: Estado WebSocket, Campana Notificaciones y Cuenta -->
+        <!-- Lado Derecho: Campana Notificaciones y Cuenta -->
         <div class="d-flex align-items-center gap-2 navbar-actions-group">
-          <!-- Indicador WebSocket Compacto -->
-          <div id="ws-status-indicator" class="ws-pulse-widget" title="Conexión en tiempo real activa">
-            <span class="ws-pulse-dot" id="ws-dot"></span>
-            <span class="ws-label d-none d-xl-inline" id="ws-text">En línea</span>
-          </div>
-
           <!-- Campana de Notificaciones Push -->
           <div class="dropdown">
             <button class="btn btn-neu notification-bell dropdown-toggle text-light" type="button" id="notifDropdown" data-bs-toggle="dropdown" aria-expanded="false">
@@ -83,7 +72,7 @@
               <span id="notif-badge" class="notification-badge" style="display: none;">0</span>
             </button>
             <ul class="dropdown-menu dropdown-menu-end glass-modal p-2 shadow-lg notification-dropdown-menu" aria-labelledby="notifDropdown" id="notif-list">
-              <li class="dropdown-item text-muted text-center py-3">Sin notificaciones</li>
+              <li class="dropdown-item text-slate-300 text-center py-3">Sin notificaciones</li>
             </ul>
           </div>
 
@@ -111,7 +100,7 @@
                   <span id="nav-user-role-badge" class="badge badge-role">CLIENTE</span>
                 </div>
               </li>
-              <li><a class="dropdown-item text-light" href="#" onclick="App.switchView('client-dashboard'); return false;"><i class="fa fa-history me-2 text-warning"></i>Mis Alquileres & Facturas</a></li>
+              <li><a class="dropdown-item text-light" href="#" onclick="App.switchView('client-dashboard'); return false;"><i class="fa fa-history me-2 text-warning"></i><span id="dropdown-client-label">Mis Alquileres & Facturas</span></a></li>
               <li id="dropdown-provider-item" style="display: none;"><a class="dropdown-item text-light" href="#" onclick="App.switchView('provider-dashboard'); return false;"><i class="fa fa-dolly-flatbed me-2 text-warning"></i>Gestión Proveedor</a></li>
               <li id="dropdown-admin-item" style="display: none;"><a class="dropdown-item text-light" href="#" onclick="App.switchView('admin-dashboard'); return false;"><i class="fa fa-chart-line me-2 text-warning"></i>Panel Admin</a></li>
               <li><hr class="dropdown-divider border-secondary border-opacity-25 my-1"></li>
@@ -198,13 +187,29 @@
         </div>
       </div>
 
-      <!-- Mapa Interactivo Leaflet Embebido -->
-      <div class="glass-panel p-3 mb-4">
-        <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 px-2 gap-2">
-          <span class="fw-bold text-light"><i class="fa fa-map-pin text-warning me-2"></i>Ubicación de Equipos y Radio de Entrega</span>
-          <small class="text-muted"><i class="fa fa-circle text-info me-1"></i> Círculo cian representa tu zona de cobertura</small>
+      <!-- Desplegable Opcional: Mapa Interactivo en Tiempo Real -->
+      <div class="map-toggle-wrapper mb-4">
+        <button class="btn btn-neu map-toggle-btn w-100 d-flex justify-content-between align-items-center py-2 px-3" type="button" data-bs-toggle="collapse" data-bs-target="#map-collapse-container" aria-expanded="false" aria-controls="map-collapse-container" id="btn-toggle-map">
+          <div class="d-flex align-items-center gap-2">
+            <i class="fa fa-map-marked-alt text-warning"></i>
+            <span class="fw-semibold text-light">Mapa de Cobertura y Maquinaria en Vivo</span>
+            <span class="badge bg-dark text-info border border-info border-opacity-25 small d-none d-sm-inline">Opcional</span>
+          </div>
+          <div class="d-flex align-items-center gap-2 small">
+            <span id="map-toggle-status" style="color: #cbd5e1;">Ver mapa</span>
+            <i class="fa fa-chevron-down map-chevron-icon transition-transform" id="map-toggle-chevron"></i>
+          </div>
+        </button>
+
+        <div class="collapse mt-3" id="map-collapse-container">
+          <div class="glass-panel p-3">
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 px-2 gap-2">
+              <span class="fw-bold text-light"><i class="fa fa-map-pin text-warning me-2"></i>Ubicación de Equipos y Radio de Entrega</span>
+              <small class="text-slate-300" style="color: #cbd5e1 !important;"><i class="fa fa-circle text-info me-1"></i> Círculo cian representa tu zona de cobertura</small>
+            </div>
+            <div id="map-container"></div>
+          </div>
         </div>
-        <div id="map-container"></div>
       </div>
 
       <!-- Grilla de Tarjetas de Herramientas -->
@@ -216,7 +221,7 @@
     <!-- ==================== VISTA 2: DASHBOARD CLIENTE (ALQUILERES & FACTURAS) ==================== -->
     <div id="view-client-dashboard" class="app-view" style="display: none;">
       <div class="glass-panel p-4 mb-4">
-        <h3 class="fw-bold text-light mb-1"><i class="fa fa-file-invoice text-warning me-2"></i>Mis Alquileres & Facturación</h3>
+        <h3 class="fw-bold text-light mb-1"><i class="fa fa-file-invoice text-warning me-2"></i><span id="client-dashboard-header-title">Mis Alquileres & Facturación</span></h3>
         <p class="text-muted small mb-4">Consulta el estado de tus alquileres, confirma pagos pendientes y descarga comprobantes legales en PDF.</p>
 
         <div class="table-responsive">

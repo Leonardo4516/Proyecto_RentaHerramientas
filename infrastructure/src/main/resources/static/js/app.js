@@ -14,8 +14,6 @@ const App = (() => {
 
     try {
       await loadTools();
-      MapManager.init();
-      MapManager.updateToolsOnMap(allTools);
     } catch (e) {
       console.warn('Error al cargar catálogo inicial:', e);
     }
@@ -60,6 +58,28 @@ const App = (() => {
         filterTools(document.getElementById('search-input')?.value || '');
       });
     });
+
+    // Control de colapso/despliegue del mapa interactivo
+    const mapCollapseEl = document.getElementById('map-collapse-container');
+    const mapToggleStatus = document.getElementById('map-toggle-status');
+    const mapToggleChevron = document.getElementById('map-toggle-chevron');
+    if (mapCollapseEl) {
+      mapCollapseEl.addEventListener('shown.bs.collapse', () => {
+        if (mapToggleStatus) mapToggleStatus.textContent = 'Ocultar mapa';
+        if (mapToggleChevron) mapToggleChevron.classList.add('rotate-180');
+        if (typeof MapManager !== 'undefined' && MapManager) {
+          MapManager.init();
+          MapManager.updateToolsOnMap(filteredTools);
+          setTimeout(() => {
+            if (MapManager.invalidateSize) MapManager.invalidateSize();
+          }, 150);
+        }
+      });
+      mapCollapseEl.addEventListener('hidden.bs.collapse', () => {
+        if (mapToggleStatus) mapToggleStatus.textContent = 'Ver mapa';
+        if (mapToggleChevron) mapToggleChevron.classList.remove('rotate-180');
+      });
+    }
 
     // Cambios en fechas de reserva para cotización en vivo
     document.getElementById('book-start-date')?.addEventListener('change', recalculateBookingQuote);
@@ -347,7 +367,7 @@ const App = (() => {
           </div>
         `,
         confirmButtonColor: '#06b6d4',
-        confirmButtonText: 'Ver mis Alquileres',
+        confirmButtonText: (user.role === 'ROLE_ADMIN') ? 'Ver Alquileres Activos' : 'Ver mis Alquileres',
         background: '#0f172a',
         color: '#f8fafc'
       }).then(() => {
@@ -423,14 +443,16 @@ const App = (() => {
           <td>${API.formatCurrency(r.total)}</td>
           <td><span class="badge ${r.status === 'CONFIRMADA' ? 'badge-available' : 'badge-rented'}">${r.status}</span></td>
           <td>
+            <div class="provider-actions-cell">
             ${r.status === 'PENDIENTE_PAGO' || r.status === 'PENDIENTE' ? `
-              <button class="btn btn-sm btn-success py-0 px-2 me-1" onclick="App.updateRentalStatus(${r.id}, 'CONFIRMADA')">Aprobar</button>
-              <button class="btn btn-sm btn-danger py-0 px-2" onclick="App.updateRentalStatus(${r.id}, 'RECHAZADA')">Rechazar</button>
+              <button class="btn btn-sm btn-success py-1 px-2" onclick="App.updateRentalStatus(${r.id}, 'CONFIRMADA')">Aprobar</button>
+              <button class="btn btn-sm btn-danger py-1 px-2" onclick="App.updateRentalStatus(${r.id}, 'RECHAZADA')">Rechazar</button>
             ` : (r.status === 'CONFIRMADA' ? `
-              <button class="btn btn-sm btn-neu-cyan py-0 px-2" onclick="App.openReturnModal(${r.id})">
+              <button class="btn btn-sm btn-neu-cyan py-1 px-2 text-nowrap" onclick="App.openReturnModal(${r.id})">
                 <i class="fa fa-clipboard-check me-1"></i> Inspección Devolución
               </button>
             ` : `<span class="small text-muted">Completado</span>`)}
+            </div>
           </td>
         </tr>
       `).join('');
@@ -498,11 +520,11 @@ const App = (() => {
       const actList = document.getElementById('admin-activities-list');
       if (actList && data.recentActivities) {
         actList.innerHTML = data.recentActivities.map(a => `
-          <li class="list-group-item bg-transparent text-light border-secondary d-flex justify-content-between align-items-center py-2">
+          <li class="list-group-item admin-activity-item text-light d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
             <div>
-              <strong>${a.type}</strong>: <span class="text-muted small">${a.description}</span>
+              <strong class="text-warning">${a.type}</strong>: <span class="text-slate-300 small">${a.description}</span>
             </div>
-            <span class="badge bg-dark text-warning">${a.time}</span>
+            <span class="badge bg-dark text-warning border border-secondary border-opacity-50 text-nowrap">${a.time}</span>
           </li>
         `).join('');
       }
@@ -524,12 +546,15 @@ const App = (() => {
     if (targetNav) targetNav.classList.add('active');
 
     if (viewName === 'catalog') {
-      setTimeout(() => {
-        if (typeof MapManager !== 'undefined' && MapManager) {
-          MapManager.init();
-          if (MapManager.invalidateSize) MapManager.invalidateSize();
-        }
-      }, 150);
+      const mapCollapseEl = document.getElementById('map-collapse-container');
+      if (mapCollapseEl && mapCollapseEl.classList.contains('show')) {
+        setTimeout(() => {
+          if (typeof MapManager !== 'undefined' && MapManager) {
+            MapManager.init();
+            if (MapManager.invalidateSize) MapManager.invalidateSize();
+          }
+        }, 150);
+      }
     } else if (viewName === 'client-dashboard') {
       loadClientRentals();
     } else if (viewName === 'provider-dashboard') {
@@ -585,6 +610,21 @@ const App = (() => {
       if (providerNav) providerNav.style.display = (user.role === 'ROLE_PROVEEDOR' || user.role === 'ROLE_ADMIN') ? 'block' : 'none';
       if (adminNav) adminNav.style.display = (user.role === 'ROLE_ADMIN') ? 'block' : 'none';
 
+      // Rótulos contextuales según el rol (Admin -> "Alquileres Activos", Cliente -> "Mis Alquileres")
+      const clientNavLabel = document.getElementById('nav-client-dashboard-label');
+      const clientDropdownLabel = document.getElementById('dropdown-client-label');
+      const clientHeaderTitle = document.getElementById('client-dashboard-header-title');
+
+      if (user.role === 'ROLE_ADMIN') {
+        if (clientNavLabel) clientNavLabel.textContent = 'Alquileres Activos';
+        if (clientDropdownLabel) clientDropdownLabel.textContent = 'Alquileres Activos';
+        if (clientHeaderTitle) clientHeaderTitle.textContent = 'Alquileres Activos & Facturación';
+      } else {
+        if (clientNavLabel) clientNavLabel.textContent = 'Mis Alquileres';
+        if (clientDropdownLabel) clientDropdownLabel.textContent = 'Mis Alquileres & Facturas';
+        if (clientHeaderTitle) clientHeaderTitle.textContent = 'Mis Alquileres & Facturación';
+      }
+
       // Enlaces contextuales en el menú desplegable del avatar
       if (providerDropdownItem) providerDropdownItem.style.display = (user.role === 'ROLE_PROVEEDOR' || user.role === 'ROLE_ADMIN') ? 'block' : 'none';
       if (adminDropdownItem) adminDropdownItem.style.display = (user.role === 'ROLE_ADMIN') ? 'block' : 'none';
@@ -598,6 +638,13 @@ const App = (() => {
       if (clientNav) clientNav.style.display = 'none';
       if (providerNav) providerNav.style.display = 'none';
       if (adminNav) adminNav.style.display = 'none';
+
+      const clientNavLabel = document.getElementById('nav-client-dashboard-label');
+      const clientDropdownLabel = document.getElementById('dropdown-client-label');
+      const clientHeaderTitle = document.getElementById('client-dashboard-header-title');
+      if (clientNavLabel) clientNavLabel.textContent = 'Mis Alquileres';
+      if (clientDropdownLabel) clientDropdownLabel.textContent = 'Mis Alquileres & Facturas';
+      if (clientHeaderTitle) clientHeaderTitle.textContent = 'Mis Alquileres & Facturación';
     }
   }
 
