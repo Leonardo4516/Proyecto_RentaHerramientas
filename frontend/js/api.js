@@ -103,6 +103,7 @@ const API = (() => {
 
     tools: {
       getAll: () => request('/api/v1/tools/public'),
+      getCategories: () => request('/api/v1/tools/categories'),
       getNearby: (lat, lng, radiusKm = 20) =>
         request(`/api/v1/tools/nearby?lat=${lat}&lng=${lng}&radiusKm=${radiusKm}`)
     },

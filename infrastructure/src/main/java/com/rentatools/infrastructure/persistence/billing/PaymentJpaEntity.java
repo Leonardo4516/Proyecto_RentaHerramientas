@@ -15,7 +15,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "billing_payments")
+@Table(name = "payments")
 public class PaymentJpaEntity {
 
     @Id

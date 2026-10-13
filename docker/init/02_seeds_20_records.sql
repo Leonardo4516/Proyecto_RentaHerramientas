@@ -204,7 +204,7 @@ ON CONFLICT (id) DO NOTHING;
 
 -- 8. TOOL_IMAGES (25 registros - 4FN)
 INSERT INTO tool_images (id, tool_id, image_url, is_cover) VALUES
-('70000000-0000-0000-0000-000000000001', '60000000-0000-0000-0000-000000000001', '/assets/img/machinery/retroexcavadora-cat-420f2.svg', True),
+('70000000-0000-0000-0000-000000000001', '60000000-0000-0000-0000-000000000001', '/assets/img/machinery/retroexcavadora-cat-420f2.jpg', True),
 ('70000000-0000-0000-0000-000000000002', '60000000-0000-0000-0000-000000000002', '/assets/img/machinery/minicargador-bobcat.svg', True),
 ('70000000-0000-0000-0000-000000000003', '60000000-0000-0000-0000-000000000003', '/assets/img/machinery/taladro-demoledor-bosch.svg', True),
 ('70000000-0000-0000-0000-000000000004', '60000000-0000-0000-0000-000000000004', '/assets/img/machinery/allanadora-concreto.svg', True),

@@ -12,6 +12,7 @@ public class Tool {
     private final UUID id;
     private final UUID providerId;
     private final UUID categoryId;
+    private String categoryName;
     private final String code;
     private String name;
     private String brand;
@@ -76,6 +77,8 @@ public class Tool {
     public UUID getId() { return id; }
     public UUID getProviderId() { return providerId; }
     public UUID getCategoryId() { return categoryId; }
+    public String getCategoryName() { return categoryName; }
+    public void setCategoryName(String categoryName) { this.categoryName = categoryName; }
     public String getCode() { return code; }
     public String getName() { return name; }
     public String getBrand() { return brand; }

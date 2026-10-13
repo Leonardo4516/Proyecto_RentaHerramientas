@@ -12,6 +12,7 @@ public record ToolResponse(
         UUID id,
         UUID providerId,
         UUID categoryId,
+        String categoryName,
         String code,
         String name,
         String brand,
@@ -35,6 +36,7 @@ public record ToolResponse(
                 tool.getId(),
                 tool.getProviderId(),
                 tool.getCategoryId(),
+                tool.getCategoryName(),
                 tool.getCode(),
                 tool.getName(),
                 tool.getBrand(),
@@ -60,7 +62,7 @@ public record ToolResponse(
     }
 
     public String getCategory() {
-        return brand != null && !brand.isBlank() ? brand : "Maquinaria Pesada";
+        return categoryName != null && !categoryName.isBlank() ? categoryName : (brand != null && !brand.isBlank() ? brand : "Maquinaria");
     }
 
     public String getDescription() {

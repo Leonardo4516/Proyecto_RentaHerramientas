@@ -3,89 +3,10 @@ window.TOOL_FALLBACK_IMG = TOOL_FALLBACK_SVG;
 
 function getToolImageUrl(tool) {
   if (!tool) return window.TOOL_FALLBACK_IMG;
-  let url = tool.imageUrl || (tool.images && tool.images[0]) || tool.coverImageUrl || '';
-
-  // Si ya es una ruta local a nuestros SVGs, asegurar leading slash
-  if (url && typeof url === 'string') {
-    if (url.includes('assets/img/machinery/') && url.endsWith('.svg')) {
-      return url.startsWith('/') ? url : '/' + url;
-    }
-    // Si no es Unsplash y es válida, usarla
-    if (!url.includes('unsplash.com') && url.trim().length > 0 && !url.startsWith('http://localhost') && (url.startsWith('/') || url.startsWith('http'))) {
-      return url;
-    }
+  const url = tool.imageUrl || (tool.images && tool.images[0]) || tool.coverImageUrl;
+  if (url && typeof url === 'string' && url.trim().length > 0) {
+    return url.startsWith('/') || url.startsWith('http') ? url : '/' + url;
   }
-
-  // Mapear inteligentemente por nombre / modelo / marca a nuestros SVGs vectoriales Obsidian
-  const text = `${tool.name || ''} ${tool.model || ''} ${tool.brand || ''} ${tool.description || ''}`.toLowerCase();
-
-  if (text.includes('retroexcavadora') || text.includes('cat 320') || text.includes('3cx') || text.includes('oruga')) {
-    return '/assets/img/machinery/retroexcavadora-cat-420f2.svg';
-  }
-  if (text.includes('bobcat') || text.includes('minicargador') || text.includes('s570')) {
-    return '/assets/img/machinery/minicargador-bobcat.svg';
-  }
-  if (text.includes('martillo') || text.includes('demoledor') || text.includes('rompedor') || text.includes('gsh 27') || text.includes('te 3000')) {
-    return '/assets/img/machinery/taladro-demoledor-bosch.svg';
-  }
-  if (text.includes('allanadora') || text.includes('helicóptero') || text.includes('helicoptero') || text.includes('ct 36')) {
-    return '/assets/img/machinery/allanadora-concreto.svg';
-  }
-  if (text.includes('canguro') || text.includes('bailarina') || text.includes('mtx70')) {
-    return '/assets/img/machinery/compactadora-canguro.svg';
-  }
-  if (text.includes('placa') || text.includes('compactadora reversible') || text.includes('mvc-f80')) {
-    return '/assets/img/machinery/placa-compactadora.svg';
-  }
-  if (text.includes('planta') || text.includes('cummins') || text.includes('50kva') || text.includes('insonorizada')) {
-    return '/assets/img/machinery/planta-electrica-cummins.svg';
-  }
-  if (text.includes('andamio') || text.includes('layher') || text.includes('multidireccional')) {
-    return '/assets/img/machinery/andamio-multidireccional.svg';
-  }
-  if (text.includes('cortadora') || text.includes('pavimento') || text.includes('fs 400')) {
-    return '/assets/img/machinery/cortadora-pavimento.svg';
-  }
-  if (text.includes('motobomba') || text.includes('lodos') || text.includes('wt30')) {
-    return '/assets/img/machinery/motobomba-lodos.svg';
-  }
-  if (text.includes('mezcladora') || text.includes('kollser') || text.includes('1.5 bultos') || text.includes('m150')) {
-    return '/assets/img/machinery/mezcladora-diesel-380l.svg';
-  }
-  if (text.includes('iluminación') || text.includes('iluminacion') || text.includes('generac') || text.includes('mlt3060')) {
-    return '/assets/img/machinery/torre-iluminacion-generac.svg';
-  }
-  if (text.includes('compresor') || text.includes('sullair') || text.includes('185 cfm')) {
-    return '/assets/img/machinery/compresor-aire.svg';
-  }
-  if (text.includes('rodillo') || text.includes('dynapac') || text.includes('cc1200')) {
-    return '/assets/img/machinery/rodillo-compactador.svg';
-  }
-  if (text.includes('estación total') || text.includes('estacion total') || text.includes('topográfica') || text.includes('topografica') || text.includes('leica') || text.includes('ts07')) {
-    return '/assets/img/machinery/estacion-total.svg';
-  }
-  if (text.includes('plataforma') || text.includes('tijera') || text.includes('genie') || text.includes('gs-1930')) {
-    return '/assets/img/machinery/plataforma-tijera.svg';
-  }
-  if (text.includes('motosoldadora') || text.includes('miller') || text.includes('bobcat 250') || text.includes('soldadora')) {
-    return '/assets/img/machinery/motosoldadora-miller.svg';
-  }
-  if (text.includes('hidrolavadora') || text.includes('kärcher') || text.includes('karcher') || text.includes('hd 10')) {
-    return '/assets/img/machinery/hidrolavadora-karcher.svg';
-  }
-  if (text.includes('sacanúcleos') || text.includes('sacanucleos') || text.includes('dd 250') || text.includes('perforadora')) {
-    return '/assets/img/machinery/perforadora-sacanucleos.svg';
-  }
-  if (text.includes('airless') || text.includes('graco') || text.includes('pintura') || text.includes('ultramax')) {
-    return '/assets/img/machinery/equipo-pintura-airless.svg';
-  }
-  if (text.includes('malacate') || text.includes('imer') || text.includes('airone') || text.includes('brazo')) {
-    return '/assets/img/machinery/malacate-electrico.svg';
-  }
-  if (text.includes('vibrador') || text.includes('regla vibratoria') || text.includes('enar') || text.includes('m2500')) {
-    return '/assets/img/machinery/vibrador-concreto.svg';
-  }
-
   return window.TOOL_FALLBACK_IMG;
 }
 window.getToolImageUrl = getToolImageUrl;
@@ -93,6 +14,7 @@ window.getToolImageUrl = getToolImageUrl;
 const App = (() => {
   let allTools = [];
   let filteredTools = [];
+  let categories = [];
   let selectedCategory = 'TODAS';
   let activeToolForBooking = null;
 
@@ -102,7 +24,7 @@ const App = (() => {
     RealtimeManager.init();
 
     try {
-      await loadTools();
+      await Promise.all([loadCategories(), loadTools()]);
     } catch (e) {
       console.warn('Error al cargar catálogo inicial:', e);
     }
@@ -138,7 +60,7 @@ const App = (() => {
       renderTools(toolsInRadius);
     });
 
-    // Píldoras de categoría
+    // Píldora inicial 'Todas'
     document.querySelectorAll('.category-pill').forEach(pill => {
       pill.addEventListener('click', () => {
         document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
@@ -245,6 +167,70 @@ const App = (() => {
     });
   }
 
+  async function loadCategories() {
+    try {
+      const data = await API.tools.getCategories();
+      if (Array.isArray(data) && data.length > 0) {
+        categories = data;
+        renderCategoryPills(categories);
+      }
+    } catch (e) {
+      console.warn('Error cargando categorías desde la base de datos:', e);
+    }
+  }
+
+  function renderCategoryPills(cats) {
+    const container = document.getElementById('category-pills-container');
+    if (!container) return;
+
+    const iconMap = {
+      'Excavación y Movimiento de Tierras': 'fa-truck-pickup',
+      'Concreto y Mezclado': 'fa-cube',
+      'Trabajo en Altura y Andamios': 'fa-layer-group',
+      'Demolición y Rotura': 'fa-hammer',
+      'Generación de Energía y Plantas Eléctricas': 'fa-bolt',
+      'Corte y Perforación de Suelos': 'fa-circle-notch',
+      'Compactación de Terreno': 'fa-compress-arrows-alt',
+      'Bombeo y Evacuación de Agua': 'fa-water',
+      'Compresores y Aire Comprimido': 'fa-wind',
+      'Elevación y Montacargas': 'fa-arrow-up',
+      'Soldadura Industrial': 'fa-fire',
+      'Iluminación de Obras Nocturnas': 'fa-lightbulb',
+      'Topografía y Medición Láser': 'fa-crosshairs',
+      'Pintura y Recubrimientos Airless': 'fa-paint-roller',
+      'Limpieza e Hidrolavado Industrial': 'fa-shield-alt',
+      'Jardinería y Descapote de Terreno': 'fa-cut',
+      'Formaletas y Encofrados Metálicos': 'fa-th-large',
+      'Herramienta Eléctrica de Taller': 'fa-tools',
+      'Carga y Transporte Ligero': 'fa-truck',
+      'Seguridad y Señalización Vial': 'fa-exclamation-triangle'
+    };
+
+    let html = `<div class="category-pill ${selectedCategory === 'TODAS' ? 'active' : ''}" data-category="TODAS">
+      <i class="fa fa-layer-group me-1"></i> Todas
+    </div>`;
+
+    cats.forEach(cat => {
+      const icon = iconMap[cat.name] || 'fa-tag';
+      const isActive = selectedCategory.toLowerCase() === cat.name.toLowerCase();
+      html += `
+        <div class="category-pill ${isActive ? 'active' : ''}" data-category="${cat.name}" data-id="${cat.id}">
+          <i class="fa ${icon} me-1"></i> ${cat.name}
+        </div>`;
+    });
+
+    container.innerHTML = html;
+
+    container.querySelectorAll('.category-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        container.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        selectedCategory = pill.dataset.category;
+        filterTools(document.getElementById('search-input')?.value || '');
+      });
+    });
+  }
+
   async function loadTools() {
     try {
       allTools = await API.tools.getAll();
@@ -259,8 +245,16 @@ const App = (() => {
   function filterTools(query = '') {
     const q = query.trim().toLowerCase();
     filteredTools = allTools.filter(tool => {
-      const matchCat = (selectedCategory === 'TODAS' || tool.category?.toUpperCase().includes(selectedCategory));
-      const matchQuery = !q || tool.name.toLowerCase().includes(q) || tool.description.toLowerCase().includes(q) || tool.locationName.toLowerCase().includes(q);
+      const toolCat = (tool.categoryName || tool.category || '').toLowerCase();
+      const matchCat = (selectedCategory === 'TODAS' || 
+                        toolCat === selectedCategory.toLowerCase() || 
+                        toolCat.includes(selectedCategory.toLowerCase()));
+      const matchQuery = !q || 
+        (tool.name && tool.name.toLowerCase().includes(q)) || 
+        (tool.description && tool.description.toLowerCase().includes(q)) || 
+        (tool.brand && tool.brand.toLowerCase().includes(q)) || 
+        (tool.model && tool.model.toLowerCase().includes(q)) || 
+        (tool.locationName && tool.locationName.toLowerCase().includes(q));
       return matchCat && matchQuery;
     });
     renderTools(filteredTools);

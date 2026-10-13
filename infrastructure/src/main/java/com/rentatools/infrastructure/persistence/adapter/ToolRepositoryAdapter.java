@@ -117,7 +117,7 @@ public class ToolRepositoryAdapter implements ToolRepository {
 
         ToolStatus status = ToolStatus.valueOf(e.getStatus());
 
-        return new Tool(
+        Tool tool = new Tool(
                 e.getId(),
                 e.getProviderId(),
                 e.getCategory() != null ? e.getCategory().getId() : null,
@@ -134,5 +134,9 @@ public class ToolRepositoryAdapter implements ToolRepository {
                 images,
                 specs
         );
+        if (e.getCategory() != null) {
+            tool.setCategoryName(e.getCategory().getName());
+        }
+        return tool;
     }
 }

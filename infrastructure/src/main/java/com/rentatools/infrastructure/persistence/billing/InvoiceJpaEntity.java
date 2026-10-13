@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "billing_invoices")
+@Table(name = "invoices")
 public class InvoiceJpaEntity {
 
     @Id
