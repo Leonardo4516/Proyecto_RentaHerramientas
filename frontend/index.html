@@ -30,9 +30,9 @@
   <!-- 1. BARRA DE NAVEGACIÓN FLOTANTE (GLASSMORPHIC NAVBAR) -->
   <nav class="navbar navbar-expand-lg glass-panel floating-navbar">
     <div class="container-fluid px-0">
-      <a class="navbar-brand d-flex align-items-center" href="#" onclick="App.switchView('catalog'); return false;">
-        <i class="fa fa-truck-monster text-warning me-2 fa-lg"></i>
-        <span>RENTA</span>TOOLS <span class="ms-1 badge bg-warning text-dark py-1 px-2 rounded-pill small" style="font-size: 0.65rem;">PRO</span>
+      <a class="navbar-brand" href="#" onclick="App.switchView('catalog'); return false;">
+        <img src="assets/img/logo/logo.svg" alt="RentaTools PRO" class="navbar-logo d-none d-sm-inline-block">
+        <img src="assets/img/logo/logo-icon.svg" alt="RentaTools PRO" class="navbar-logo-icon d-inline-block d-sm-none">
       </a>
 
       <button class="navbar-toggler border-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
@@ -40,7 +40,7 @@
       </button>
 
       <div class="collapse navbar-collapse" id="navbarContent">
-        <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-2">
           <li class="nav-item">
             <a class="nav-link active" id="nav-catalog" href="#" onclick="App.switchView('catalog'); return false;">
               <i class="fa fa-th-large me-1"></i> Catálogo & Mapa
@@ -70,10 +70,11 @@
 
         <!-- Lado Derecho: Estado WebSocket, Campana Notificaciones y Cuenta -->
         <div class="d-flex align-items-center gap-2 navbar-actions-group">
-          <!-- Indicador WebSocket -->
-          <span id="ws-status-indicator" class="badge bg-secondary">
-            <i class="fa fa-plug me-1"></i> Conectando...
-          </span>
+          <!-- Indicador WebSocket Compacto -->
+          <div id="ws-status-indicator" class="ws-pulse-widget" title="Conexión en tiempo real activa">
+            <span class="ws-pulse-dot" id="ws-dot"></span>
+            <span class="ws-label d-none d-xl-inline" id="ws-text">En línea</span>
+          </div>
 
           <!-- Campana de Notificaciones Push -->
           <div class="dropdown">
@@ -88,23 +89,32 @@
 
           <!-- Acciones de Invitado -->
           <div id="nav-guest-actions" class="d-flex gap-2">
-            <button class="btn btn-neu" onclick="App.openAuthModal('login')">
+            <button class="btn btn-neu btn-sm px-3" onclick="App.openAuthModal('login')">
               <i class="fa fa-sign-in-alt me-1"></i> Iniciar Sesión
             </button>
-            <button class="btn btn-neu-amber" onclick="App.openAuthModal('register')">
+            <button class="btn btn-neu-amber btn-sm px-3" onclick="App.openAuthModal('register')">
               <i class="fa fa-user-plus me-1"></i> Registrarse
             </button>
           </div>
 
-          <!-- Acciones de Usuario Logueado -->
+          <!-- Acciones de Usuario Logueado (Diseño Compacto y Estable) -->
           <div id="nav-user-actions" class="dropdown" style="display: none;">
-            <button class="btn btn-neu dropdown-toggle d-flex align-items-center" type="button" data-bs-toggle="dropdown">
-              <span id="nav-user-role-badge" class="badge badge-role me-2">CLIENTE</span>
-              <span id="nav-user-name" class="fw-bold text-light">Usuario</span>
+            <button class="btn user-pill-btn dropdown-toggle d-flex align-items-center" type="button" id="userMenuBtn" data-bs-toggle="dropdown" aria-expanded="false">
+              <span class="user-avatar-circle" id="nav-user-avatar">U</span>
+              <span class="user-short-name text-truncate" id="nav-user-short-name">Usuario</span>
             </button>
-            <ul class="dropdown-menu dropdown-menu-end glass-modal p-2">
-              <li><a class="dropdown-item text-light" href="#" onclick="App.switchView('client-dashboard'); return false;"><i class="fa fa-history me-2 text-warning"></i>Historial de Pagos</a></li>
-              <li><hr class="dropdown-divider border-secondary"></li>
+            <ul class="dropdown-menu dropdown-menu-end glass-modal p-2 shadow-lg user-dropdown-menu" aria-labelledby="userMenuBtn">
+              <li class="px-3 py-2 border-bottom border-secondary border-opacity-25 mb-2">
+                <div class="fw-bold text-light text-truncate" id="nav-user-dropdown-name">Nombre de Usuario</div>
+                <div class="d-flex align-items-center justify-content-between mt-1">
+                  <span class="small text-muted text-truncate me-2" id="nav-user-dropdown-email">correo@usuario.com</span>
+                  <span id="nav-user-role-badge" class="badge badge-role">CLIENTE</span>
+                </div>
+              </li>
+              <li><a class="dropdown-item text-light" href="#" onclick="App.switchView('client-dashboard'); return false;"><i class="fa fa-history me-2 text-warning"></i>Mis Alquileres & Facturas</a></li>
+              <li id="dropdown-provider-item" style="display: none;"><a class="dropdown-item text-light" href="#" onclick="App.switchView('provider-dashboard'); return false;"><i class="fa fa-dolly-flatbed me-2 text-warning"></i>Gestión Proveedor</a></li>
+              <li id="dropdown-admin-item" style="display: none;"><a class="dropdown-item text-light" href="#" onclick="App.switchView('admin-dashboard'); return false;"><i class="fa fa-chart-line me-2 text-warning"></i>Panel Admin</a></li>
+              <li><hr class="dropdown-divider border-secondary border-opacity-25 my-1"></li>
               <li><a class="dropdown-item text-danger" href="#" onclick="App.logout(); return false;"><i class="fa fa-sign-out-alt me-2"></i>Cerrar Sesión</a></li>
             </ul>
           </div>
@@ -137,30 +147,47 @@
         </div>
       </div>
 
-      <!-- Barra de Filtros, Búsqueda y Slider Geográfico -->
-      <div class="glass-panel p-3 mb-4">
+      <!-- Barra de Filtros, Búsqueda Limpia y Slider Geográfico -->
+      <div class="glass-panel search-command-bar p-3 p-md-4 mb-4">
         <div class="row g-3 align-items-center">
-          <div class="col-md-6 col-lg-5">
-            <div class="input-group">
-              <span class="input-group-text bg-transparent border-0 text-warning"><i class="fa fa-search"></i></span>
-              <input type="text" id="search-input" class="form-control input-neu" placeholder="Buscar retroexcavadoras, andamios, mezcladoras...">
+          <!-- Campo de Búsqueda Limpio y Minimalista -->
+          <div class="col-12 col-md-6 col-lg-5">
+            <div class="clean-search-wrapper">
+              <i class="fa fa-search clean-search-icon"></i>
+              <input type="text" id="search-input" class="clean-search-input" placeholder="Buscar por equipo, modelo, categoría o zona..." autocomplete="off">
+              <button class="clean-search-clear" id="search-clear-btn" type="button" style="display: none;" title="Limpiar búsqueda">
+                <i class="fa fa-times-circle"></i>
+              </button>
             </div>
           </div>
-          <div class="col-md-6 col-lg-4">
-            <div class="d-flex align-items-center gap-2">
-              <i class="fa fa-crosshairs text-info"></i>
-              <label for="radius-slider" class="small text-muted text-nowrap">Radio a tu obra:</label>
-              <input type="range" class="form-range" id="radius-slider" min="5" max="50" step="5" value="20">
-              <span id="radius-value" class="badge bg-info text-dark fw-bold text-nowrap">20 km</span>
+
+          <!-- Slider de Cobertura Geográfica Estilizado -->
+          <div class="col-12 col-sm-7 col-md-6 col-lg-4">
+            <div class="clean-radius-card">
+              <div class="clean-radius-header">
+                <span class="clean-radius-label">
+                  <i class="fa fa-location-crosshairs text-info me-1"></i> Cobertura a tu obra:
+                </span>
+                <span id="radius-value" class="clean-radius-badge">20 km</span>
+              </div>
+              <input type="range" class="clean-radius-slider" id="radius-slider" min="5" max="50" step="5" value="20">
             </div>
           </div>
-          <div class="col-lg-3 text-end d-none d-lg-block">
-            <span class="small text-muted"><i class="fa fa-map-marked-alt text-warning me-1"></i> Mapa de Maquinaria Cercana</span>
+
+          <!-- Contador Dinámico de Equipos Disponibles -->
+          <div class="col-12 col-sm-5 col-lg-3 text-sm-end">
+            <div class="d-flex align-items-center justify-content-sm-end gap-2">
+              <div class="tools-count-pill">
+                <i class="fa fa-cubes text-warning me-1"></i>
+                <span id="tools-counter-num" class="fw-bold text-light">6</span>
+                <span class="text-muted small ms-1">equipos listos</span>
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- Píldoras de Categorías -->
-        <div class="category-pills mt-3">
+        <!-- Píldoras de Categorías con Scroll Suave -->
+        <div class="category-pills mt-3 pt-2 border-top border-secondary border-opacity-10">
           <div class="category-pill active" data-category="TODAS"><i class="fa fa-layer-group me-1"></i> Todas</div>
           <div class="category-pill" data-category="MAQUINARIA PESADA"><i class="fa fa-truck-pickup me-1"></i> Maquinaria Pesada</div>
           <div class="category-pill" data-category="GENERACIÓN"><i class="fa fa-lightbulb me-1"></i> Iluminación & Generación</div>

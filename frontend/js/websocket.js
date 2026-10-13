@@ -113,10 +113,17 @@ const RealtimeManager = (() => {
   }
 
   function updateConnectionBadge(isConnected) {
-    const el = document.getElementById('ws-status-indicator');
-    if (el) {
-      el.className = isConnected ? 'badge bg-success' : 'badge bg-secondary';
-      el.innerHTML = isConnected ? '<i class="fa fa-wifi me-1"></i> En Vivo' : '<i class="fa fa-plug me-1"></i> Desconectado';
+    const dot = document.getElementById('ws-dot');
+    const text = document.getElementById('ws-text');
+    const indicator = document.getElementById('ws-status-indicator');
+    if (dot) {
+      dot.className = isConnected ? 'ws-pulse-dot' : 'ws-pulse-dot disconnected';
+    }
+    if (text) {
+      text.textContent = isConnected ? 'En línea' : 'Reconectando';
+    }
+    if (indicator) {
+      indicator.title = isConnected ? 'Conexión en tiempo real activa (STOMP)' : 'Desconectado - Intentando reconectar...';
     }
   }
 

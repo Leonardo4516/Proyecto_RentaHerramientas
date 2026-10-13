@@ -22,10 +22,26 @@ const App = (() => {
   }
 
   function setupEventListeners() {
-    // Buscador en vivo
-    document.getElementById('search-input')?.addEventListener('input', (e) => {
-      filterTools(e.target.value);
-    });
+    // Buscador en vivo y botón de limpiar
+    const searchInput = document.getElementById('search-input');
+    const searchClearBtn = document.getElementById('search-clear-btn');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        if (searchClearBtn) {
+          searchClearBtn.style.display = e.target.value.trim() ? 'inline-block' : 'none';
+        }
+        filterTools(e.target.value);
+      });
+    }
+    if (searchClearBtn) {
+      searchClearBtn.addEventListener('click', () => {
+        if (searchInput) {
+          searchInput.value = '';
+          searchClearBtn.style.display = 'none';
+          filterTools('');
+        }
+      });
+    }
 
     // Slider de radio de proximidad
     document.getElementById('radius-slider')?.addEventListener('input', (e) => {
@@ -90,9 +106,17 @@ const App = (() => {
       return matchCat && matchQuery;
     });
     renderTools(filteredTools);
+    if (typeof MapManager !== 'undefined' && MapManager.updateToolsOnMap) {
+      MapManager.updateToolsOnMap(filteredTools);
+    }
   }
 
   function renderTools(tools) {
+    const counterEl = document.getElementById('tools-counter-num');
+    if (counterEl) {
+      counterEl.textContent = tools.length;
+    }
+
     const grid = document.getElementById('tools-grid');
     if (!grid) return;
 
@@ -519,32 +543,61 @@ const App = (() => {
     const user = API.getUser();
     const guestNav = document.getElementById('nav-guest-actions');
     const userNav = document.getElementById('nav-user-actions');
-    const userDisplay = document.getElementById('nav-user-name');
+    const avatarEl = document.getElementById('nav-user-avatar');
+    const shortNameEl = document.getElementById('nav-user-short-name');
+    const dropdownNameEl = document.getElementById('nav-user-dropdown-name');
+    const dropdownEmailEl = document.getElementById('nav-user-dropdown-email');
     const roleBadge = document.getElementById('nav-user-role-badge');
+    const providerDropdownItem = document.getElementById('dropdown-provider-item');
+    const adminDropdownItem = document.getElementById('dropdown-admin-item');
 
     if (user) {
       if (guestNav) guestNav.style.display = 'none';
-      if (userNav) userNav.style.display = 'flex';
-      if (userDisplay) userDisplay.textContent = user.fullName || user.username;
+      if (userNav) userNav.style.display = 'block';
+
+      const displayName = user.fullName || user.username || 'Usuario';
+      // Primer nombre para la píldora compacta
+      const firstName = displayName.trim().split(' ')[0];
+
+      if (avatarEl) {
+        avatarEl.textContent = firstName.charAt(0).toUpperCase();
+      }
+      if (shortNameEl) {
+        shortNameEl.textContent = firstName;
+      }
+      if (dropdownNameEl) {
+        dropdownNameEl.textContent = displayName;
+      }
+      if (dropdownEmailEl) {
+        dropdownEmailEl.textContent = user.email || `${user.username.toLowerCase()}@rentatools.com`;
+      }
       if (roleBadge) {
         roleBadge.textContent = user.role.replace('ROLE_', '');
-        roleBadge.className = `badge badge-role me-2`;
+        roleBadge.className = 'badge badge-role';
       }
 
-      // Habilitar pestañas según el rol
-      document.getElementById('nav-client-dashboard').style.display = 'block';
-      if (user.role === 'ROLE_PROVEEDOR' || user.role === 'ROLE_ADMIN') {
-        document.getElementById('nav-provider-dashboard').style.display = 'block';
-      }
-      if (user.role === 'ROLE_ADMIN') {
-        document.getElementById('nav-admin-dashboard').style.display = 'block';
-      }
+      // Habilitar pestañas contextuales según el rol
+      const clientNav = document.getElementById('nav-client-dashboard');
+      const providerNav = document.getElementById('nav-provider-dashboard');
+      const adminNav = document.getElementById('nav-admin-dashboard');
+
+      if (clientNav) clientNav.style.display = (user.role === 'ROLE_CLIENTE' || user.role === 'ROLE_ADMIN') ? 'block' : 'none';
+      if (providerNav) providerNav.style.display = (user.role === 'ROLE_PROVEEDOR' || user.role === 'ROLE_ADMIN') ? 'block' : 'none';
+      if (adminNav) adminNav.style.display = (user.role === 'ROLE_ADMIN') ? 'block' : 'none';
+
+      // Enlaces contextuales en el menú desplegable del avatar
+      if (providerDropdownItem) providerDropdownItem.style.display = (user.role === 'ROLE_PROVEEDOR' || user.role === 'ROLE_ADMIN') ? 'block' : 'none';
+      if (adminDropdownItem) adminDropdownItem.style.display = (user.role === 'ROLE_ADMIN') ? 'block' : 'none';
     } else {
       if (guestNav) guestNav.style.display = 'flex';
       if (userNav) userNav.style.display = 'none';
-      document.getElementById('nav-client-dashboard').style.display = 'none';
-      document.getElementById('nav-provider-dashboard').style.display = 'none';
-      document.getElementById('nav-admin-dashboard').style.display = 'none';
+
+      const clientNav = document.getElementById('nav-client-dashboard');
+      const providerNav = document.getElementById('nav-provider-dashboard');
+      const adminNav = document.getElementById('nav-admin-dashboard');
+      if (clientNav) clientNav.style.display = 'none';
+      if (providerNav) providerNav.style.display = 'none';
+      if (adminNav) adminNav.style.display = 'none';
     }
   }
 
