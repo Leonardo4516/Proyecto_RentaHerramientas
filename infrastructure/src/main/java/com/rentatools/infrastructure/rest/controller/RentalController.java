@@ -58,6 +58,15 @@ public class RentalController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping
+    @Operation(summary = "Listar todas las reservas", description = "Retorna el historial completo de alquileres para el cliente o proveedor")
+    public ResponseEntity<List<RentalResponse>> getAllRentals() {
+        List<RentalResponse> rentals = rentalRepository.findAll().stream()
+                .map(RentalResponse::fromDomain)
+                .toList();
+        return ResponseEntity.ok(rentals);
+    }
+
     @GetMapping("/tool/{toolId}")
     @Operation(summary = "Listar reservas activas de una herramienta")
     public ResponseEntity<List<RentalResponse>> getToolRentals(@PathVariable UUID toolId) {
@@ -71,10 +80,28 @@ public class RentalController {
     @Operation(summary = "Cambiar estado de una reserva (Aprobar, Rechazar, Iniciar, Cancelar)")
     public ResponseEntity<RentalResponse> updateStatus(
             @PathVariable UUID id,
-            @RequestParam BookingStatus newStatus,
-            @RequestParam(required = false) String reason
+            @RequestParam(required = false) BookingStatus newStatus,
+            @RequestParam(required = false) String reason,
+            @RequestBody(required = false) java.util.Map<String, String> body
     ) {
-        RentalResponse updated = changeRentalStatusUseCase.execute(id, newStatus, reason);
+        BookingStatus targetStatus = newStatus;
+        if (targetStatus == null && body != null && body.containsKey("status")) {
+            targetStatus = BookingStatus.valueOf(body.get("status").toUpperCase());
+        }
+        if (targetStatus == null) {
+            targetStatus = BookingStatus.CONFIRMADA;
+        }
+        RentalResponse updated = changeRentalStatusUseCase.execute(id, targetStatus, reason);
+        return ResponseEntity.ok(updated);
+    }
+
+    @PostMapping("/{id}/return")
+    @Operation(summary = "Registrar devolución de maquinaria e inspección de daños")
+    public ResponseEntity<RentalResponse> returnRental(
+            @PathVariable UUID id,
+            @RequestBody(required = false) java.util.Map<String, Object> returnData
+    ) {
+        RentalResponse updated = changeRentalStatusUseCase.execute(id, BookingStatus.COMPLETADA, "Devolución e inspección registrada");
         return ResponseEntity.ok(updated);
     }
 }

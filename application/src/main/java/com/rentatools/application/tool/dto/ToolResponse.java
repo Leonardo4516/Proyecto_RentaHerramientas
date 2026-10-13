@@ -50,4 +50,24 @@ public record ToolResponse(
                 specs
         );
     }
+
+    public BigDecimal getDailyRate() {
+        return dailyPrice;
+    }
+
+    public String getImageUrl() {
+        return images != null && !images.isEmpty() ? images.get(0) : "https://images.unsplash.com/photo-1578575437130-527eed3abbec?w=800&auto=format&fit=crop";
+    }
+
+    public String getCategory() {
+        return brand != null && !brand.isBlank() ? brand : "Maquinaria Pesada";
+    }
+
+    public String getDescription() {
+        return brand + " " + model + " - Código de Inventario: " + code;
+    }
+
+    public String getLocationName() {
+        return "Bogotá D.C.";
+    }
 }

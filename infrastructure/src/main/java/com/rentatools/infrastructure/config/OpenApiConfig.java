@@ -17,10 +17,10 @@ public class OpenApiConfig {
         final String securitySchemeName = "bearerAuth";
         return new OpenAPI()
                 .info(new Info()
-                        .title("Plataforma de Renta de Herramientas y Equipos - API")
+                        .title("Plataforma de Renta de Herramientas y Equipos - API REST")
                         .version("1.0.0")
-                        .description("API REST para gestión, alquiler, geolocalización, disponibilidad y facturación de maquinaria de construcción.")
-                        .contact(new Contact().name("Equipo de Ingeniería").email("dev@rentatools.com"))
+                        .description("Catálogo de endpoints empresariales para gestión de reservas, autenticación JWT, facturación electrónica y notificaciones en tiempo real.")
+                        .contact(new Contact().name("Equipo de Desarrollo RentaTools").email("soporte@rentatools.com"))
                         .license(new License().name("Apache 2.0").url("https://springdoc.org")))
                 .addSecurityItem(new SecurityRequirement().addList(securitySchemeName))
                 .schemaRequirement(securitySchemeName,
@@ -28,6 +28,7 @@ public class OpenApiConfig {
                                 .name(securitySchemeName)
                                 .type(SecurityScheme.Type.HTTP)
                                 .scheme("bearer")
-                                .bearerFormat("JWT"));
+                                .bearerFormat("JWT")
+                                .description("Ingresa el token JWT obtenido en /api/v1/auth/login"));
     }
 }

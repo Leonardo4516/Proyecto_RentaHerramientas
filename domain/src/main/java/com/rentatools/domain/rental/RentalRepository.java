@@ -11,6 +11,7 @@ public interface RentalRepository {
     List<RentalBooking> findByClientId(UUID clientId);
     List<RentalBooking> findByToolId(UUID toolId);
     List<RentalBooking> findActiveRentalsByToolId(UUID toolId);
+    List<RentalBooking> findAll();
     
     /**
      * Verifica si existen reservas activas que se solapen con el rango solicitado.

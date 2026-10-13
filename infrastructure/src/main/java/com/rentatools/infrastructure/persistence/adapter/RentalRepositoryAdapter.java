@@ -64,6 +64,11 @@ public class RentalRepositoryAdapter implements RentalRepository {
     }
 
     @Override
+    public List<RentalBooking> findAll() {
+        return rentalJpaRepository.findAll().stream().map(this::toDomain).toList();
+    }
+
+    @Override
     public boolean hasOverlappingBookings(UUID toolId, LocalDate startDate, LocalDate endDate) {
         return rentalJpaRepository.existsOverlappingBooking(toolId, startDate, endDate);
     }

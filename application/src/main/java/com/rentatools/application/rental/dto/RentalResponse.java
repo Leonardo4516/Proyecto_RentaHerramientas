@@ -38,4 +38,20 @@ public record RentalResponse(
                 rental.getCreatedAt()
         );
     }
+
+    public int getDays() {
+        return totalDays;
+    }
+
+    public BigDecimal getTotal() {
+        return subtotal != null ? subtotal.add(depositAmount != null ? depositAmount : BigDecimal.ZERO) : BigDecimal.ZERO;
+    }
+
+    public String getToolName() {
+        return "Maquinaria RentaTools #" + (toolId != null ? toolId.toString().substring(0, 8) : "");
+    }
+
+    public String getClientName() {
+        return "Cliente Constructora";
+    }
 }
