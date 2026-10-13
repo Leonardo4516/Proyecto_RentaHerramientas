@@ -2,19 +2,73 @@ const RealtimeManager = (() => {
   let stompClient = null;
   let notifications = [];
   const listeners = [];
+  const recentMessageKeys = new Set();
+  let isConnecting = false;
+
+  function getStorageKey() {
+    const user = (typeof API !== 'undefined' && API.getUser) ? API.getUser() : null;
+    return user ? `rentatools_notifs_${user.username.toLowerCase()}` : 'rentatools_notifs_guest';
+  }
+
+  function loadUserNotifications() {
+    try {
+      const raw = localStorage.getItem(getStorageKey());
+      if (raw) {
+        notifications = JSON.parse(raw);
+      } else {
+        const user = (typeof API !== 'undefined' && API.getUser) ? API.getUser() : null;
+        if (user) {
+          notifications = [{
+            id: Date.now(),
+            channel: 'Sistema',
+            content: `Bienvenido al marketplace, ${user.fullName || user.username}. Tu canal en tiempo real está activo.`,
+            time: new Date().toLocaleTimeString()
+          }];
+          saveUserNotifications();
+        } else {
+          notifications = [];
+        }
+      }
+    } catch (e) {
+      notifications = [];
+    }
+    updateNotificationUI();
+  }
+
+  function saveUserNotifications() {
+    try {
+      localStorage.setItem(getStorageKey(), JSON.stringify(notifications.slice(0, 25)));
+    } catch (_) {}
+  }
+
+  function clearNotifications() {
+    notifications = [];
+    saveUserNotifications();
+    updateNotificationUI();
+  }
 
   function init() {
+    // Si ya existe cliente conectado o conectándose, desconectar limpiamente para evitar conexiones duplicadas
+    if (stompClient) {
+      try {
+        stompClient.disconnect(() => {});
+      } catch (_) {}
+      stompClient = null;
+    }
+
+    loadUserNotifications();
+
     const socketUrl = `${window.location.origin}/ws-rentatools`;
-    console.log('Conectando a WebSocket en:', socketUrl);
 
     try {
-      // Intentar STOMP sobre SockJS o WebSocket nativo
+      isConnecting = true;
       const socket = new SockJS(socketUrl);
       stompClient = Stomp.over(socket);
       stompClient.debug = () => {}; // Silenciar logs verbosos en consola
 
-      stompClient.connect({}, (frame) => {
-        console.log('✅ Conexión WebSocket STOMP establecida con éxito');
+      stompClient.connect({}, () => {
+        isConnecting = false;
+        console.log('[STOMP] Conexión WebSocket establecida con éxito');
         updateConnectionBadge(true);
 
         // 1. Canal global de catálogo
@@ -22,8 +76,8 @@ const RealtimeManager = (() => {
           handleIncomingMessage('Catálogo', message.body);
         });
 
-        // 2. Canales según el usuario logueado
-        const user = API.getUser();
+        // 2. Canales específicos según el usuario logueado
+        const user = (typeof API !== 'undefined' && API.getUser) ? API.getUser() : null;
         if (user && user.id) {
           if (user.role === 'ROLE_CLIENTE') {
             stompClient.subscribe(`/topic/client/${user.id}`, (message) => {
@@ -33,15 +87,25 @@ const RealtimeManager = (() => {
             stompClient.subscribe(`/topic/provider/${user.id}`, (message) => {
               handleIncomingMessage('Proveedor', message.body);
             });
+          } else if (user.role === 'ROLE_ADMIN') {
+            stompClient.subscribe('/topic/admin/activity', (message) => {
+              handleIncomingMessage('Admin', message.body);
+            });
           }
         }
       }, (error) => {
-        console.warn('⚠️ No se pudo conectar al WebSocket o servidor en reinicio:', error);
+        isConnecting = false;
+        console.warn('[STOMP] No se pudo conectar al WebSocket o reconectando:', error);
         updateConnectionBadge(false);
-        // Reintento en 8 segundos
-        setTimeout(init, 8000);
+        // Reintento espaciado en 10 segundos
+        setTimeout(() => {
+          if (!stompClient || !stompClient.connected) {
+            init();
+          }
+        }, 10000);
       });
     } catch (e) {
+      isConnecting = false;
       console.error('Error al inicializar cliente WebSocket:', e);
       updateConnectionBadge(false);
     }
@@ -54,18 +118,33 @@ const RealtimeManager = (() => {
       content = parsed.data || parsed.message || rawBody;
     } catch (_) {}
 
+    const textContent = (typeof content === 'object') ? JSON.stringify(content) : String(content);
+
+    // Filtro estricto de deduplicación (evita mensajes dobles si llegan por broadcast y privado dentro de 3.5 segundos)
+    const dedupKey = `${channel}::${textContent.trim()}`;
+    if (recentMessageKeys.has(dedupKey)) {
+      return;
+    }
+    recentMessageKeys.add(dedupKey);
+    setTimeout(() => {
+      recentMessageKeys.delete(dedupKey);
+    }, 3500);
+
     const notif = {
       id: Date.now(),
       channel,
-      content: typeof content === 'object' ? JSON.stringify(content) : content,
+      content: textContent,
       time: new Date().toLocaleTimeString()
     };
 
     notifications.unshift(notif);
+    saveUserNotifications();
     updateNotificationUI();
     showToastNotification(notif);
 
-    listeners.forEach(cb => cb(notif));
+    listeners.forEach(cb => {
+      try { cb(notif); } catch (_) {}
+    });
   }
 
   function showToastNotification(notif) {
@@ -77,7 +156,7 @@ const RealtimeManager = (() => {
         title: `Alerta en Tiempo Real [${notif.channel}]`,
         text: notif.content,
         showConfirmButton: false,
-        timer: 4500,
+        timer: 4000,
         timerProgressBar: true,
         background: '#0f172a',
         color: '#f8fafc',
@@ -97,15 +176,15 @@ const RealtimeManager = (() => {
     }
     if (list) {
       if (notifications.length === 0) {
-        list.innerHTML = '<li class="dropdown-item text-muted text-center py-3">Sin notificaciones pendientes</li>';
+        list.innerHTML = '<li class="p-4 text-center small text-slate-300" style="color: #cbd5e1 !important;"><i class="fa fa-bell-slash me-2 text-warning"></i>Sin notificaciones pendientes</li>';
       } else {
-        list.innerHTML = notifications.slice(0, 5).map(n => `
-          <li class="dropdown-item border-bottom border-secondary py-2 text-wrap" style="max-width: 300px;">
-            <div class="d-flex justify-content-between">
-              <span class="badge bg-warning text-dark">${n.channel}</span>
-              <small class="text-secondary">${n.time}</small>
+        list.innerHTML = notifications.slice(0, 10).map(n => `
+          <li class="dropdown-item notif-item mb-2 p-2">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span class="badge bg-warning text-dark fw-bold px-2 py-0" style="font-size: 0.72rem;">${n.channel}</span>
+              <span class="notif-item-time">${n.time}</span>
             </div>
-            <div class="small text-light mt-1">${n.content}</div>
+            <div class="notif-item-content mt-1">${n.content}</div>
           </li>
         `).join('');
       }
@@ -113,10 +192,17 @@ const RealtimeManager = (() => {
   }
 
   function updateConnectionBadge(isConnected) {
-    const el = document.getElementById('ws-status-indicator');
-    if (el) {
-      el.className = isConnected ? 'badge bg-success' : 'badge bg-secondary';
-      el.innerHTML = isConnected ? '<i class="fa fa-wifi me-1"></i> En Vivo' : '<i class="fa fa-plug me-1"></i> Desconectado';
+    const dot = document.getElementById('ws-dot');
+    const text = document.getElementById('ws-text');
+    const indicator = document.getElementById('ws-status-indicator');
+    if (dot) {
+      dot.className = isConnected ? 'ws-pulse-dot' : 'ws-pulse-dot disconnected';
+    }
+    if (text) {
+      text.textContent = isConnected ? 'En línea' : 'Reconectando';
+    }
+    if (indicator) {
+      indicator.title = isConnected ? 'Conexión en tiempo real activa (STOMP)' : 'Desconectado - Intentando reconectar...';
     }
   }
 
@@ -124,9 +210,34 @@ const RealtimeManager = (() => {
     listeners.push(cb);
   }
 
+  // Prevenir que hacer clic dentro del desplegable cierre el menú de notificaciones
+  document.addEventListener('DOMContentLoaded', () => {
+    const notifMenu = document.querySelector('.notification-dropdown-menu');
+    if (notifMenu) {
+      notifMenu.addEventListener('click', (e) => {
+        if (!e.target.closest('.notif-clear-btn')) {
+          e.stopPropagation();
+        }
+      });
+    }
+  });
+
+  function disconnect() {
+    if (stompClient) {
+      try { stompClient.disconnect(() => {}); } catch (_) {}
+      stompClient = null;
+    }
+    notifications = [];
+    updateNotificationUI();
+    updateConnectionBadge(false);
+  }
+
   return {
     init,
+    disconnect,
     onNotification,
+    loadUserNotifications,
+    clearNotifications,
     getNotifications: () => notifications
   };
 })();

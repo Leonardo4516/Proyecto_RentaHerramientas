@@ -14,18 +14,32 @@ const App = (() => {
 
     try {
       await loadTools();
-      MapManager.init();
-      MapManager.updateToolsOnMap(allTools);
     } catch (e) {
       console.warn('Error al cargar catálogo inicial:', e);
     }
   }
 
   function setupEventListeners() {
-    // Buscador en vivo
-    document.getElementById('search-input')?.addEventListener('input', (e) => {
-      filterTools(e.target.value);
-    });
+    // Buscador en vivo y botón de limpiar
+    const searchInput = document.getElementById('search-input');
+    const searchClearBtn = document.getElementById('search-clear-btn');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        if (searchClearBtn) {
+          searchClearBtn.style.display = e.target.value.trim() ? 'inline-block' : 'none';
+        }
+        filterTools(e.target.value);
+      });
+    }
+    if (searchClearBtn) {
+      searchClearBtn.addEventListener('click', () => {
+        if (searchInput) {
+          searchInput.value = '';
+          searchClearBtn.style.display = 'none';
+          filterTools('');
+        }
+      });
+    }
 
     // Slider de radio de proximidad
     document.getElementById('radius-slider')?.addEventListener('input', (e) => {
@@ -45,6 +59,28 @@ const App = (() => {
       });
     });
 
+    // Control de colapso/despliegue del mapa interactivo
+    const mapCollapseEl = document.getElementById('map-collapse-container');
+    const mapToggleStatus = document.getElementById('map-toggle-status');
+    const mapToggleChevron = document.getElementById('map-toggle-chevron');
+    if (mapCollapseEl) {
+      mapCollapseEl.addEventListener('shown.bs.collapse', () => {
+        if (mapToggleStatus) mapToggleStatus.textContent = 'Ocultar mapa';
+        if (mapToggleChevron) mapToggleChevron.classList.add('rotate-180');
+        if (typeof MapManager !== 'undefined' && MapManager) {
+          MapManager.init();
+          MapManager.updateToolsOnMap(filteredTools);
+          setTimeout(() => {
+            if (MapManager.invalidateSize) MapManager.invalidateSize();
+          }, 150);
+        }
+      });
+      mapCollapseEl.addEventListener('hidden.bs.collapse', () => {
+        if (mapToggleStatus) mapToggleStatus.textContent = 'Ver mapa';
+        if (mapToggleChevron) mapToggleChevron.classList.remove('rotate-180');
+      });
+    }
+
     // Cambios en fechas de reserva para cotización en vivo
     document.getElementById('book-start-date')?.addEventListener('change', recalculateBookingQuote);
     document.getElementById('book-end-date')?.addEventListener('change', recalculateBookingQuote);
@@ -55,6 +91,55 @@ const App = (() => {
         togglePaymentFields(e.target.value);
       });
     });
+
+    // Formateo dinámico y remoción de errores en campos de tarjeta de crédito/débito
+    const cardNumberInput = document.getElementById('card-number');
+    const cardExpiryInput = document.getElementById('card-expiry');
+    const cardCvcInput = document.getElementById('card-cvc');
+    const cardHolderInput = document.getElementById('card-holder-name');
+
+    if (cardNumberInput) {
+      cardNumberInput.addEventListener('input', (e) => {
+        let val = e.target.value.replace(/\D/g, '').substring(0, 16);
+        let formatted = val.match(/.{1,4}/g)?.join(' ') || val;
+        e.target.value = formatted;
+        e.target.classList.remove('is-invalid');
+      });
+    }
+
+    if (cardExpiryInput) {
+      cardExpiryInput.addEventListener('input', (e) => {
+        let val = e.target.value.replace(/\D/g, '').substring(0, 4);
+        if (val.length >= 3) {
+          e.target.value = `${val.substring(0, 2)}/${val.substring(2)}`;
+        } else {
+          e.target.value = val;
+        }
+        e.target.classList.remove('is-invalid');
+      });
+    }
+
+    if (cardCvcInput) {
+      cardCvcInput.addEventListener('input', (e) => {
+        e.target.value = e.target.value.replace(/\D/g, '').substring(0, 4);
+        e.target.classList.remove('is-invalid');
+      });
+    }
+
+    if (cardHolderInput) {
+      cardHolderInput.addEventListener('input', (e) => {
+        e.target.classList.remove('is-invalid');
+      });
+    }
+
+    const pseBankSelect = document.getElementById('pse-bank');
+    const pseEmailInput = document.getElementById('pse-email');
+    if (pseBankSelect) {
+      pseBankSelect.addEventListener('change', () => pseBankSelect.classList.remove('is-invalid'));
+    }
+    if (pseEmailInput) {
+      pseEmailInput.addEventListener('input', () => pseEmailInput.classList.remove('is-invalid'));
+    }
 
     // Suscripción a eventos WebSocket para refresco en tiempo real
     RealtimeManager.onNotification((notif) => {
@@ -90,9 +175,17 @@ const App = (() => {
       return matchCat && matchQuery;
     });
     renderTools(filteredTools);
+    if (typeof MapManager !== 'undefined' && MapManager.updateToolsOnMap) {
+      MapManager.updateToolsOnMap(filteredTools);
+    }
   }
 
   function renderTools(tools) {
+    const counterEl = document.getElementById('tools-counter-num');
+    if (counterEl) {
+      counterEl.textContent = tools.length;
+    }
+
     const grid = document.getElementById('tools-grid');
     if (!grid) return;
 
@@ -138,7 +231,7 @@ const App = (() => {
               </div>
             </div>
 
-            <button class="btn btn-neu-amber w-100" onclick="App.openBookingModal(${t.id})">
+            <button class="btn btn-neu-amber w-100" onclick="App.openBookingModal('${t.id}')">
               <i class="fa fa-calendar-check me-2"></i> Cotizar & Reservar
             </button>
           </div>
@@ -254,6 +347,117 @@ const App = (() => {
     const q = activeToolForBooking.calculatedQuote;
     const selectedMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value || 'PSE';
 
+    // VALIDACIÓN ESTRICTA DE CAMPOS OBLIGATORIOS SEGÚN MÉTODO DE PAGO
+    if (selectedMethod === 'CREDIT_CARD' || selectedMethod === 'DEBIT_CARD') {
+      const holderInput = document.getElementById('card-holder-name');
+      const numberInput = document.getElementById('card-number');
+      const expiryInput = document.getElementById('card-expiry');
+      const cvcInput = document.getElementById('card-cvc');
+
+      const holder = (holderInput?.value || '').trim();
+      const rawNumber = (numberInput?.value || '').replace(/\s+/g, '');
+      const expiry = (expiryInput?.value || '').trim();
+      const cvc = (cvcInput?.value || '').trim();
+
+      let hasError = false;
+      let errorMsg = '';
+
+      if (!holder || holder.length < 3) {
+        holderInput?.classList.add('is-invalid');
+        hasError = true;
+        errorMsg = 'Ingresa el nombre del titular tal como aparece en la tarjeta.';
+      } else {
+        holderInput?.classList.remove('is-invalid');
+      }
+
+      if (!rawNumber || rawNumber.length < 15 || rawNumber.length > 16 || !/^\d+$/.test(rawNumber)) {
+        numberInput?.classList.add('is-invalid');
+        hasError = true;
+        if (!errorMsg) errorMsg = 'El número de tarjeta debe tener entre 15 y 16 dígitos válidos.';
+      } else {
+        numberInput?.classList.remove('is-invalid');
+      }
+
+      // Validar formato MM/AA y que la tarjeta no esté vencida
+      const expiryMatch = expiry.match(/^(0[1-9]|1[0-2])\/(\d{2})$/);
+      if (!expiryMatch) {
+        expiryInput?.classList.add('is-invalid');
+        hasError = true;
+        if (!errorMsg) errorMsg = 'La fecha de expiración debe tener formato MM/AA válido (ej. 12/28).';
+      } else {
+        const expMonth = parseInt(expiryMatch[1], 10);
+        const expYear = parseInt('20' + expiryMatch[2], 10);
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1; // 1 - 12
+        if (expYear < currentYear || (expYear === currentYear && expMonth < currentMonth)) {
+          expiryInput?.classList.add('is-invalid');
+          hasError = true;
+          if (!errorMsg) errorMsg = 'La tarjeta de crédito/débito ingresada se encuentra vencida.';
+        } else {
+          expiryInput?.classList.remove('is-invalid');
+        }
+      }
+
+      if (!cvc || cvc.length < 3 || cvc.length > 4 || !/^\d+$/.test(cvc)) {
+        cvcInput?.classList.add('is-invalid');
+        hasError = true;
+        if (!errorMsg) errorMsg = 'El código CVC / CVV debe contener 3 o 4 dígitos.';
+      } else {
+        cvcInput?.classList.remove('is-invalid');
+      }
+
+      if (hasError) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Datos de Tarjeta Incompletos',
+          text: errorMsg,
+          confirmButtonColor: '#f59e0b',
+          background: '#0f172a',
+          color: '#f8fafc'
+        });
+        return;
+      }
+    } else if (selectedMethod === 'PSE') {
+      const bankSelect = document.getElementById('pse-bank');
+      const emailInput = document.getElementById('pse-email');
+
+      const bank = bankSelect?.value;
+      const email = (emailInput?.value || '').trim();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      let hasError = false;
+      let errorMsg = '';
+
+      if (!bank) {
+        bankSelect?.classList.add('is-invalid');
+        hasError = true;
+        errorMsg = 'Debes seleccionar una entidad bancaria para continuar con PSE.';
+      } else {
+        bankSelect?.classList.remove('is-invalid');
+      }
+
+      if (!email || !emailRegex.test(email)) {
+        emailInput?.classList.add('is-invalid');
+        hasError = true;
+        if (!errorMsg) errorMsg = 'Ingresa un correo electrónico registrado en PSE válido.';
+      } else {
+        emailInput?.classList.remove('is-invalid');
+      }
+
+      if (hasError) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Datos de PSE Incompletos',
+          text: errorMsg,
+          confirmButtonColor: '#f59e0b',
+          background: '#0f172a',
+          color: '#f8fafc'
+        });
+        return;
+      }
+    }
+
     Swal.fire({
       title: 'Procesando Transacción...',
       text: 'Conectando con la pasarela de pagos segura y emitiendo factura electrónica...',
@@ -306,6 +510,14 @@ const App = (() => {
         notes: `Pago verificado vía ${selectedMethod} para ${activeToolForBooking.name}`
       });
 
+      // 4. Confirmar automáticamente el estado de la reserva al estar pagada
+      await API.rentals.updateStatus(rental.id, 'CONFIRMADA');
+
+      // Actualizar datos en memoria y vistas
+      await loadTools();
+      loadClientRentals();
+      loadProviderRequests();
+
       // Cerrar modal de pago
       const payModal = bootstrap.Modal.getInstance(document.getElementById('paymentModal'));
       if (payModal) payModal.hide();
@@ -315,7 +527,8 @@ const App = (() => {
         title: '¡Pago y Reserva Confirmados!',
         html: `
           <p class="text-light">Tu transacción <strong>${payment.transactionReference}</strong> fue aprobada exitosamente.</p>
-          <p class="text-muted small">Se ha emitido la factura oficial <strong>${invoice.invoiceNumber}</strong>.</p>
+          <div class="mb-2"><span class="badge bg-success px-3 py-2 fs-6"><i class="fa fa-check-circle me-1"></i> Estado: CONFIRMADA</span></div>
+          <p class="text-muted small mt-2">Se ha emitido la factura oficial <strong>${invoice.invoiceNumber}</strong> con firma digital.</p>
           <div class="mt-3">
             <a href="${API.invoices.downloadPdfUrl(invoice.id)}" target="_blank" class="btn btn-neu-amber py-2 px-4">
               <i class="fa fa-file-pdf me-2"></i> Descargar Factura Oficial PDF
@@ -323,7 +536,7 @@ const App = (() => {
           </div>
         `,
         confirmButtonColor: '#06b6d4',
-        confirmButtonText: 'Ver mis Alquileres',
+        confirmButtonText: (user.role === 'ROLE_ADMIN') ? 'Ver Alquileres Activos' : 'Ver mis Alquileres',
         background: '#0f172a',
         color: '#f8fafc'
       }).then(() => {
@@ -390,6 +603,11 @@ const App = (() => {
 
     try {
       const rentals = await API.rentals.getAll();
+      if (!rentals || rentals.length === 0) {
+        container.innerHTML = `<tr><td colspan="7" class="text-center text-slate-300 py-4"><i class="fa fa-inbox me-2 text-warning"></i>No hay solicitudes de alquiler registradas actualmente</td></tr>`;
+        return;
+      }
+
       container.innerHTML = rentals.map(r => `
         <tr>
           <td>#${r.id}</td>
@@ -399,14 +617,16 @@ const App = (() => {
           <td>${API.formatCurrency(r.total)}</td>
           <td><span class="badge ${r.status === 'CONFIRMADA' ? 'badge-available' : 'badge-rented'}">${r.status}</span></td>
           <td>
+            <div class="provider-actions-cell">
             ${r.status === 'PENDIENTE_PAGO' || r.status === 'PENDIENTE' ? `
-              <button class="btn btn-sm btn-success py-0 px-2 me-1" onclick="App.updateRentalStatus(${r.id}, 'CONFIRMADA')">Aprobar</button>
-              <button class="btn btn-sm btn-danger py-0 px-2" onclick="App.updateRentalStatus(${r.id}, 'RECHAZADA')">Rechazar</button>
+              <button class="btn btn-sm btn-success py-1 px-2" onclick="App.updateRentalStatus('${r.id}', 'CONFIRMADA')">Aprobar</button>
+              <button class="btn btn-sm btn-danger py-1 px-2" onclick="App.updateRentalStatus('${r.id}', 'RECHAZADA')">Rechazar</button>
             ` : (r.status === 'CONFIRMADA' ? `
-              <button class="btn btn-sm btn-neu-cyan py-0 px-2" onclick="App.openReturnModal(${r.id})">
+              <button class="btn btn-sm btn-neu-cyan py-1 px-2 text-nowrap" onclick="App.openReturnModal('${r.id}')">
                 <i class="fa fa-clipboard-check me-1"></i> Inspección Devolución
               </button>
             ` : `<span class="small text-muted">Completado</span>`)}
+            </div>
           </td>
         </tr>
       `).join('');
@@ -427,6 +647,8 @@ const App = (() => {
         background: '#0f172a',
         color: '#f8fafc'
       });
+      await loadTools();
+      loadClientRentals();
       loadProviderRequests();
     } catch (e) {
       Swal.fire('Error', e.message, 'error');
@@ -456,6 +678,8 @@ const App = (() => {
         background: '#0f172a',
         color: '#f8fafc'
       });
+      await loadTools();
+      loadClientRentals();
       loadProviderRequests();
     } catch (e) {
       Swal.fire('Error', e.message, 'error');
@@ -474,11 +698,11 @@ const App = (() => {
       const actList = document.getElementById('admin-activities-list');
       if (actList && data.recentActivities) {
         actList.innerHTML = data.recentActivities.map(a => `
-          <li class="list-group-item bg-transparent text-light border-secondary d-flex justify-content-between align-items-center py-2">
+          <li class="list-group-item admin-activity-item text-light d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
             <div>
-              <strong>${a.type}</strong>: <span class="text-muted small">${a.description}</span>
+              <strong class="text-warning">${a.type}</strong>: <span class="text-slate-300 small">${a.description}</span>
             </div>
-            <span class="badge bg-dark text-warning">${a.time}</span>
+            <span class="badge bg-dark text-warning border border-secondary border-opacity-50 text-nowrap">${a.time}</span>
           </li>
         `).join('');
       }
@@ -496,16 +720,25 @@ const App = (() => {
     const targetView = document.getElementById(`view-${viewName}`);
     if (targetView) targetView.style.display = 'block';
 
-    const targetNav = document.getElementById(`nav-${viewName}`);
-    if (targetNav) targetNav.classList.add('active');
+    const targetNavLink = document.getElementById(`nav-${viewName}-link`) || document.getElementById(`nav-${viewName}`);
+    if (targetNavLink) {
+      if (targetNavLink.classList.contains('nav-link')) {
+        targetNavLink.classList.add('active');
+      } else {
+        targetNavLink.querySelector('.nav-link')?.classList.add('active');
+      }
+    }
 
     if (viewName === 'catalog') {
-      setTimeout(() => {
-        if (typeof MapManager !== 'undefined' && MapManager) {
-          MapManager.init();
-          if (MapManager.invalidateSize) MapManager.invalidateSize();
-        }
-      }, 150);
+      const mapCollapseEl = document.getElementById('map-collapse-container');
+      if (mapCollapseEl && mapCollapseEl.classList.contains('show')) {
+        setTimeout(() => {
+          if (typeof MapManager !== 'undefined' && MapManager) {
+            MapManager.init();
+            if (MapManager.invalidateSize) MapManager.invalidateSize();
+          }
+        }, 150);
+      }
     } else if (viewName === 'client-dashboard') {
       loadClientRentals();
     } else if (viewName === 'provider-dashboard') {
@@ -519,32 +752,106 @@ const App = (() => {
     const user = API.getUser();
     const guestNav = document.getElementById('nav-guest-actions');
     const userNav = document.getElementById('nav-user-actions');
-    const userDisplay = document.getElementById('nav-user-name');
+    const avatarEl = document.getElementById('nav-user-avatar');
+    const shortNameEl = document.getElementById('nav-user-short-name');
+    const dropdownNameEl = document.getElementById('nav-user-dropdown-name');
+    const dropdownEmailEl = document.getElementById('nav-user-dropdown-email');
     const roleBadge = document.getElementById('nav-user-role-badge');
+    const clientDropdownItem = document.getElementById('dropdown-client-item');
+    const providerDropdownItem = document.getElementById('dropdown-provider-item');
+    const adminDropdownItem = document.getElementById('dropdown-admin-item');
 
     if (user) {
-      if (guestNav) guestNav.style.display = 'none';
-      if (userNav) userNav.style.display = 'flex';
-      if (userDisplay) userDisplay.textContent = user.fullName || user.username;
-      if (roleBadge) {
-        roleBadge.textContent = user.role.replace('ROLE_', '');
-        roleBadge.className = `badge badge-role me-2`;
+      if (guestNav) {
+        guestNav.style.setProperty('display', 'none', 'important');
+        guestNav.classList.add('d-none');
+      }
+      if (userNav) {
+        userNav.style.setProperty('display', 'block', 'important');
+        userNav.classList.remove('d-none');
       }
 
-      // Habilitar pestañas según el rol
-      document.getElementById('nav-client-dashboard').style.display = 'block';
-      if (user.role === 'ROLE_PROVEEDOR' || user.role === 'ROLE_ADMIN') {
-        document.getElementById('nav-provider-dashboard').style.display = 'block';
+      const displayName = user.fullName || user.username || 'Usuario';
+      // Primer nombre para la píldora compacta
+      const firstName = displayName.trim().split(' ')[0];
+
+      if (avatarEl) {
+        avatarEl.textContent = firstName.charAt(0).toUpperCase();
       }
+      if (shortNameEl) {
+        shortNameEl.textContent = firstName;
+      }
+      if (dropdownNameEl) {
+        dropdownNameEl.textContent = displayName;
+      }
+      if (dropdownEmailEl) {
+        dropdownEmailEl.textContent = user.email || `${user.username.toLowerCase()}@rentatools.com`;
+      }
+      if (roleBadge) {
+        roleBadge.textContent = user.role.replace('ROLE_', '');
+        roleBadge.className = 'badge badge-role';
+      }
+
+      // Habilitar pestañas contextuales según el rol
+      const clientNav = document.getElementById('nav-client-dashboard');
+      const providerNav = document.getElementById('nav-provider-dashboard');
+      const adminNav = document.getElementById('nav-admin-dashboard');
+
+      if (clientNav) clientNav.style.display = (user.role === 'ROLE_CLIENTE' || user.role === 'ROLE_ADMIN') ? 'block' : 'none';
+      if (providerNav) providerNav.style.display = (user.role === 'ROLE_PROVEEDOR' || user.role === 'ROLE_ADMIN') ? 'block' : 'none';
+      if (adminNav) adminNav.style.display = (user.role === 'ROLE_ADMIN') ? 'block' : 'none';
+
+      // Rótulos contextuales según el rol (Admin -> "Alquileres Activos", Cliente -> "Mis Alquileres")
+      const clientNavLabel = document.getElementById('nav-client-dashboard-label');
+      const clientDropdownLabel = document.getElementById('dropdown-client-label');
+      const clientHeaderTitle = document.getElementById('client-dashboard-header-title');
+
       if (user.role === 'ROLE_ADMIN') {
-        document.getElementById('nav-admin-dashboard').style.display = 'block';
+        if (clientNavLabel) clientNavLabel.textContent = 'Alquileres Activos';
+        if (clientDropdownLabel) clientDropdownLabel.textContent = 'Alquileres Activos';
+        if (clientHeaderTitle) clientHeaderTitle.textContent = 'Alquileres Activos & Facturación';
+      } else {
+        if (clientNavLabel) clientNavLabel.textContent = 'Mis Alquileres';
+        if (clientDropdownLabel) clientDropdownLabel.textContent = 'Mis Alquileres & Facturas';
+        if (clientHeaderTitle) clientHeaderTitle.textContent = 'Mis Alquileres & Facturación';
       }
+
+      // Enlaces contextuales en el menú desplegable del avatar (Cliente, Proveedor, Admin)
+      if (clientDropdownItem) clientDropdownItem.style.display = (user.role === 'ROLE_CLIENTE' || user.role === 'ROLE_ADMIN') ? 'block' : 'none';
+      if (providerDropdownItem) providerDropdownItem.style.display = (user.role === 'ROLE_PROVEEDOR' || user.role === 'ROLE_ADMIN') ? 'block' : 'none';
+      if (adminDropdownItem) adminDropdownItem.style.display = (user.role === 'ROLE_ADMIN') ? 'block' : 'none';
     } else {
-      if (guestNav) guestNav.style.display = 'flex';
-      if (userNav) userNav.style.display = 'none';
-      document.getElementById('nav-client-dashboard').style.display = 'none';
-      document.getElementById('nav-provider-dashboard').style.display = 'none';
-      document.getElementById('nav-admin-dashboard').style.display = 'none';
+      if (guestNav) {
+        guestNav.style.setProperty('display', 'flex', 'important');
+        guestNav.classList.remove('d-none');
+      }
+      if (userNav) {
+        userNav.style.setProperty('display', 'none', 'important');
+        userNav.classList.add('d-none');
+      }
+
+      const clientNav = document.getElementById('nav-client-dashboard');
+      const providerNav = document.getElementById('nav-provider-dashboard');
+      const adminNav = document.getElementById('nav-admin-dashboard');
+      if (clientNav) clientNav.style.display = 'none';
+      if (providerNav) providerNav.style.display = 'none';
+      if (adminNav) adminNav.style.display = 'none';
+
+      if (clientDropdownItem) clientDropdownItem.style.display = 'none';
+      if (providerDropdownItem) providerDropdownItem.style.display = 'none';
+      if (adminDropdownItem) adminDropdownItem.style.display = 'none';
+
+      const clientNavLabel = document.getElementById('nav-client-dashboard-label');
+      const clientDropdownLabel = document.getElementById('dropdown-client-label');
+      const clientHeaderTitle = document.getElementById('client-dashboard-header-title');
+      if (clientNavLabel) clientNavLabel.textContent = 'Mis Alquileres';
+      if (clientDropdownLabel) clientDropdownLabel.textContent = 'Mis Alquileres & Facturas';
+      if (clientHeaderTitle) clientHeaderTitle.textContent = 'Mis Alquileres & Facturación';
+    }
+
+    // Cargar notificaciones persistentes del usuario activo o limpiar para invitado
+    if (typeof RealtimeManager !== 'undefined' && RealtimeManager.loadUserNotifications) {
+      RealtimeManager.loadUserNotifications();
     }
   }
 
@@ -660,6 +967,9 @@ const App = (() => {
   function logout() {
     API.setToken(null);
     API.setUser(null);
+    if (typeof RealtimeManager !== 'undefined' && RealtimeManager.disconnect) {
+      RealtimeManager.disconnect();
+    }
     checkAuthStatus();
     switchView('catalog');
     Swal.fire({

@@ -59,7 +59,7 @@ const MapManager = (() => {
     });
 
     L.marker([loc.lat, loc.lng], { icon: userIcon })
-      .bindPopup('<strong style="color: #38bdf8;">📍 Ubicación de tu Obra / Proyecto</strong>')
+      .bindPopup('<strong style="color: #38bdf8;"><img src="assets/img/icons/icon-location.svg" width="16" height="16" style="vertical-align: -3px; margin-right: 5px;">Ubicación de tu Obra / Proyecto</strong>')
       .addTo(map);
   }
 
@@ -80,9 +80,9 @@ const MapManager = (() => {
           <div style="min-width: 200px;">
             <img src="${tool.imageUrl || window.TOOL_FALLBACK_IMG}" style="width: 100%; height: 95px; object-fit: cover; border-radius: 6px; margin-bottom: 8px;" onerror="this.onerror=null; this.src=window.TOOL_FALLBACK_IMG;">
             <h6 style="color: #fbbf24; margin: 0 0 4px 0; font-weight: bold;">${tool.name}</h6>
-            <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 6px;">📍 ${tool.locationName || 'Bogotá'}</div>
+            <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 6px;"><img src="assets/img/icons/icon-location.svg" width="14" height="14" style="vertical-align: -2px; margin-right: 4px;">${tool.locationName || 'Bogotá'}</div>
             <div style="font-size: 0.85rem; font-weight: bold; color: #f8fafc; margin-bottom: 8px;">Tarifa: ${API.formatCurrency(tool.dailyRate)}/día</div>
-            <button class="btn btn-sm btn-neu-amber w-100 py-1" onclick="App.openBookingModal(${tool.id})">
+            <button class="btn btn-sm btn-neu-amber w-100 py-1" onclick="App.openBookingModal('${tool.id}')">
               <i class="fa fa-calendar-check me-1"></i> Cotizar
             </button>
           </div>
