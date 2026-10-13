@@ -14,10 +14,10 @@ const MapManager = (() => {
       attributionControl: false
     }).setView([userLocation.lat, userLocation.lng], 12);
 
-    // Capa de mosaicos Oscura CartoDB DarkMatter (Estética Obsidian)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    // Capa de mosaicos oficial OpenStreetMap (100% abierta y sin API Key)
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
-      subdomains: 'abcd'
+      attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
     markersLayer = L.layerGroup().addTo(map);
