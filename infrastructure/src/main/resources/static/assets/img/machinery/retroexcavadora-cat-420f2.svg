@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500" fill="none">
+  <defs>
+    <linearGradient id="bgCat" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b1120" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    <linearGradient id="catYellow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#facc15" />
+      <stop offset="100%" stop-color="#ca8a04" />
+    </linearGradient>
+    <linearGradient id="steelDark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#334155" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    <pattern id="gridCat" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <!-- Fondo Obsidian con Retícula Técnica -->
+  <rect width="800" height="500" fill="url(#bgCat)" />
+  <rect width="800" height="500" fill="url(#gridCat)" />
+  <circle cx="400" cy="250" r="180" fill="rgba(245, 158, 11, 0.05)" />
+
+  <!-- Línea de Suelo Industrial -->
+  <line x1="60" y1="380" x2="740" y2="380" stroke="rgba(245, 158, 11, 0.3)" stroke-width="2" stroke-dasharray="8 6" />
+
+  <!-- GRÁFICO: RETROEXCAVADORA INDUSTRIAL CAT 420F2 -->
+  <g transform="translate(140, 90)">
+    <!-- Chasis y Contrapeso Trasero -->
+    <path d="M120 220 L120 180 L220 180 L250 220 Z" fill="url(#steelDark)" />
+    <rect x="90" y="190" width="40" height="45" rx="6" fill="#1e293b" stroke="#f59e0b" stroke-width="1.5" />
+
+    <!-- Cabina del Operador -->
+    <path d="M180 180 L210 110 L310 110 L330 180 Z" fill="#0f172a" stroke="#facc15" stroke-width="3" />
+    <!-- Ventanas con Cristal Ahumado -->
+    <path d="M195 170 L215 125 L260 125 L260 170 Z" fill="rgba(56, 189, 248, 0.2)" stroke="#38bdf8" stroke-width="1" />
+    <path d="M270 170 L270 125 L305 125 L320 170 Z" fill="rgba(56, 189, 248, 0.2)" stroke="#38bdf8" stroke-width="1" />
+    <!-- Luces de Cabina LED -->
+    <rect x="210" y="102" width="16" height="6" rx="2" fill="#fbbf24" />
+    <rect x="295" y="102" width="16" height="6" rx="2" fill="#fbbf24" />
+
+    <!-- Capó del Motor Frontal CAT -->
+    <path d="M330 180 L330 190 L420 190 L440 230 L320 230 Z" fill="url(#catYellow)" stroke="#0f172a" stroke-width="2" />
+    <!-- Rejilla Radiador -->
+    <line x1="425" y1="195" x2="435" y2="215" stroke="#1e293b" stroke-width="3" />
+    <line x1="418" y1="195" x2="428" y2="215" stroke="#1e293b" stroke-width="3" />
+    
+    <!-- Cucharón Frontal (Cargador) -->
+    <!-- Brazos del Cargador -->
+    <path d="M360 210 L470 200 L490 250 L420 250 Z" fill="url(#catYellow)" />
+    <!-- Cilindro Hidráulico Cargador -->
+    <rect x="380" y="180" width="70" height="8" rx="4" fill="#94a3b8" transform="rotate(15 380 180)" />
+    <!-- Pala Cargadora Frontal -->
+    <path d="M470 200 L530 220 L510 270 L460 270 Z" fill="url(#steelDark)" stroke="#facc15" stroke-width="2" />
+    <!-- Dientes de Pala -->
+    <polygon points="530,220 540,225 530,230" fill="#facc15" />
+    <polygon points="525,235 535,240 525,245" fill="#facc15" />
+    <polygon points="520,250 530,255 520,260" fill="#facc15" />
+
+    <!-- Brazo Excavador Trasero Articulado -->
+    <path d="M120 200 L50 140 L30 155 L90 220 Z" fill="url(#catYellow)" />
+    <circle cx="50" cy="140" r="7" fill="#0f172a" stroke="#facc15" stroke-width="2" />
+    <path d="M50 140 L-30 90 L-45 105 L25 160 Z" fill="url(#catYellow)" />
+    <circle cx="-30" cy="90" r="6" fill="#0f172a" stroke="#facc15" stroke-width="2" />
+    <!-- Cucharón Trasero Excavador -->
+    <path d="M-30 90 L-70 120 L-60 150 L-25 120 Z" fill="url(#steelDark)" stroke="#facc15" stroke-width="2" />
+    <polygon points="-70,120 -82,125 -72,132" fill="#facc15" />
+    <polygon points="-66,133 -78,138 -68,145" fill="#facc15" />
+
+    <!-- Neumáticos Industriales Pesados -->
+    <!-- Rueda Delantera -->
+    <circle cx="390" cy="260" r="38" fill="#0f172a" stroke="#334155" stroke-width="10" />
+    <circle cx="390" cy="260" r="22" fill="url(#catYellow)" />
+    <circle cx="390" cy="260" r="8" fill="#0f172a" />
+    
+    <!-- Rueda Trasera Gigante -->
+    <circle cx="170" cy="250" r="50" fill="#0f172a" stroke="#334155" stroke-width="12" />
+    <circle cx="170" cy="250" r="28" fill="url(#catYellow)" />
+    <circle cx="170" cy="250" r="10" fill="#0f172a" />
+
+    <!-- Logo / Identificación CAT en Chasis -->
+    <rect x="255" y="198" width="55" height="18" rx="3" fill="#0f172a" />
+    <text x="282" y="212" font-family="system-ui, sans-serif" font-weight="900" font-size="12" fill="#facc15" text-anchor="middle">CAT</text>
+  </g>
+
+  <!-- Placa Técnica Superior -->
+  <rect x="40" y="35" width="230" height="36" rx="18" fill="rgba(15, 23, 42, 0.85)" stroke="rgba(245, 158, 11, 0.4)" stroke-width="1.5" />
+  <circle cx="60" cy="53" r="6" fill="#f59e0b" />
+  <text x="76" y="58" font-family="'Inter', system-ui, sans-serif" font-size="13" font-weight="700" fill="#f8fafc">CAT 420F2 · 93 HP 4x4</text>
+
+  <!-- Badge de Garantía y Certificación -->
+  <g transform="translate(620, 35)">
+    <rect width="140" height="36" rx="8" fill="rgba(6, 182, 212, 0.15)" stroke="#06b6d4" stroke-width="1.2" />
+    <text x="70" y="23" font-family="'Inter', system-ui, sans-serif" font-size="12" font-weight="700" fill="#38bdf8" text-anchor="middle">CERTIFICADO 100%</text>
+  </g>
+</svg>

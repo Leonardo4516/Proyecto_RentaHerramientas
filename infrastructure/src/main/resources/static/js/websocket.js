@@ -14,7 +14,7 @@ const RealtimeManager = (() => {
       stompClient.debug = () => {}; // Silenciar logs verbosos en consola
 
       stompClient.connect({}, (frame) => {
-        console.log('✅ Conexión WebSocket STOMP establecida con éxito');
+        console.log('[STOMP] Conexión WebSocket establecida con éxito');
         updateConnectionBadge(true);
 
         // 1. Canal global de catálogo
@@ -36,7 +36,7 @@ const RealtimeManager = (() => {
           }
         }
       }, (error) => {
-        console.warn('⚠️ No se pudo conectar al WebSocket o servidor en reinicio:', error);
+        console.warn('[STOMP] No se pudo conectar al WebSocket o servidor en reinicio:', error);
         updateConnectionBadge(false);
         // Reintento en 8 segundos
         setTimeout(init, 8000);
