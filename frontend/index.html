@@ -94,6 +94,11 @@
             </button>
           </div>
 
+          <!-- Botón rápido Añadir Maquinaria para Proveedores -->
+          <button class="btn btn-neu-amber btn-sm px-3 align-items-center gap-1 me-2" id="nav-add-tool-btn" style="display: none;" onclick="App.openAddToolModal()">
+            <i class="fa fa-plus-circle"></i><span class="d-none d-md-inline ms-1">Añadir Maquinaria</span>
+          </button>
+
           <!-- Acciones de Usuario Logueado (Diseño Compacto y Estable) -->
           <div id="nav-user-actions" class="dropdown" style="display: none;">
             <button class="btn user-pill-btn dropdown-toggle d-flex align-items-center" type="button" id="userMenuBtn" data-bs-toggle="dropdown" aria-expanded="false">
@@ -110,6 +115,7 @@
               </li>
               <li id="dropdown-client-item"><a class="dropdown-item text-light" href="#" onclick="App.switchView('client-dashboard'); return false;"><i class="fa fa-history me-2 text-warning"></i><span id="dropdown-client-label">Mis Alquileres & Facturas</span></a></li>
               <li id="dropdown-provider-item" style="display: none;"><a class="dropdown-item text-light" href="#" onclick="App.switchView('provider-dashboard'); return false;"><i class="fa fa-dolly-flatbed me-2 text-warning"></i>Gestión Proveedor</a></li>
+              <li id="dropdown-add-tool-item" style="display: none;"><a class="dropdown-item text-warning fw-semibold" href="#" onclick="App.openAddToolModal(); return false;"><i class="fa fa-plus-circle me-2"></i>Añadir Maquinaria</a></li>
               <li id="dropdown-admin-item" style="display: none;"><a class="dropdown-item text-light" href="#" onclick="App.switchView('admin-dashboard'); return false;"><i class="fa fa-chart-line me-2 text-warning"></i>Panel Admin</a></li>
               <li><hr class="dropdown-divider border-secondary border-opacity-25 my-1"></li>
               <li><a class="dropdown-item text-danger" href="#" onclick="App.logout(); return false;"><i class="fa fa-sign-out-alt me-2"></i>Cerrar Sesión</a></li>
@@ -249,8 +255,15 @@
     <!-- ==================== VISTA 3: DASHBOARD PROVEEDOR ==================== -->
     <div id="view-provider-dashboard" class="app-view" style="display: none;">
       <div class="glass-panel p-4 mb-4">
-        <h3 class="fw-bold text-light mb-1"><i class="fa fa-dolly text-warning me-2"></i>Panel de Control del Proveedor</h3>
-        <p class="text-muted small mb-4">Administración de inventario, aprobación de reservas entrantes y actas de devolución/daños.</p>
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+          <div>
+            <h3 class="fw-bold text-light mb-1"><i class="fa fa-dolly text-warning me-2"></i>Panel de Control del Proveedor</h3>
+            <p class="text-muted small mb-0">Administración de inventario, aprobación de reservas entrantes y actas de devolución/daños.</p>
+          </div>
+          <button class="btn btn-neu-amber py-2 px-3 fw-bold" onclick="App.openAddToolModal()">
+            <i class="fa fa-plus-circle me-2"></i>Añadir Maquinaria
+          </button>
+        </div>
 
         <div class="table-responsive">
           <table class="table table-dark table-hover align-middle mb-0" style="background: transparent;">
@@ -510,15 +523,15 @@
               </div>
               <div class="col-12 col-sm-6">
                 <label class="small text-muted">Rol:</label>
-                <select id="reg-role" class="form-select input-neu">
+                <select id="reg-role" class="form-select input-neu" onchange="App.handleRoleChange()">
                   <option value="ROLE_CLIENTE">Cliente Arrendatario</option>
                   <option value="ROLE_PROVEEDOR">Proveedor Maquinaria</option>
                 </select>
               </div>
             </div>
             <div class="mb-2">
-              <label class="small text-muted">Nombre Completo o Razón Social:</label>
-              <input type="text" id="reg-fullname" class="form-control input-neu" placeholder="Ej. Constructora Andina SAS">
+              <label class="small text-muted" id="reg-fullname-label">Nombre Completo:</label>
+              <input type="text" id="reg-fullname" class="form-control input-neu" placeholder="Ej. Juan Pérez">
             </div>
             <div class="row g-2 mb-2">
               <div class="col-12 col-sm-6">
@@ -540,9 +553,10 @@
                 <input type="text" id="reg-phone" class="form-control input-neu" placeholder="+57 300 0000000">
               </div>
             </div>
-            <div class="mb-2">
-              <label class="small text-muted">Nombre de la Empresa:</label>
-              <input type="text" id="reg-company" class="form-control input-neu" placeholder="Opcional">
+            <!-- Campo Empresa: Solo visible y obligatorio para Proveedores -->
+            <div class="mb-2" id="reg-company-container" style="display: none;">
+              <label class="small text-muted">Nombre de la Empresa / Razón Social <span class="text-danger">*</span>:</label>
+              <input type="text" id="reg-company" class="form-control input-neu" placeholder="Ej. Maquinaria del Norte SAS">
             </div>
             <div class="mb-3">
               <label class="small text-muted">Dirección Operativa en Obra:</label>
@@ -594,6 +608,159 @@
           <button type="button" class="btn btn-neu-cyan" onclick="App.submitReturnInspection()">
             <i class="fa fa-save me-1"></i> Guardar Acta & Finalizar
           </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL DE AÑADIR MAQUINARIA (PROVEEDOR) ==================== -->
+  <div class="modal fade" id="addToolModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content glass-modal">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold text-warning">
+            <i class="fa fa-truck-monster me-2"></i>Publicar Nueva Maquinaria en Catálogo
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <form id="form-add-tool" onsubmit="App.submitNewTool(event); return false;">
+            <div class="row g-3 mb-3">
+              <div class="col-md-7">
+                <label class="small text-muted" for="add-tool-name">Nombre Comercial del Equipo <span class="text-danger">*</span>:</label>
+                <input type="text" id="add-tool-name" class="form-control input-neu" placeholder="Ej. Retroexcavadora CAT 420F2 IT" required>
+              </div>
+              <div class="col-md-5">
+                <label class="small text-muted" for="add-tool-category">Categoría <span class="text-danger">*</span>:</label>
+                <select id="add-tool-category" class="form-select input-neu" required>
+                  <option value="1">Excavación y Movimiento de Tierras</option>
+                  <option value="2">Compactación y Pavimentación</option>
+                  <option value="3">Concreto y Mezclado</option>
+                  <option value="4">Generación Eléctrica e Iluminación</option>
+                  <option value="5">Demolición y Perforación</option>
+                  <option value="6">Altura y Andamios</option>
+                  <option value="7">Bombeo y Lavado Industrial</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-4">
+                <label class="small text-muted" for="add-tool-brand">Marca:</label>
+                <input type="text" id="add-tool-brand" class="form-control input-neu" placeholder="Ej. Caterpillar">
+              </div>
+              <div class="col-md-4">
+                <label class="small text-muted" for="add-tool-model">Modelo:</label>
+                <input type="text" id="add-tool-model" class="form-control input-neu" placeholder="Ej. 420F2">
+              </div>
+              <div class="col-md-4">
+                <label class="small text-muted" for="add-tool-code">Código de Inventario / Serie:</label>
+                <input type="text" id="add-tool-code" class="form-control input-neu" placeholder="Autogenerado si está vacío">
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="small text-muted" for="add-tool-price">Tarifa Diaria de Alquiler (COP) <span class="text-danger">*</span>:</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-dark border-secondary text-warning fw-bold">$</span>
+                  <input type="number" id="add-tool-price" class="form-control input-neu" placeholder="280000" min="1000" step="1000" required>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <label class="small text-muted" for="add-tool-deposit">Depósito de Garantía (COP) <span class="text-danger">*</span>:</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-dark border-secondary text-info fw-bold">$</span>
+                  <input type="number" id="add-tool-deposit" class="form-control input-neu" placeholder="800000" min="0" step="1000" required>
+                </div>
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="small text-muted" for="add-tool-spec-power">Especificación Técnica (Potencia / Capacidad):</label>
+                <input type="text" id="add-tool-spec-power" class="form-control input-neu" placeholder="Ej. 93 HP / Balde 1.0 m3">
+              </div>
+              <div class="col-md-6">
+                <label class="small text-muted" for="add-tool-spec-fuel">Fuente de Energía / Combustible:</label>
+                <select id="add-tool-spec-fuel" class="form-select input-neu">
+                  <option value="Diesel">Diesel</option>
+                  <option value="Gasolina">Gasolina</option>
+                  <option value="Eléctrico 220V/110V">Eléctrico 220V/110V</option>
+                  <option value="Batería Litio">Batería Litio</option>
+                  <option value="Neumático">Neumático</option>
+                  <option value="Manual / Estructural">Manual / Estructural</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-4">
+                <label class="small text-muted" for="add-tool-lat">Latitud GPS (Obra/Patio):</label>
+                <input type="number" id="add-tool-lat" class="form-control input-neu" placeholder="4.6534" step="0.0001" value="4.6534">
+              </div>
+              <div class="col-md-4">
+                <label class="small text-muted" for="add-tool-lng">Longitud GPS (Obra/Patio):</label>
+                <input type="number" id="add-tool-lng" class="form-control input-neu" placeholder="-74.0836" step="0.0001" value="-74.0836">
+              </div>
+              <div class="col-md-4">
+                <label class="small text-muted">Ciudad Operativa:</label>
+                <input type="text" id="add-tool-city" class="form-control input-neu" value="Bogotá" readonly>
+              </div>
+            </div>
+
+            <!-- Selección de Fotografía Real -->
+            <div class="mb-3 p-3 rounded" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08);">
+              <label class="small text-light fw-semibold mb-2 d-flex align-items-center gap-2">
+                <i class="fa fa-camera text-warning"></i> Fotografía Real de la Maquinaria:
+              </label>
+              <div class="row g-2 align-items-center">
+                <div class="col-md-8">
+                  <select id="add-tool-image-select" class="form-select input-neu mb-2" onchange="App.handleNewToolImageSelect(this.value)">
+                    <option value="assets/img/machinery/retroexcavadora-cat-420f2.jpg">Retroexcavadora CAT 420F2 (Foto Real HD)</option>
+                    <option value="assets/img/machinery/Retroexcavadora-Oruga-CAT-320D.png">Retroexcavadora Oruga CAT 320D (Foto Real HD)</option>
+                    <option value="assets/img/machinery/minicargador-bobcat.jpeg">Minicargador Bobcat S550 (Foto Real HD)</option>
+                    <option value="assets/img/machinery/rodillo-compactador.jpg">Rodillo Compactador Hamm (Foto Real HD)</option>
+                    <option value="assets/img/machinery/placa-compactadora.jpg">Placa Compactadora Wacker Neuson (Foto Real HD)</option>
+                    <option value="assets/img/machinery/compactadora-canguro.jpg">Compactadora Canguro Mikasa (Foto Real HD)</option>
+                    <option value="assets/img/machinery/cortadora-pavimento.jpg">Cortadora de Pavimento Husqvarna (Foto Real HD)</option>
+                    <option value="assets/img/machinery/mezcladora-diesel-380l.jpg">Mezcladora Trompo Diesel 380L (Foto Real HD)</option>
+                    <option value="assets/img/machinery/allanadora-concreto.jpeg">Allanadora Helicóptero de Concreto (Foto Real HD)</option>
+                    <option value="assets/img/machinery/regla-vibratoria-concreto.jpeg">Regla Vibratoria de Concreto (Foto Real HD)</option>
+                    <option value="assets/img/machinery/vibrador-concreto.jpg">Vibrador de Concreto Eléctrico (Foto Real HD)</option>
+                    <option value="assets/img/machinery/planta-electrica-cummins.jpg">Planta Eléctrica Cummins 150 kVA (Foto Real HD)</option>
+                    <option value="assets/img/machinery/torre-iluminacion-generac.jpg">Torre de Iluminación Generac (Foto Real HD)</option>
+                    <option value="assets/img/machinery/motosoldadora-miller.jpg">Motosoldadora Miller Bobcat (Foto Real HD)</option>
+                    <option value="assets/img/machinery/martillo-rompedor-hilti.jpg">Martillo Rompedor Hilti TE 3000 (Foto Real HD)</option>
+                    <option value="assets/img/machinery/taladro-demoledor-bosch.jpeg">Taladro Demoledor Bosch GSH 11E (Foto Real HD)</option>
+                    <option value="assets/img/machinery/perforadora-sacanucleos.jpg">Perforadora Saca Núcleos (Foto Real HD)</option>
+                    <option value="assets/img/machinery/compresor-aire.jpg">Compresor de Aire Portátil Chicago (Foto Real HD)</option>
+                    <option value="assets/img/machinery/plataforma-tijera.jpg">Plataforma Tijera Genie GS-1930 (Foto Real HD)</option>
+                    <option value="assets/img/machinery/andamio-multidireccional.jpg">Andamio Multidireccional Certificado (Foto Real HD)</option>
+                    <option value="assets/img/machinery/malacate-electrico.jpg">Malacate Eléctrico de Obra (Foto Real HD)</option>
+                    <option value="assets/img/machinery/motobomba-lodos.jpg">Motobomba para Lodos Honda (Foto Real HD)</option>
+                    <option value="assets/img/machinery/hidrolavadora-karcher.jpg">Hidrolavadora Kärcher HD Industrial (Foto Real HD)</option>
+                    <option value="assets/img/machinery/equipo-pintura-airless.jpg">Equipo Airless Graco (Foto Real HD)</option>
+                    <option value="assets/img/machinery/estacion-total.jpg">Estación Total Leica (Foto Real HD)</option>
+                    <option value="__custom__">-- Ingresar URL personalizada en la nube o web --</option>
+                  </select>
+                  <input type="text" id="add-tool-image-url" class="form-control input-neu" placeholder="https://ejemplo.com/foto-maquinaria.jpg" style="display: none;">
+                </div>
+                <div class="col-md-4 text-center">
+                  <div class="position-relative rounded overflow-hidden shadow-sm" style="height: 100px; background: #0b1120; border: 1px solid rgba(255,255,255,0.1);">
+                    <img id="add-tool-preview-img" src="assets/img/machinery/retroexcavadora-cat-420f2.jpg" alt="Preview" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src=window.TOOL_FALLBACK_IMG;">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="modal-footer px-0 pb-0 pt-2 border-0">
+              <button type="button" class="btn btn-neu" data-bs-dismiss="modal">Cancelar</button>
+              <button type="submit" class="btn btn-neu-amber px-4 fw-bold">
+                <i class="fa fa-cloud-upload-alt me-2"></i>Publicar Maquinaria
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>

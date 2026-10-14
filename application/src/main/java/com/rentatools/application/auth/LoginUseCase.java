@@ -38,9 +38,14 @@ public class LoginUseCase {
         }
 
         String token = tokenGenerator.generateToken(user);
+        Long clientId = user.getClientProfile() != null ? user.getClientProfile().getId() : null;
+        Long providerId = user.getProviderProfile() != null ? user.getProviderProfile().getId() : null;
+
         return new AuthResponse(
                 token,
                 user.getId(),
+                clientId,
+                providerId,
                 user.getUsername(),
                 user.getEmail(),
                 user.getFullName(),

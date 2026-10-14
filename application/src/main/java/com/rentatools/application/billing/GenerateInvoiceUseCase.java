@@ -37,7 +37,7 @@ public class GenerateInvoiceUseCase {
             throw new BusinessException("La factura debe tener al menos un ítem");
         }
 
-        String invoiceNumber = "INV-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) + "-" + SEQUENCE.incrementAndGet();
+        String invoiceNumber = "INV-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss")) + "-" + (int)(Math.random() * 900 + 100);
 
         Invoice invoice = new Invoice();
         invoice.setInvoiceNumber(invoiceNumber);

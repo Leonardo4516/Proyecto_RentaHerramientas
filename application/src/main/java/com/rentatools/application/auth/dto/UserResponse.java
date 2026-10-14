@@ -44,6 +44,14 @@ public class UserResponse {
         this.id = id;
     }
 
+    public Long getClientId() {
+        return clientProfile != null ? clientProfile.getId() : null;
+    }
+
+    public Long getProviderId() {
+        return providerProfile != null ? providerProfile.getId() : null;
+    }
+
     public String getUsername() {
         return username;
     }

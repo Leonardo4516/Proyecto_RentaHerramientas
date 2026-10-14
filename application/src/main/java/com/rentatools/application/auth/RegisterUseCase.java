@@ -72,8 +72,16 @@ public class RegisterUseCase {
             cp.setCity(request.getCity());
             user.setClientProfile(cp);
         } else if (role == Role.ROLE_PROVEEDOR) {
+            String companyName = request.getCompanyName() != null && !request.getCompanyName().trim().isEmpty()
+                    ? request.getCompanyName().trim()
+                    : (request.getBusinessName() != null && !request.getBusinessName().trim().isEmpty() ? request.getBusinessName().trim() : null);
+
+            if (companyName == null) {
+                throw new BusinessException("El nombre de la empresa o razón social es obligatorio para el registro de proveedores");
+            }
+
             ProviderProfile pp = new ProviderProfile();
-            pp.setBusinessName(request.getBusinessName() != null ? request.getBusinessName() : user.getFullName());
+            pp.setBusinessName(companyName);
             pp.setTaxId(request.getTaxId());
             pp.setCommercialRegistry(request.getCommercialRegistry());
             pp.setAddress(request.getAddress());
@@ -85,10 +93,14 @@ public class RegisterUseCase {
 
         User savedUser = userRepository.save(user);
         String token = tokenGenerator.generateToken(savedUser);
+        Long clientId = savedUser.getClientProfile() != null ? savedUser.getClientProfile().getId() : null;
+        Long providerId = savedUser.getProviderProfile() != null ? savedUser.getProviderProfile().getId() : null;
 
         return new AuthResponse(
                 token,
                 savedUser.getId(),
+                clientId,
+                providerId,
                 savedUser.getUsername(),
                 savedUser.getEmail(),
                 savedUser.getFullName(),

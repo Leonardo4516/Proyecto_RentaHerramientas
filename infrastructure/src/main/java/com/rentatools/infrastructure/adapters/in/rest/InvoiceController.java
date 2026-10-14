@@ -61,6 +61,15 @@ public class InvoiceController {
         return ResponseEntity.ok(list);
     }
 
+    @GetMapping("/rental/{rentalId}")
+    @Operation(summary = "Consultar factura por ID de reserva", description = "Obtiene la factura asociada a un alquiler específico")
+    public ResponseEntity<InvoiceResponse> getInvoiceByRentalId(@PathVariable Long rentalId) {
+        return invoiceRepository.findByRentalId(rentalId)
+                .map(InvoiceResponse::fromDomain)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @GetMapping("/{id}/pdf")
     @Operation(summary = "Descargar comprobante en PDF", description = "Genera y descarga en tiempo real el comprobante oficial en PDF con OpenPDF")
     public ResponseEntity<byte[]> downloadInvoicePdf(@PathVariable Long id) {

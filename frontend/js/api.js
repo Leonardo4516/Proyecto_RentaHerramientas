@@ -105,7 +105,12 @@ const API = (() => {
       getAll: () => request('/api/v1/tools/public'),
       getCategories: () => request('/api/v1/tools/categories'),
       getNearby: (lat, lng, radiusKm = 20) =>
-        request(`/api/v1/tools/nearby?lat=${lat}&lng=${lng}&radiusKm=${radiusKm}`)
+        request(`/api/v1/tools/nearby?lat=${lat}&lng=${lng}&radiusKm=${radiusKm}`),
+      create: (toolData) =>
+        request('/api/v1/tools', {
+          method: 'POST',
+          body: JSON.stringify(toolData)
+        })
     },
 
     rentals: {
@@ -130,6 +135,7 @@ const API = (() => {
     invoices: {
       getById: (id) => request(`/api/v1/invoices/${id}`),
       getByClient: (clientId) => request(`/api/v1/invoices/client/${clientId}`),
+      getByRental: (rentalId) => request(`/api/v1/invoices/rental/${rentalId}`),
       generate: (invoiceData) =>
         request('/api/v1/invoices', {
           method: 'POST',

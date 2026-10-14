@@ -134,6 +134,7 @@ public class UserAdapter implements UserRepository {
         if (e.getRole() == Role.ROLE_CLIENTE) {
             clientRepository.findByUserId(e.getId()).ifPresent(c -> {
                 ClientProfile cp = new ClientProfile();
+                cp.setId(c.getId());
                 cp.setTaxId(c.getDocumentNumber());
                 cp.setAddress(c.getAddress());
                 cp.setCity(c.getCity());
@@ -143,6 +144,7 @@ public class UserAdapter implements UserRepository {
         } else if (e.getRole() == Role.ROLE_PROVEEDOR) {
             providerRepository.findByUserId(e.getId()).ifPresent(p -> {
                 ProviderProfile pp = new ProviderProfile();
+                pp.setId(p.getId());
                 pp.setBusinessName(p.getCompanyName());
                 pp.setTaxId(p.getTaxId());
                 pp.setCommercialRegistry(p.getCommercialRegistry());

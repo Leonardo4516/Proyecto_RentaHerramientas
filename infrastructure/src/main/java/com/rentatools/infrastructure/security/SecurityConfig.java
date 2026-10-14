@@ -54,6 +54,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         // Catálogo público de herramientas (Dev A y fallback)
                         .requestMatchers(HttpMethod.GET, "/api/v1/tools/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/tools/**").hasAnyAuthority("ROLE_PROVEEDOR", "ROLE_ADMIN")
                         // Descarga pública o autorizada de facturas PDF
                         .requestMatchers(HttpMethod.GET, "/api/v1/invoices/*/pdf").permitAll()
                         // Endpoints de reportes protegidos

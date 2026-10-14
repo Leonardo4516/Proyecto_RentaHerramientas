@@ -3,6 +3,8 @@ package com.rentatools.infrastructure.persistence.billing;
 import com.rentatools.domain.billing.Invoice;
 import com.rentatools.domain.billing.InvoiceItem;
 import com.rentatools.domain.billing.port.InvoiceRepository;
+import com.rentatools.infrastructure.persistence.user.ClientJpaEntity;
+import com.rentatools.infrastructure.persistence.user.SpringDataClientRepository;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -13,9 +15,17 @@ import java.util.stream.Collectors;
 @Component
 public class InvoiceAdapter implements InvoiceRepository {
     private final SpringDataInvoiceRepository invoiceRepo;
+    private final SpringDataClientRepository clientRepo;
 
-    public InvoiceAdapter(SpringDataInvoiceRepository invoiceRepo) {
+    public InvoiceAdapter(SpringDataInvoiceRepository invoiceRepo, SpringDataClientRepository clientRepo) {
         this.invoiceRepo = invoiceRepo;
+        this.clientRepo = clientRepo;
+    }
+
+    private Long resolveClientId(Long id) {
+        if (id == null) return null;
+        if (clientRepo.existsById(id)) return id;
+        return clientRepo.findByUserId(id).map(ClientJpaEntity::getId).orElse(id);
     }
 
     @Override
@@ -42,7 +52,8 @@ public class InvoiceAdapter implements InvoiceRepository {
 
     @Override
     public List<Invoice> findByClientId(Long clientId) {
-        return invoiceRepo.findByClientId(clientId).stream().map(this::toDomain).collect(Collectors.toList());
+        Long resolved = resolveClientId(clientId);
+        return invoiceRepo.findByClientId(resolved).stream().map(this::toDomain).collect(Collectors.toList());
     }
 
     @Override
@@ -61,7 +72,7 @@ public class InvoiceAdapter implements InvoiceRepository {
         e.setId(inv.getId());
         e.setInvoiceNumber(inv.getInvoiceNumber());
         e.setRentalId(inv.getRentalId());
-        e.setClientId(inv.getClientId());
+        e.setClientId(resolveClientId(inv.getClientId()));
         e.setClientName(inv.getClientName());
         e.setClientTaxId(inv.getClientTaxId());
         e.setIssueDate(inv.getIssueDate());

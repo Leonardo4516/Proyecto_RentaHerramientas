@@ -366,8 +366,11 @@ const App = (() => {
       return;
     }
 
-    const tool = allTools.find(t => t.id === toolId);
-    if (!tool) return;
+    const tool = allTools.find(t => String(t.id) === String(toolId));
+    if (!tool) {
+      console.warn('Herramienta no encontrada para ID:', toolId);
+      return;
+    }
 
     activeToolForBooking = tool;
     document.getElementById('book-tool-name').textContent = tool.name;
@@ -579,26 +582,24 @@ const App = (() => {
     });
 
     try {
+      const effectiveClientId = user.clientId || user.id;
+
       // 1. Crear Reserva
       const rental = await API.rentals.create({
         toolId: activeToolForBooking.id,
-        toolName: activeToolForBooking.name,
-        clientId: user.id,
-        clientName: user.fullName || user.username,
+        clientId: effectiveClientId,
         startDate: q.startDate,
         endDate: q.endDate,
-        days: q.days,
-        dailyRate: activeToolForBooking.dailyRate,
-        depositAmount: q.deposit,
-        total: q.total
+        deliveryAddress: user.address || 'Obra Principal',
+        notes: `Reserva para ${activeToolForBooking.name}`
       });
 
       // 2. Generar Factura con desglose fiscal
       const invoice = await API.invoices.generate({
         rentalId: rental.id,
-        clientId: user.id,
+        clientId: effectiveClientId,
         clientName: user.fullName || user.username,
-        clientTaxId: user.clientProfile?.taxId || '900.000.000-1',
+        clientTaxId: user.clientProfile?.taxId || user.taxId || '900.000.000-1',
         depositAmount: q.deposit,
         items: [{
           toolId: activeToolForBooking.id,
@@ -612,7 +613,7 @@ const App = (() => {
       const payment = await API.payments.process({
         invoiceId: invoice.id,
         rentalId: rental.id,
-        clientId: user.id,
+        clientId: effectiveClientId,
         amount: q.total,
         paymentMethod: selectedMethod,
         transactionReference: `PAY-${Date.now().toString().slice(-6)}`,
@@ -683,24 +684,28 @@ const App = (() => {
         return;
       }
 
-      container.innerHTML = rentals.map(r => `
+      container.innerHTML = rentals.map(r => {
+        const tool = allTools.find(t => String(t.id) === String(r.toolId));
+        const toolName = tool ? tool.name : (r.toolName || `Maquinaria #${r.toolId}`);
+        return `
         <tr>
           <td><span class="fw-bold text-light">#${r.id}</span></td>
-          <td><span class="text-warning fw-semibold">${r.toolName}</span></td>
+          <td><span class="text-warning fw-semibold">${toolName}</span></td>
           <td>${r.startDate} al ${r.endDate} <small class="text-muted">(${r.days} d)</small></td>
           <td class="fw-bold">${API.formatCurrency(r.total)}</td>
           <td>
-            <span class="badge ${r.status === 'CONFIRMADA' ? 'badge-available' : (r.status === 'DEVUELTO' ? 'bg-secondary' : 'badge-rented')}">
+            <span class="badge ${r.status === 'CONFIRMADA' ? 'badge-available' : (r.status === 'DEVUELTO' || r.status === 'COMPLETADA' ? 'bg-secondary' : 'badge-rented')}">
               ${r.status}
             </span>
           </td>
           <td>
-            <a href="${API.invoices.downloadPdfUrl(1)}" target="_blank" class="btn btn-sm btn-neu py-1 px-3" title="Descargar comprobante en PDF">
+            <a href="${API.invoices.downloadPdfUrl(r.id)}" target="_blank" class="btn btn-sm btn-neu py-1 px-3" title="Descargar comprobante en PDF">
               <i class="fa fa-file-pdf text-danger me-1"></i> PDF
             </a>
           </td>
         </tr>
-      `).join('');
+      `;
+      }).join('');
     } catch (e) {
       console.warn('Error cargando alquileres cliente:', e);
     }
@@ -717,14 +722,17 @@ const App = (() => {
         return;
       }
 
-      container.innerHTML = rentals.map(r => `
+      container.innerHTML = rentals.map(r => {
+        const tool = allTools.find(t => String(t.id) === String(r.toolId));
+        const toolName = tool ? tool.name : (r.toolName || `Maquinaria #${r.toolId}`);
+        return `
         <tr>
           <td>#${r.id}</td>
-          <td class="fw-bold text-light">${r.toolName}</td>
+          <td class="fw-bold text-light">${toolName}</td>
           <td>${r.clientName || 'Cliente Constructora'}</td>
           <td>${r.days} días</td>
           <td>${API.formatCurrency(r.total)}</td>
-          <td><span class="badge ${r.status === 'CONFIRMADA' ? 'badge-available' : 'badge-rented'}">${r.status}</span></td>
+          <td><span class="badge ${r.status === 'CONFIRMADA' ? 'badge-available' : (r.status === 'COMPLETADA' ? 'bg-secondary' : 'badge-rented')}">${r.status}</span></td>
           <td>
             <div class="provider-actions-cell">
             ${r.status === 'PENDIENTE_PAGO' || r.status === 'PENDIENTE' ? `
@@ -738,7 +746,8 @@ const App = (() => {
             </div>
           </td>
         </tr>
-      `).join('');
+      `;
+      }).join('');
     } catch (e) {
       console.warn('Error cargando solicitudes del proveedor:', e);
     }
@@ -929,6 +938,13 @@ const App = (() => {
       if (clientDropdownItem) clientDropdownItem.style.display = (user.role === 'ROLE_CLIENTE' || user.role === 'ROLE_ADMIN') ? 'block' : 'none';
       if (providerDropdownItem) providerDropdownItem.style.display = (user.role === 'ROLE_PROVEEDOR' || user.role === 'ROLE_ADMIN') ? 'block' : 'none';
       if (adminDropdownItem) adminDropdownItem.style.display = (user.role === 'ROLE_ADMIN') ? 'block' : 'none';
+
+      // Botón rápido y menú para añadir maquinaria (Solo PROVEEDOR o ADMIN)
+      const isProvider = (user.role === 'ROLE_PROVEEDOR' || user.role === 'ROLE_ADMIN');
+      const navAddToolBtn = document.getElementById('nav-add-tool-btn');
+      const dropdownAddToolItem = document.getElementById('dropdown-add-tool-item');
+      if (navAddToolBtn) navAddToolBtn.style.display = isProvider ? 'inline-flex' : 'none';
+      if (dropdownAddToolItem) dropdownAddToolItem.style.display = isProvider ? 'block' : 'none';
     } else {
       if (guestNav) {
         guestNav.style.setProperty('display', 'flex', 'important');
@@ -950,6 +966,11 @@ const App = (() => {
       if (providerDropdownItem) providerDropdownItem.style.display = 'none';
       if (adminDropdownItem) adminDropdownItem.style.display = 'none';
 
+      const navAddToolBtn = document.getElementById('nav-add-tool-btn');
+      const dropdownAddToolItem = document.getElementById('dropdown-add-tool-item');
+      if (navAddToolBtn) navAddToolBtn.style.display = 'none';
+      if (dropdownAddToolItem) dropdownAddToolItem.style.display = 'none';
+
       const clientNavLabel = document.getElementById('nav-client-dashboard-label');
       const clientDropdownLabel = document.getElementById('dropdown-client-label');
       const clientHeaderTitle = document.getElementById('client-dashboard-header-title');
@@ -964,6 +985,32 @@ const App = (() => {
     }
   }
 
+  function handleRoleChange() {
+    const roleSelect = document.getElementById('reg-role');
+    const companyContainer = document.getElementById('reg-company-container');
+    const companyInput = document.getElementById('reg-company');
+    const fullnameLabel = document.getElementById('reg-fullname-label');
+    const fullnameInput = document.getElementById('reg-fullname');
+
+    if (!roleSelect || !companyContainer) return;
+
+    if (roleSelect.value === 'ROLE_PROVEEDOR') {
+      companyContainer.style.display = 'block';
+      if (companyInput) companyInput.required = true;
+      if (fullnameLabel) fullnameLabel.textContent = 'Nombre del Representante Legal:';
+      if (fullnameInput) fullnameInput.placeholder = 'Ej. Carlos Sánchez';
+    } else {
+      companyContainer.style.display = 'none';
+      if (companyInput) {
+        companyInput.required = false;
+        companyInput.value = '';
+        companyInput.classList.remove('is-invalid');
+      }
+      if (fullnameLabel) fullnameLabel.textContent = 'Nombre Completo:';
+      if (fullnameInput) fullnameInput.placeholder = 'Ej. Juan Pérez';
+    }
+  }
+
   function openAuthModal(mode = 'login') {
     const isLogin = mode === 'login';
     document.getElementById('auth-modal-title').textContent = isLogin ? 'Iniciar Sesión en RentaTools' : 'Crear Cuenta Profesional';
@@ -972,6 +1019,10 @@ const App = (() => {
     document.getElementById('btn-auth-submit').textContent = isLogin ? 'Entrar al Sistema' : 'Completar Registro';
     document.getElementById('auth-mode-toggle').textContent = isLogin ? '¿No tienes cuenta? Regístrate aquí' : '¿Ya tienes cuenta? Inicia sesión aquí';
     document.getElementById('authModal').dataset.mode = isLogin ? 'login' : 'register';
+
+    if (!isLogin) {
+      handleRoleChange();
+    }
 
     const modal = new bootstrap.Modal(document.getElementById('authModal'));
     modal.show();
@@ -996,6 +1047,8 @@ const App = (() => {
         API.setToken(resp.token);
         API.setUser({
           id: resp.id,
+          clientId: resp.clientId,
+          providerId: resp.providerId,
           username: resp.username,
           fullName: resp.fullName,
           role: resp.role
@@ -1025,17 +1078,44 @@ const App = (() => {
         });
       }
     } else {
-      // Registro
+      // Registro Dinámico
+      const role = document.getElementById('reg-role')?.value || 'ROLE_CLIENTE';
+      const companyInput = document.getElementById('reg-company');
+      const companyName = (companyInput?.value || '').trim();
+
+      // Validación condicional de empresa según el rol
+      if (role === 'ROLE_PROVEEDOR' && !companyName) {
+        companyInput?.classList.add('is-invalid');
+        Swal.fire({
+          icon: 'warning',
+          title: 'Campo Requerido',
+          text: 'El nombre de la empresa o razón social es obligatorio para proveedores de maquinaria.',
+          confirmButtonColor: '#f59e0b',
+          background: '#0f172a',
+          color: '#f8fafc'
+        });
+        return;
+      }
+
+      const username = document.getElementById('reg-username')?.value?.trim();
+      const email = document.getElementById('reg-email')?.value?.trim();
+      const password = document.getElementById('reg-password')?.value;
+
+      if (!username || !email || !password) {
+        Swal.fire('Atención', 'Por favor completa usuario, correo y contraseña.', 'warning');
+        return;
+      }
+
       const user = {
-        username: document.getElementById('reg-username').value,
-        email: document.getElementById('reg-email').value,
-        password: document.getElementById('reg-password').value,
-        fullName: document.getElementById('reg-fullname').value,
-        phone: document.getElementById('reg-phone').value,
-        role: document.getElementById('reg-role').value,
-        companyName: document.getElementById('reg-company').value,
-        taxId: document.getElementById('reg-taxid').value,
-        address: document.getElementById('reg-address').value,
+        username,
+        email,
+        password,
+        fullName: (document.getElementById('reg-fullname')?.value || '').trim() || username,
+        phone: (document.getElementById('reg-phone')?.value || '').trim(),
+        role: role,
+        companyName: role === 'ROLE_PROVEEDOR' ? companyName : '',
+        taxId: (document.getElementById('reg-taxid')?.value || '').trim(),
+        address: (document.getElementById('reg-address')?.value || '').trim(),
         city: 'Bogotá'
       };
 
@@ -1044,6 +1124,8 @@ const App = (() => {
         API.setToken(resp.token);
         API.setUser({
           id: resp.id,
+          clientId: resp.clientId,
+          providerId: resp.providerId,
           username: resp.username,
           fullName: resp.fullName,
           role: resp.role
@@ -1070,6 +1152,151 @@ const App = (() => {
           color: '#f8fafc'
         });
       }
+    }
+  }
+
+  function openAddToolModal() {
+    const user = API.getUser();
+    if (!user || (user.role !== 'ROLE_PROVEEDOR' && user.role !== 'ROLE_ADMIN')) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Acceso Restringido',
+        text: 'Debes iniciar sesión con una cuenta de Proveedor para publicar maquinaria en la plataforma.',
+        confirmButtonColor: '#f59e0b',
+        confirmButtonText: 'Iniciar Sesión',
+        background: '#0f172a',
+        color: '#f8fafc'
+      }).then(() => {
+        openAuthModal('login');
+      });
+      return;
+    }
+
+    const form = document.getElementById('form-add-tool');
+    if (form) form.reset();
+
+    const codeInput = document.getElementById('add-tool-code');
+    if (codeInput) {
+      codeInput.value = `MAQ-${Math.floor(1000 + Math.random() * 9000)}`;
+    }
+
+    const select = document.getElementById('add-tool-image-select');
+    if (select) {
+      handleNewToolImageSelect(select.value);
+    }
+
+    const modal = new bootstrap.Modal(document.getElementById('addToolModal'));
+    modal.show();
+  }
+
+  function handleNewToolImageSelect(val) {
+    const customInput = document.getElementById('add-tool-image-url');
+    const previewImg = document.getElementById('add-tool-preview-img');
+    if (val === '__custom__') {
+      if (customInput) {
+        customInput.style.display = 'block';
+        customInput.oninput = () => {
+          if (previewImg) previewImg.src = customInput.value || window.TOOL_FALLBACK_IMG;
+        };
+      }
+      if (previewImg) previewImg.src = customInput?.value || window.TOOL_FALLBACK_IMG;
+    } else {
+      if (customInput) customInput.style.display = 'none';
+      if (previewImg) previewImg.src = val;
+    }
+  }
+
+  async function submitNewTool(e) {
+    if (e && e.preventDefault) e.preventDefault();
+
+    const user = API.getUser();
+    if (!user) return;
+
+    const name = document.getElementById('add-tool-name')?.value?.trim();
+    const categoryId = document.getElementById('add-tool-category')?.value;
+    const brand = document.getElementById('add-tool-brand')?.value?.trim() || 'Genérica';
+    const model = document.getElementById('add-tool-model')?.value?.trim() || 'Estándar';
+    let code = document.getElementById('add-tool-code')?.value?.trim();
+    if (!code) code = `MAQ-${Date.now().toString().slice(-6)}`;
+
+    const dailyPrice = parseFloat(document.getElementById('add-tool-price')?.value);
+    const depositAmount = parseFloat(document.getElementById('add-tool-deposit')?.value);
+    const lat = parseFloat(document.getElementById('add-tool-lat')?.value) || 4.6534;
+    const lng = parseFloat(document.getElementById('add-tool-lng')?.value) || -74.0836;
+
+    const imgSelect = document.getElementById('add-tool-image-select')?.value;
+    let imageUrl = imgSelect;
+    if (imgSelect === '__custom__') {
+      imageUrl = document.getElementById('add-tool-image-url')?.value?.trim() || 'assets/img/machinery/retroexcavadora-cat-420f2.jpg';
+    }
+
+    const powerSpec = document.getElementById('add-tool-spec-power')?.value?.trim();
+    const fuelSpec = document.getElementById('add-tool-spec-fuel')?.value;
+
+    const specifications = [];
+    if (powerSpec) specifications.push({ key: 'Potencia / Capacidad', value: powerSpec });
+    if (fuelSpec) specifications.push({ key: 'Tipo de Energía', value: fuelSpec });
+
+    if (!name || isNaN(dailyPrice) || dailyPrice <= 0 || isNaN(depositAmount)) {
+      Swal.fire('Atención', 'Por favor diligencia todos los campos obligatorios correctamente.', 'warning');
+      return;
+    }
+
+    Swal.fire({
+      title: 'Publicando Maquinaria...',
+      text: 'Guardando especificaciones técnicas e incorporando al catálogo oficial...',
+      allowOutsideClick: false,
+      didOpen: () => { Swal.showLoading(); },
+      background: '#0f172a',
+      color: '#f8fafc'
+    });
+
+    try {
+      const payload = {
+        providerId: user.providerId || user.id || 1,
+        categoryId: parseInt(categoryId, 10),
+        code,
+        name,
+        brand,
+        model,
+        dailyPrice,
+        depositAmount,
+        latitude: lat,
+        longitude: lng,
+        imageUrls: [imageUrl],
+        specifications
+      };
+
+      await API.tools.create(payload);
+
+      // Cerrar modal
+      const modalEl = document.getElementById('addToolModal');
+      const modalInstance = bootstrap.Modal.getInstance(modalEl);
+      if (modalInstance) modalInstance.hide();
+
+      // Recargar catálogo y mapa
+      await loadTools();
+      if (typeof MapModule !== 'undefined' && MapModule.renderToolMarkers) {
+        MapModule.renderToolMarkers(allTools);
+      }
+
+      Swal.fire({
+        icon: 'success',
+        title: '¡Maquinaria Publicada con Éxito!',
+        text: `El equipo "${name}" ya se encuentra activo en el catálogo público y disponible para alquiler.`,
+        confirmButtonColor: '#f59e0b',
+        background: '#0f172a',
+        color: '#f8fafc'
+      });
+    } catch (err) {
+      console.error('Error publicando maquinaria:', err);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error al Publicar Maquinaria',
+        text: err.message || 'No fue posible registrar la maquinaria en el sistema.',
+        background: '#0f172a',
+        color: '#f8fafc'
+      });
     }
   }
 
@@ -1100,7 +1327,11 @@ const App = (() => {
     switchView,
     openAuthModal,
     toggleAuthMode,
+    handleRoleChange,
     submitAuth,
+    openAddToolModal,
+    handleNewToolImageSelect,
+    submitNewTool,
     logout,
     updateRentalStatus,
     openReturnModal,

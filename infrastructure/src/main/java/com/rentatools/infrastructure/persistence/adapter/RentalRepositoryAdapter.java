@@ -6,6 +6,8 @@ import com.rentatools.domain.rental.RentalBooking;
 import com.rentatools.domain.rental.RentalRepository;
 import com.rentatools.infrastructure.persistence.entity.RentalEntity;
 import com.rentatools.infrastructure.persistence.repository.RentalJpaRepository;
+import com.rentatools.infrastructure.persistence.user.ClientJpaEntity;
+import com.rentatools.infrastructure.persistence.user.SpringDataClientRepository;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -15,16 +17,28 @@ import java.util.Optional;
 public class RentalRepositoryAdapter implements RentalRepository {
 
     private final RentalJpaRepository rentalJpaRepository;
+    private final SpringDataClientRepository clientRepository;
 
-    public RentalRepositoryAdapter(RentalJpaRepository rentalJpaRepository) {
+    public RentalRepositoryAdapter(RentalJpaRepository rentalJpaRepository, SpringDataClientRepository clientRepository) {
         this.rentalJpaRepository = rentalJpaRepository;
+        this.clientRepository = clientRepository;
+    }
+
+    private Long resolveClientId(Long id) {
+        if (id == null) return 1L;
+        if (clientRepository.existsById(id)) {
+            return id;
+        }
+        return clientRepository.findByUserId(id)
+                .map(ClientJpaEntity::getId)
+                .orElse(id);
     }
 
     @Override
     public RentalBooking save(RentalBooking domain) {
         RentalEntity entity = new RentalEntity();
         entity.setId(domain.getId());
-        entity.setClientId(domain.getClientId());
+        entity.setClientId(resolveClientId(domain.getClientId()));
         entity.setToolId(domain.getToolId());
         entity.setStartDate(domain.getDateRange().startDate());
         entity.setEndDate(domain.getDateRange().endDate());
@@ -48,7 +62,8 @@ public class RentalRepositoryAdapter implements RentalRepository {
 
     @Override
     public List<RentalBooking> findByClientId(Long clientId) {
-        return rentalJpaRepository.findByClientId(clientId).stream().map(this::toDomain).toList();
+        Long resolved = resolveClientId(clientId);
+        return rentalJpaRepository.findByClientId(resolved).stream().map(this::toDomain).toList();
     }
 
     @Override

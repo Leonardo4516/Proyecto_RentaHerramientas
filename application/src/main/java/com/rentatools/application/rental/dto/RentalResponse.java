@@ -46,7 +46,7 @@ public record RentalResponse(
     }
 
     public String getToolName() {
-        return "Maquinaria RentaTools #" + (toolId != null ? toolId.toString().substring(0, 8) : "");
+        return "Maquinaria #" + (toolId != null ? toolId : "");
     }
 
     public String getClientName() {

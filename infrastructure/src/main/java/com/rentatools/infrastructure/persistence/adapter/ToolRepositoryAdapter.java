@@ -7,6 +7,8 @@ import com.rentatools.infrastructure.persistence.entity.ToolImageEntity;
 import com.rentatools.infrastructure.persistence.entity.ToolSpecificationEntity;
 import com.rentatools.infrastructure.persistence.repository.ToolCategoryJpaRepository;
 import com.rentatools.infrastructure.persistence.repository.ToolJpaRepository;
+import com.rentatools.infrastructure.persistence.user.ProviderJpaEntity;
+import com.rentatools.infrastructure.persistence.user.SpringDataProviderRepository;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,10 +20,20 @@ public class ToolRepositoryAdapter implements ToolRepository {
 
     private final ToolJpaRepository toolJpaRepository;
     private final ToolCategoryJpaRepository categoryJpaRepository;
+    private final SpringDataProviderRepository providerRepo;
 
-    public ToolRepositoryAdapter(ToolJpaRepository toolJpaRepository, ToolCategoryJpaRepository categoryJpaRepository) {
+    public ToolRepositoryAdapter(ToolJpaRepository toolJpaRepository,
+                                 ToolCategoryJpaRepository categoryJpaRepository,
+                                 SpringDataProviderRepository providerRepo) {
         this.toolJpaRepository = toolJpaRepository;
         this.categoryJpaRepository = categoryJpaRepository;
+        this.providerRepo = providerRepo;
+    }
+
+    private Long resolveProviderId(Long id) {
+        if (id == null) return 1L;
+        if (providerRepo.existsById(id)) return id;
+        return providerRepo.findByUserId(id).map(ProviderJpaEntity::getId).orElse(id);
     }
 
     @Override
@@ -30,9 +42,11 @@ public class ToolRepositoryAdapter implements ToolRepository {
         ToolCategoryEntity categoryEntity = categoryJpaRepository.findById(domain.getCategoryId())
                 .orElse(null);
 
-        ToolEntity entity = toolJpaRepository.findById(domain.getId()).orElse(new ToolEntity());
+        ToolEntity entity = (domain.getId() != null)
+                ? toolJpaRepository.findById(domain.getId()).orElse(new ToolEntity())
+                : new ToolEntity();
         entity.setId(domain.getId());
-        entity.setProviderId(domain.getProviderId());
+        entity.setProviderId(resolveProviderId(domain.getProviderId()));
         entity.setCategory(categoryEntity);
         entity.setCode(domain.getCode());
         entity.setName(domain.getName());

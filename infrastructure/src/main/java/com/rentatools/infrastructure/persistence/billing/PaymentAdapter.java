@@ -1,7 +1,11 @@
 package com.rentatools.infrastructure.persistence.billing;
 
 import com.rentatools.domain.billing.Payment;
+import com.rentatools.domain.billing.PaymentMethod;
+import com.rentatools.domain.billing.PaymentStatus;
 import com.rentatools.domain.billing.port.PaymentRepository;
+import com.rentatools.infrastructure.persistence.user.ClientJpaEntity;
+import com.rentatools.infrastructure.persistence.user.SpringDataClientRepository;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -11,9 +15,17 @@ import java.util.stream.Collectors;
 @Component
 public class PaymentAdapter implements PaymentRepository {
     private final SpringDataPaymentRepository paymentRepo;
+    private final SpringDataClientRepository clientRepo;
 
-    public PaymentAdapter(SpringDataPaymentRepository paymentRepo) {
+    public PaymentAdapter(SpringDataPaymentRepository paymentRepo, SpringDataClientRepository clientRepo) {
         this.paymentRepo = paymentRepo;
+        this.clientRepo = clientRepo;
+    }
+
+    private Long resolveClientId(Long id) {
+        if (id == null) return null;
+        if (clientRepo.existsById(id)) return id;
+        return clientRepo.findByUserId(id).map(ClientJpaEntity::getId).orElse(id);
     }
 
     @Override
@@ -40,7 +52,8 @@ public class PaymentAdapter implements PaymentRepository {
 
     @Override
     public List<Payment> findByClientId(Long clientId) {
-        return paymentRepo.findByClientId(clientId).stream().map(this::toDomain).collect(Collectors.toList());
+        Long resolved = resolveClientId(clientId);
+        return paymentRepo.findByClientId(resolved).stream().map(this::toDomain).collect(Collectors.toList());
     }
 
     @Override
@@ -54,10 +67,20 @@ public class PaymentAdapter implements PaymentRepository {
         e.setId(p.getId());
         e.setInvoiceId(p.getInvoiceId());
         e.setRentalId(p.getRentalId());
-        e.setClientId(p.getClientId());
+        e.setClientId(resolveClientId(p.getClientId()));
         e.setAmount(p.getAmount());
-        e.setPaymentMethod(p.getPaymentMethod());
-        e.setStatus(p.getStatus());
+        e.setPaymentMethod(p.getPaymentMethod() != null ? p.getPaymentMethod().name() : "CREDIT_CARD");
+
+        String statusStr = "PAGADO";
+        if (p.getStatus() != null) {
+            statusStr = switch (p.getStatus()) {
+                case COMPLETED -> "PAGADO";
+                case PENDING -> "PENDIENTE";
+                case FAILED -> "RECHAZADO";
+                case REFUNDED -> "REEMBOLSADO";
+            };
+        }
+        e.setStatus(statusStr);
         e.setTransactionReference(p.getTransactionReference());
         e.setPaymentDate(p.getPaymentDate());
         e.setNotes(p.getNotes());
@@ -72,8 +95,37 @@ public class PaymentAdapter implements PaymentRepository {
         p.setRentalId(e.getRentalId());
         p.setClientId(e.getClientId());
         p.setAmount(e.getAmount());
-        p.setPaymentMethod(e.getPaymentMethod());
-        p.setStatus(e.getStatus());
+
+        PaymentMethod method = PaymentMethod.CREDIT_CARD;
+        if (e.getPaymentMethod() != null) {
+            String m = e.getPaymentMethod().toUpperCase();
+            if (m.contains("CREDIT") || m.contains("CRÉDITO")) {
+                method = PaymentMethod.CREDIT_CARD;
+            } else if (m.contains("DEBIT") || m.contains("DÉBITO")) {
+                method = PaymentMethod.DEBIT_CARD;
+            } else if (m.contains("PSE")) {
+                method = PaymentMethod.PSE;
+            } else if (m.contains("TRANSFER")) {
+                method = PaymentMethod.BANK_TRANSFER;
+            } else {
+                try {
+                    method = PaymentMethod.valueOf(m);
+                } catch (Exception ex) {
+                    method = PaymentMethod.CREDIT_CARD;
+                }
+            }
+        }
+        p.setPaymentMethod(method);
+
+        PaymentStatus status = switch (e.getStatus() != null ? e.getStatus().toUpperCase() : "PAGADO") {
+            case "PAGADO", "COMPLETED" -> PaymentStatus.COMPLETED;
+            case "PENDIENTE", "PENDING" -> PaymentStatus.PENDING;
+            case "RECHAZADO", "FAILED" -> PaymentStatus.FAILED;
+            case "REEMBOLSADO", "REFUNDED" -> PaymentStatus.REFUNDED;
+            default -> PaymentStatus.COMPLETED;
+        };
+        p.setStatus(status);
+
         p.setTransactionReference(e.getTransactionReference());
         p.setPaymentDate(e.getPaymentDate());
         p.setNotes(e.getNotes());
