@@ -6,13 +6,10 @@ import com.rentatools.domain.tool.ToolSpecification;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
-
 public record ToolResponse(
-        UUID id,
-        UUID providerId,
-        UUID categoryId,
-        String categoryName,
+        Long id,
+        Long providerId,
+        Long categoryId,
         String code,
         String name,
         String brand,
@@ -36,7 +33,6 @@ public record ToolResponse(
                 tool.getId(),
                 tool.getProviderId(),
                 tool.getCategoryId(),
-                tool.getCategoryName(),
                 tool.getCode(),
                 tool.getName(),
                 tool.getBrand(),
@@ -62,7 +58,7 @@ public record ToolResponse(
     }
 
     public String getCategory() {
-        return categoryName != null && !categoryName.isBlank() ? categoryName : (brand != null && !brand.isBlank() ? brand : "Maquinaria");
+        return brand != null && !brand.isBlank() ? brand : "Maquinaria Pesada";
     }
 
     public String getDescription() {

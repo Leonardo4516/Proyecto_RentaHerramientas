@@ -1,40 +1,39 @@
 package com.rentatools.application.billing.dto;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
 public class ProcessPaymentRequest {
-    private UUID invoiceId;
-    private UUID rentalId;
-    private UUID clientId;
+    private Long invoiceId;
+    private Long rentalId;
+    private Long clientId;
     private BigDecimal amount;
-    private String paymentMethod; // CREDIT_CARD, DEBIT_CARD, PSE, BANK_TRANSFER, Tarjeta de Crédito...
+    private String paymentMethod; // CREDIT_CARD, DEBIT_CARD, PSE, BANK_TRANSFER
     private String transactionReference;
     private String notes;
 
     public ProcessPaymentRequest() {}
 
-    public UUID getInvoiceId() {
+    public Long getInvoiceId() {
         return invoiceId;
     }
 
-    public void setInvoiceId(UUID invoiceId) {
+    public void setInvoiceId(Long invoiceId) {
         this.invoiceId = invoiceId;
     }
 
-    public UUID getRentalId() {
+    public Long getRentalId() {
         return rentalId;
     }
 
-    public void setRentalId(UUID rentalId) {
+    public void setRentalId(Long rentalId) {
         this.rentalId = rentalId;
     }
 
-    public UUID getClientId() {
+    public Long getClientId() {
         return clientId;
     }
 
-    public void setClientId(UUID clientId) {
+    public void setClientId(Long clientId) {
         this.clientId = clientId;
     }
 

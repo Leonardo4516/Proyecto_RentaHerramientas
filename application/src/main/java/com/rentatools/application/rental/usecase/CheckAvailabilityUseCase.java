@@ -3,8 +3,6 @@ package com.rentatools.application.rental.usecase;
 import com.rentatools.application.rental.dto.AvailabilityCheckResponse;
 import com.rentatools.domain.rental.RentalRepository;
 import java.time.LocalDate;
-import java.util.UUID;
-
 public class CheckAvailabilityUseCase {
     private final RentalRepository rentalRepository;
 
@@ -12,7 +10,7 @@ public class CheckAvailabilityUseCase {
         this.rentalRepository = rentalRepository;
     }
 
-    public AvailabilityCheckResponse execute(UUID toolId, LocalDate startDate, LocalDate endDate) {
+    public AvailabilityCheckResponse execute(Long toolId, LocalDate startDate, LocalDate endDate) {
         boolean hasOverlap = rentalRepository.hasOverlappingBookings(toolId, startDate, endDate);
         boolean isAvailable = !hasOverlap;
         String msg = isAvailable

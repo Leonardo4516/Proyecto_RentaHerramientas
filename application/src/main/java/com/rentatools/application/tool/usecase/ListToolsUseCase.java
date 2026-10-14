@@ -4,8 +4,6 @@ import com.rentatools.application.tool.dto.ToolResponse;
 import com.rentatools.domain.tool.ToolRepository;
 import com.rentatools.domain.tool.ToolStatus;
 import java.util.List;
-import java.util.UUID;
-
 public class ListToolsUseCase {
     private final ToolRepository toolRepository;
 
@@ -13,7 +11,7 @@ public class ListToolsUseCase {
         this.toolRepository = toolRepository;
     }
 
-    public List<ToolResponse> execute(UUID categoryId, ToolStatus status) {
+    public List<ToolResponse> execute(Long categoryId, ToolStatus status) {
         if (categoryId != null) {
             return toolRepository.findByCategoryId(categoryId).stream()
                     .filter(t -> status == null || t.getStatus() == status)

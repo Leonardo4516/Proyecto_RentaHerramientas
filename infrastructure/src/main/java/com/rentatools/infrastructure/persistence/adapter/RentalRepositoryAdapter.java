@@ -6,41 +6,25 @@ import com.rentatools.domain.rental.RentalBooking;
 import com.rentatools.domain.rental.RentalRepository;
 import com.rentatools.infrastructure.persistence.entity.RentalEntity;
 import com.rentatools.infrastructure.persistence.repository.RentalJpaRepository;
-import com.rentatools.infrastructure.persistence.user.ClientJpaEntity;
-import com.rentatools.infrastructure.persistence.user.SpringDataClientRepository;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
-
 @Component
 public class RentalRepositoryAdapter implements RentalRepository {
 
     private final RentalJpaRepository rentalJpaRepository;
-    private final SpringDataClientRepository clientRepository;
 
-    public RentalRepositoryAdapter(RentalJpaRepository rentalJpaRepository, SpringDataClientRepository clientRepository) {
+    public RentalRepositoryAdapter(RentalJpaRepository rentalJpaRepository) {
         this.rentalJpaRepository = rentalJpaRepository;
-        this.clientRepository = clientRepository;
-    }
-
-    private UUID resolveClientId(UUID idOrUserId) {
-        if (idOrUserId == null) return null;
-        if (clientRepository.existsById(idOrUserId)) {
-            return idOrUserId;
-        }
-        return clientRepository.findByUserId(idOrUserId)
-                .map(ClientJpaEntity::getId)
-                .orElse(idOrUserId);
     }
 
     @Override
     public RentalBooking save(RentalBooking domain) {
         RentalEntity entity = new RentalEntity();
         entity.setId(domain.getId());
-        entity.setClientId(resolveClientId(domain.getClientId()));
+        entity.setClientId(domain.getClientId());
         entity.setToolId(domain.getToolId());
         entity.setStartDate(domain.getDateRange().startDate());
         entity.setEndDate(domain.getDateRange().endDate());
@@ -58,23 +42,22 @@ public class RentalRepositoryAdapter implements RentalRepository {
     }
 
     @Override
-    public Optional<RentalBooking> findById(UUID id) {
+    public Optional<RentalBooking> findById(Long id) {
         return rentalJpaRepository.findById(id).map(this::toDomain);
     }
 
     @Override
-    public List<RentalBooking> findByClientId(UUID clientId) {
-        UUID resolvedId = resolveClientId(clientId);
-        return rentalJpaRepository.findByClientId(resolvedId).stream().map(this::toDomain).toList();
+    public List<RentalBooking> findByClientId(Long clientId) {
+        return rentalJpaRepository.findByClientId(clientId).stream().map(this::toDomain).toList();
     }
 
     @Override
-    public List<RentalBooking> findByToolId(UUID toolId) {
+    public List<RentalBooking> findByToolId(Long toolId) {
         return rentalJpaRepository.findByToolId(toolId).stream().map(this::toDomain).toList();
     }
 
     @Override
-    public List<RentalBooking> findActiveRentalsByToolId(UUID toolId) {
+    public List<RentalBooking> findActiveRentalsByToolId(Long toolId) {
         return rentalJpaRepository.findActiveRentalsByToolId(toolId).stream().map(this::toDomain).toList();
     }
 
@@ -84,7 +67,7 @@ public class RentalRepositoryAdapter implements RentalRepository {
     }
 
     @Override
-    public boolean hasOverlappingBookings(UUID toolId, LocalDate startDate, LocalDate endDate) {
+    public boolean hasOverlappingBookings(Long toolId, LocalDate startDate, LocalDate endDate) {
         return rentalJpaRepository.existsOverlappingBooking(toolId, startDate, endDate);
     }
 

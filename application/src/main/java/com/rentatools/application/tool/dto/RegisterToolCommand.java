@@ -2,11 +2,9 @@ package com.rentatools.application.tool.dto;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.UUID;
-
 public record RegisterToolCommand(
-        UUID providerId,
-        UUID categoryId,
+        Long providerId,
+        Long categoryId,
         String code,
         String name,
         String brand,

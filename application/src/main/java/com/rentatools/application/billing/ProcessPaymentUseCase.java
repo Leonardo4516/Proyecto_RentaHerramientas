@@ -14,8 +14,6 @@ import com.rentatools.domain.notification.port.NotificationPort;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.UUID;
-
 public class ProcessPaymentUseCase {
     private final PaymentRepository paymentRepository;
     private final InvoiceRepository invoiceRepository;
@@ -44,39 +42,30 @@ public class ProcessPaymentUseCase {
         }
 
         BigDecimal amount = request.getAmount() != null ? request.getAmount() : invoice.getTotalAmount();
-        String method = "Tarjeta de Crédito";
+        PaymentMethod method = PaymentMethod.CREDIT_CARD;
         if (request.getPaymentMethod() != null) {
-            String m = request.getPaymentMethod().trim();
-            if (m.equalsIgnoreCase("CREDIT_CARD") || m.toLowerCase().contains("crédito") || m.toLowerCase().contains("credito") || m.toLowerCase().contains("tarjeta")) {
-                method = "Tarjeta de Crédito";
-            } else if (m.equalsIgnoreCase("PSE") || m.toLowerCase().contains("pse")) {
-                method = "PSE";
-            } else if (m.equalsIgnoreCase("BANK_TRANSFER") || m.toLowerCase().contains("transfer")) {
-                method = "Transferencia Bancaria";
-            } else if (m.toLowerCase().contains("efectivo") || m.equalsIgnoreCase("CASH")) {
-                method = "Efectivo";
-            } else {
-                method = m;
+            try {
+                method = PaymentMethod.valueOf(request.getPaymentMethod().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                method = PaymentMethod.CREDIT_CARD;
             }
         }
 
-        String reference = request.getTransactionReference() != null ? request.getTransactionReference() : "TRX-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        String reference = request.getTransactionReference() != null ? request.getTransactionReference() : "TXN-" + System.currentTimeMillis();
 
         Payment payment = new Payment();
-        payment.setId(UUID.randomUUID());
         payment.setInvoiceId(invoice.getId());
         payment.setRentalId(invoice.getRentalId());
         payment.setClientId(invoice.getClientId());
         payment.setAmount(amount);
         payment.setPaymentMethod(method);
-        payment.setStatus("PAGADO");
+        payment.setStatus(PaymentStatus.COMPLETED);
         payment.setTransactionReference(reference);
         payment.setPaymentDate(LocalDateTime.now());
         payment.setNotes(request.getNotes() != null ? request.getNotes() : "Pago procesado exitosamente vía pasarela simulada");
 
         Payment savedPayment = paymentRepository.save(payment);
 
-        invoice.setPaymentId(savedPayment.getId());
         invoice.setPaid(true);
         invoice.setPaymentDate(savedPayment.getPaymentDate());
         invoiceRepository.save(invoice);

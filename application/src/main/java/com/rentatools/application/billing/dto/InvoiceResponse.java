@@ -7,13 +7,12 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 public class InvoiceResponse {
-    private UUID id;
+    private Long id;
     private String invoiceNumber;
-    private UUID rentalId;
-    private UUID clientId;
+    private Long rentalId;
+    private Long clientId;
     private String clientName;
     private String clientTaxId;
     private LocalDateTime issueDate;
@@ -49,11 +48,11 @@ public class InvoiceResponse {
         return r;
     }
 
-    public UUID getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(UUID id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
@@ -65,19 +64,19 @@ public class InvoiceResponse {
         this.invoiceNumber = invoiceNumber;
     }
 
-    public UUID getRentalId() {
+    public Long getRentalId() {
         return rentalId;
     }
 
-    public void setRentalId(UUID rentalId) {
+    public void setRentalId(Long rentalId) {
         this.rentalId = rentalId;
     }
 
-    public UUID getClientId() {
+    public Long getClientId() {
         return clientId;
     }
 
-    public void setClientId(UUID clientId) {
+    public void setClientId(Long clientId) {
         this.clientId = clientId;
     }
 

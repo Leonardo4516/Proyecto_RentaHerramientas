@@ -34,13 +34,40 @@ Proyecto_RentaHerramientas/
 
 ---
 
-## 🚀 Despliegue Rápido con Docker Compose
+## 🚀 Despliegue y Ejecución Rápida Multi-Plataforma
 
-Para levantar la base de datos PostgreSQL 16 con todas las tablas en **4FN** y más de 20 semillas cargadas:
+### 1. Variables de Entorno y Base de Datos (Docker Compose)
+Copia el archivo de variables y levanta el contenedor de PostgreSQL 16 con el esquema 4FN y todas las semillas precargadas:
 
-```bash
-docker compose up -d
-```
+- **Linux / macOS:**
+  ```bash
+  cp .env.example .env
+  docker compose up -d
+  ```
+- **Windows (CMD / PowerShell):**
+  ```cmd
+  copy .env.example .env
+  docker compose up -d
+  ```
+
+---
+
+### 2. Ejecutar la Aplicación Spring Boot
+El proyecto utiliza Maven Wrapper, por lo que no requiere tener Maven instalado previamente:
+
+- **Linux / macOS:**
+  ```bash
+  ./mvnw spring-boot:run -pl infrastructure
+  ```
+- **Windows (CMD / PowerShell):**
+  ```cmd
+  mvnw.cmd spring-boot:run -pl infrastructure
+  ```
+
+La aplicación quedará disponible en:
+- **Frontend Web & Catálogo:** [http://localhost:8080](http://localhost:8080)
+- **Documentación Swagger / OpenAPI:** [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
+- **pgAdmin (Opcional):** [http://localhost:8082](http://localhost:8082) (`admin@rentatools.com` / `Admin123456!`)
 
 ---
 

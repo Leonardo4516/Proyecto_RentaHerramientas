@@ -1,13 +1,12 @@
 package com.rentatools.infrastructure.persistence.entity;
 
 import jakarta.persistence.*;
-import java.util.UUID;
-
 @Entity
 @Table(name = "tool_categories")
 public class ToolCategoryEntity {
     @Id
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @Column(nullable = false, unique = true, length = 100)
     private String name;
@@ -22,7 +21,7 @@ public class ToolCategoryEntity {
 
     public ToolCategoryEntity() {}
 
-    public ToolCategoryEntity(UUID id, String name, String description, String iconName, boolean active) {
+    public ToolCategoryEntity(Long id, String name, String description, String iconName, boolean active) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -30,8 +29,8 @@ public class ToolCategoryEntity {
         this.active = active;
     }
 
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
     public String getDescription() { return description; }

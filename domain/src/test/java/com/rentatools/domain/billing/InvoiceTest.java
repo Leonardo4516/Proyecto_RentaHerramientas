@@ -4,7 +4,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -17,7 +16,7 @@ class InvoiceTest {
         invoice.setDepositAmount(new BigDecimal("500000.00"));
 
         // 3 días a $ 100.000 = $ 300.000
-        InvoiceItem item1 = new InvoiceItem(UUID.randomUUID(), UUID.randomUUID(), "Taladro Demoledor", new BigDecimal("100000.00"), 3);
+        InvoiceItem item1 = new InvoiceItem(1L, 10L, "Taladro Demoledor", new BigDecimal("100000.00"), 3);
         invoice.addItem(item1);
 
         // Subtotal = 300.000

@@ -19,7 +19,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
@@ -46,7 +45,7 @@ public class InvoiceController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Consultar factura por ID", description = "Obtiene los detalles y estado de una factura")
-    public ResponseEntity<InvoiceResponse> getInvoiceById(@PathVariable UUID id) {
+    public ResponseEntity<InvoiceResponse> getInvoiceById(@PathVariable Long id) {
         return invoiceRepository.findById(id)
                 .map(InvoiceResponse::fromDomain)
                 .map(ResponseEntity::ok)
@@ -55,7 +54,7 @@ public class InvoiceController {
 
     @GetMapping("/client/{clientId}")
     @Operation(summary = "Consultar facturas de un cliente", description = "Obtiene todas las facturas pertenecientes a un cliente")
-    public ResponseEntity<List<InvoiceResponse>> getInvoicesByClient(@PathVariable UUID clientId) {
+    public ResponseEntity<List<InvoiceResponse>> getInvoicesByClient(@PathVariable Long clientId) {
         List<InvoiceResponse> list = invoiceRepository.findByClientId(clientId).stream()
                 .map(InvoiceResponse::fromDomain)
                 .collect(Collectors.toList());
@@ -64,7 +63,7 @@ public class InvoiceController {
 
     @GetMapping("/{id}/pdf")
     @Operation(summary = "Descargar comprobante en PDF", description = "Genera y descarga en tiempo real el comprobante oficial en PDF con OpenPDF")
-    public ResponseEntity<byte[]> downloadInvoicePdf(@PathVariable UUID id) {
+    public ResponseEntity<byte[]> downloadInvoicePdf(@PathVariable Long id) {
         byte[] pdfBytes = downloadPdfUseCase.execute(id);
 
         HttpHeaders headers = new HttpHeaders();

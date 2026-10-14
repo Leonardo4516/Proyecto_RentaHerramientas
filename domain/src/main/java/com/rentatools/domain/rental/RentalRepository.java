@@ -3,18 +3,16 @@ package com.rentatools.domain.rental;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
-
 public interface RentalRepository {
     RentalBooking save(RentalBooking rental);
-    Optional<RentalBooking> findById(UUID id);
-    List<RentalBooking> findByClientId(UUID clientId);
-    List<RentalBooking> findByToolId(UUID toolId);
-    List<RentalBooking> findActiveRentalsByToolId(UUID toolId);
+    Optional<RentalBooking> findById(Long id);
+    List<RentalBooking> findByClientId(Long clientId);
+    List<RentalBooking> findByToolId(Long toolId);
+    List<RentalBooking> findActiveRentalsByToolId(Long toolId);
     List<RentalBooking> findAll();
     
     /**
      * Verifica si existen reservas activas que se solapen con el rango solicitado.
      */
-    boolean hasOverlappingBookings(UUID toolId, LocalDate startDate, LocalDate endDate);
+    boolean hasOverlappingBookings(Long toolId, LocalDate startDate, LocalDate endDate);
 }

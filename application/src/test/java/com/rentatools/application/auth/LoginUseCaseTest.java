@@ -45,8 +45,7 @@ class LoginUseCaseTest {
     @Test
     @DisplayName("Debe autenticar correctamente con credenciales válidas")
     void shouldLoginSuccessfully() {
-        java.util.UUID userId = java.util.UUID.randomUUID();
-        User user = new User(userId, "cliente1", "cliente1@mail.com", "encodedPass", "Juan Perez", "123", Role.ROLE_CLIENTE);
+        User user = new User(1L, "cliente1", "cliente1@mail.com", "encodedPass", "Juan Perez", "123", Role.ROLE_CLIENTE);
         user.setActive(true);
 
         when(userRepository.findByUsername("cliente1")).thenReturn(Optional.of(user));
@@ -65,8 +64,7 @@ class LoginUseCaseTest {
     @Test
     @DisplayName("Debe fallar al proporcionar contraseña incorrecta")
     void shouldThrowWhenPasswordIncorrect() {
-        java.util.UUID userId = java.util.UUID.randomUUID();
-        User user = new User(userId, "cliente1", "cliente1@mail.com", "encodedPass", "Juan Perez", "123", Role.ROLE_CLIENTE);
+        User user = new User(1L, "cliente1", "cliente1@mail.com", "encodedPass", "Juan Perez", "123", Role.ROLE_CLIENTE);
         user.setActive(true);
 
         when(userRepository.findByUsername("cliente1")).thenReturn(Optional.of(user));

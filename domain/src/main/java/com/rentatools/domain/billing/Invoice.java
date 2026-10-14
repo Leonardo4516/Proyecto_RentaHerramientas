@@ -4,58 +4,56 @@ import com.rentatools.domain.common.BaseEntity;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
-public class Invoice extends BaseEntity<UUID> {
+public class Invoice extends BaseEntity<Long> {
     private static final BigDecimal IVA_RATE = new BigDecimal("0.19");
 
     private String invoiceNumber;
-    private UUID rentalId;
-    private UUID paymentId;
-    private Instant issuedAt = Instant.now();
-    private BigDecimal subtotal = BigDecimal.ZERO;
-    private BigDecimal tax = BigDecimal.ZERO;
-    private BigDecimal deposit = BigDecimal.ZERO;
-    private BigDecimal total = BigDecimal.ZERO;
-    private String pdfStoragePath;
-
-    // Campos auxiliares / transitivos
-    private UUID clientId;
+    private Long rentalId;
+    private Long clientId;
     private String clientName;
     private String clientTaxId;
-    private LocalDateTime dueDate = LocalDateTime.now().plusDays(3);
-    private boolean paid = false;
+    private LocalDateTime issueDate;
+    private LocalDateTime dueDate;
+    private BigDecimal subtotal;
+    private BigDecimal taxAmount;
+    private BigDecimal depositAmount;
+    private BigDecimal totalAmount;
+    private boolean paid;
     private LocalDateTime paymentDate;
     private LocalDateTime pdfGeneratedAt;
-    private List<InvoiceItem> items = new ArrayList<>();
+    private List<InvoiceItem> items;
 
     public Invoice() {
         super();
-        this.issuedAt = Instant.now();
         this.subtotal = BigDecimal.ZERO;
-        this.tax = BigDecimal.ZERO;
-        this.deposit = BigDecimal.ZERO;
-        this.total = BigDecimal.ZERO;
+        this.taxAmount = BigDecimal.ZERO;
+        this.depositAmount = BigDecimal.ZERO;
+        this.totalAmount = BigDecimal.ZERO;
         this.paid = false;
         this.items = new ArrayList<>();
+        this.issueDate = LocalDateTime.now();
+        this.dueDate = LocalDateTime.now().plusDays(3);
     }
 
-    public Invoice(UUID id, String invoiceNumber, UUID rentalId, UUID paymentId, BigDecimal subtotal, BigDecimal tax, BigDecimal deposit, BigDecimal total) {
+    public Invoice(Long id, String invoiceNumber, Long rentalId, Long clientId, String clientName, String clientTaxId, BigDecimal depositAmount) {
         super(id);
         this.invoiceNumber = invoiceNumber;
         this.rentalId = rentalId;
-        this.paymentId = paymentId;
-        this.subtotal = subtotal != null ? subtotal : BigDecimal.ZERO;
-        this.tax = tax != null ? tax : BigDecimal.ZERO;
-        this.deposit = deposit != null ? deposit : BigDecimal.ZERO;
-        this.total = total != null ? total : BigDecimal.ZERO;
-        this.issuedAt = Instant.now();
+        this.clientId = clientId;
+        this.clientName = clientName;
+        this.clientTaxId = clientTaxId;
+        this.depositAmount = depositAmount != null ? depositAmount : BigDecimal.ZERO;
+        this.subtotal = BigDecimal.ZERO;
+        this.taxAmount = BigDecimal.ZERO;
+        this.totalAmount = BigDecimal.ZERO;
+        this.paid = false;
         this.items = new ArrayList<>();
+        this.issueDate = LocalDateTime.now();
+        this.dueDate = LocalDateTime.now().plusDays(3);
     }
 
     public void addItem(InvoiceItem item) {
@@ -73,9 +71,9 @@ public class Invoice extends BaseEntity<UUID> {
             }
         }
         this.subtotal = calculatedSubtotal.setScale(2, RoundingMode.HALF_UP);
-        this.tax = this.subtotal.multiply(IVA_RATE).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal dep = this.deposit != null ? this.deposit : BigDecimal.ZERO;
-        this.total = this.subtotal.add(this.tax).add(dep).setScale(2, RoundingMode.HALF_UP);
+        this.taxAmount = this.subtotal.multiply(IVA_RATE).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal deposit = this.depositAmount != null ? this.depositAmount : BigDecimal.ZERO;
+        this.totalAmount = this.subtotal.add(this.taxAmount).add(deposit).setScale(2, RoundingMode.HALF_UP);
     }
 
     public String getInvoiceNumber() {
@@ -86,120 +84,19 @@ public class Invoice extends BaseEntity<UUID> {
         this.invoiceNumber = invoiceNumber;
     }
 
-    public UUID getRentalId() {
+    public Long getRentalId() {
         return rentalId;
     }
 
-    public void setRentalId(UUID rentalId) {
+    public void setRentalId(Long rentalId) {
         this.rentalId = rentalId;
     }
 
-    public UUID getPaymentId() {
-        return paymentId;
-    }
-
-    public void setPaymentId(UUID paymentId) {
-        this.paymentId = paymentId;
-        if (paymentId != null) {
-            this.paid = true;
-        }
-    }
-
-    public Instant getIssuedAt() {
-        return issuedAt;
-    }
-
-    public void setIssuedAt(Instant issuedAt) {
-        this.issuedAt = issuedAt;
-    }
-
-    public LocalDateTime getIssueDate() {
-        return issuedAt != null ? LocalDateTime.ofInstant(issuedAt, ZoneId.systemDefault()) : LocalDateTime.now();
-    }
-
-    public void setIssueDate(LocalDateTime issueDate) {
-        this.issuedAt = issueDate != null ? issueDate.atZone(ZoneId.systemDefault()).toInstant() : Instant.now();
-    }
-
-    public LocalDateTime getDueDate() {
-        return dueDate;
-    }
-
-    public void setDueDate(LocalDateTime dueDate) {
-        this.dueDate = dueDate;
-    }
-
-    public BigDecimal getSubtotal() {
-        return subtotal;
-    }
-
-    public void setSubtotal(BigDecimal subtotal) {
-        this.subtotal = subtotal;
-    }
-
-    public BigDecimal getTax() {
-        return tax;
-    }
-
-    public void setTax(BigDecimal tax) {
-        this.tax = tax;
-    }
-
-    public BigDecimal getTaxAmount() {
-        return tax;
-    }
-
-    public void setTaxAmount(BigDecimal taxAmount) {
-        this.tax = taxAmount;
-    }
-
-    public BigDecimal getDeposit() {
-        return deposit;
-    }
-
-    public void setDeposit(BigDecimal deposit) {
-        this.deposit = deposit;
-        recalculateTotals();
-    }
-
-    public BigDecimal getDepositAmount() {
-        return deposit;
-    }
-
-    public void setDepositAmount(BigDecimal depositAmount) {
-        this.deposit = depositAmount;
-        recalculateTotals();
-    }
-
-    public BigDecimal getTotal() {
-        return total;
-    }
-
-    public void setTotal(BigDecimal total) {
-        this.total = total;
-    }
-
-    public BigDecimal getTotalAmount() {
-        return total;
-    }
-
-    public void setTotalAmount(BigDecimal totalAmount) {
-        this.total = totalAmount;
-    }
-
-    public String getPdfStoragePath() {
-        return pdfStoragePath;
-    }
-
-    public void setPdfStoragePath(String pdfStoragePath) {
-        this.pdfStoragePath = pdfStoragePath;
-    }
-
-    public UUID getClientId() {
+    public Long getClientId() {
         return clientId;
     }
 
-    public void setClientId(UUID clientId) {
+    public void setClientId(Long clientId) {
         this.clientId = clientId;
     }
 
@@ -219,8 +116,57 @@ public class Invoice extends BaseEntity<UUID> {
         this.clientTaxId = clientTaxId;
     }
 
+    public LocalDateTime getIssueDate() {
+        return issueDate;
+    }
+
+    public void setIssueDate(LocalDateTime issueDate) {
+        this.issueDate = issueDate;
+    }
+
+    public LocalDateTime getDueDate() {
+        return dueDate;
+    }
+
+    public void setDueDate(LocalDateTime dueDate) {
+        this.dueDate = dueDate;
+    }
+
+    public BigDecimal getSubtotal() {
+        return subtotal;
+    }
+
+    public void setSubtotal(BigDecimal subtotal) {
+        this.subtotal = subtotal;
+    }
+
+    public BigDecimal getTaxAmount() {
+        return taxAmount;
+    }
+
+    public void setTaxAmount(BigDecimal taxAmount) {
+        this.taxAmount = taxAmount;
+    }
+
+    public BigDecimal getDepositAmount() {
+        return depositAmount;
+    }
+
+    public void setDepositAmount(BigDecimal depositAmount) {
+        this.depositAmount = depositAmount;
+        recalculateTotals();
+    }
+
+    public BigDecimal getTotalAmount() {
+        return totalAmount;
+    }
+
+    public void setTotalAmount(BigDecimal totalAmount) {
+        this.totalAmount = totalAmount;
+    }
+
     public boolean isPaid() {
-        return paid || paymentId != null;
+        return paid;
     }
 
     public void setPaid(boolean paid) {

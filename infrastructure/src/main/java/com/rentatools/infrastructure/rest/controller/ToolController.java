@@ -19,8 +19,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.UUID;
-
 @RestController
 @RequestMapping("/api/v1/tools")
 @Tag(name = "Herramientas e Inventario", description = "Endpoints para consulta, catálogo, geolocalización y registro de maquinaria")
@@ -44,10 +42,10 @@ public class ToolController {
         this.categoryRepository = categoryRepository;
     }
 
-    @GetMapping({"", "/public"})
+    @GetMapping("/public")
     @Operation(summary = "Catálogo público de herramientas", description = "Permite filtrar por categoría y estado de disponibilidad")
     public ResponseEntity<List<ToolResponse>> listTools(
-            @RequestParam(required = false) UUID categoryId,
+            @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) ToolStatus status
     ) {
         List<ToolResponse> tools = listToolsUseCase.execute(categoryId, status);
@@ -56,7 +54,7 @@ public class ToolController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Obtener detalle de una herramienta por ID")
-    public ResponseEntity<ToolResponse> getById(@PathVariable UUID id) {
+    public ResponseEntity<ToolResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(getToolByIdUseCase.execute(id));
     }
 

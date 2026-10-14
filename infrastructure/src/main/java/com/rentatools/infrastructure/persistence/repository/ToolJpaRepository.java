@@ -7,17 +7,15 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
-
 @Repository
-public interface ToolJpaRepository extends JpaRepository<ToolEntity, UUID> {
+public interface ToolJpaRepository extends JpaRepository<ToolEntity, Long> {
     Optional<ToolEntity> findByCode(String code);
 
     @EntityGraph(attributePaths = {"category"})
-    List<ToolEntity> findByCategoryId(UUID categoryId);
+    List<ToolEntity> findByCategoryId(Long categoryId);
 
     @EntityGraph(attributePaths = {"category"})
-    List<ToolEntity> findByProviderId(UUID providerId);
+    List<ToolEntity> findByProviderId(Long providerId);
 
     @EntityGraph(attributePaths = {"category"})
     List<ToolEntity> findByStatus(String status);

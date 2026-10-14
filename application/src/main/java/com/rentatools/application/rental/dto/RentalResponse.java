@@ -4,12 +4,10 @@ import com.rentatools.domain.rental.RentalBooking;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.UUID;
-
 public record RentalResponse(
-        UUID id,
-        UUID clientId,
-        UUID toolId,
+        Long id,
+        Long clientId,
+        Long toolId,
         LocalDate startDate,
         LocalDate endDate,
         int totalDays,

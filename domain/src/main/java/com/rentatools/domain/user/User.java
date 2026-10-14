@@ -2,10 +2,7 @@ package com.rentatools.domain.user;
 
 import com.rentatools.domain.common.BaseEntity;
 
-import java.time.LocalDateTime;
-import java.util.UUID;
-
-public class User extends BaseEntity<UUID> {
+public class User extends BaseEntity<Long> {
     private String username;
     private String email;
     private String password;
@@ -13,7 +10,6 @@ public class User extends BaseEntity<UUID> {
     private String phone;
     private Role role;
     private boolean active;
-    private LocalDateTime createdAt = LocalDateTime.now();
     private ClientProfile clientProfile;
     private ProviderProfile providerProfile;
 
@@ -22,7 +18,7 @@ public class User extends BaseEntity<UUID> {
         this.active = true;
     }
 
-    public User(UUID id, String username, String email, String password, String fullName, String phone, Role role) {
+    public User(Long id, String username, String email, String password, String fullName, String phone, Role role) {
         super(id);
         this.username = username;
         this.email = email;
@@ -95,14 +91,6 @@ public class User extends BaseEntity<UUID> {
 
     public void setClientProfile(ClientProfile clientProfile) {
         this.clientProfile = clientProfile;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
     }
 
     public ProviderProfile getProviderProfile() {

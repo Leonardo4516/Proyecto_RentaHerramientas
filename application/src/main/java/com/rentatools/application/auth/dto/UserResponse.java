@@ -5,10 +5,9 @@ import com.rentatools.domain.user.ProviderProfile;
 import com.rentatools.domain.user.User;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 public class UserResponse {
-    private UUID id;
+    private Long id;
     private String username;
     private String email;
     private String fullName;
@@ -16,8 +15,6 @@ public class UserResponse {
     private String role;
     private boolean active;
     private LocalDateTime createdAt;
-    private UUID clientId;
-    private UUID providerId;
     private ClientProfile clientProfile;
     private ProviderProfile providerProfile;
 
@@ -36,20 +33,14 @@ public class UserResponse {
         response.setCreatedAt(user.getCreatedAt());
         response.setClientProfile(user.getClientProfile());
         response.setProviderProfile(user.getProviderProfile());
-        if (user.getClientProfile() != null) {
-            response.setClientId(user.getClientProfile().getId());
-        }
-        if (user.getProviderProfile() != null) {
-            response.setProviderId(user.getProviderProfile().getId());
-        }
         return response;
     }
 
-    public UUID getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(UUID id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
@@ -115,22 +106,6 @@ public class UserResponse {
 
     public void setClientProfile(ClientProfile clientProfile) {
         this.clientProfile = clientProfile;
-    }
-
-    public UUID getClientId() {
-        return clientId;
-    }
-
-    public void setClientId(UUID clientId) {
-        this.clientId = clientId;
-    }
-
-    public UUID getProviderId() {
-        return providerId;
-    }
-
-    public void setProviderId(UUID providerId) {
-        this.providerId = providerId;
     }
 
     public ProviderProfile getProviderProfile() {

@@ -6,7 +6,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -18,15 +17,14 @@ class OpenPdfInvoiceAdapterTest {
         OpenPdfInvoiceAdapter adapter = new OpenPdfInvoiceAdapter();
 
         Invoice invoice = new Invoice();
-        invoice.setId(UUID.randomUUID());
         invoice.setInvoiceNumber("INV-202610-001");
-        invoice.setRentalId(UUID.randomUUID());
-        invoice.setClientId(UUID.randomUUID());
+        invoice.setRentalId(42L);
+        invoice.setClientId(7L);
         invoice.setClientName("Empresa Constructora Test");
         invoice.setClientTaxId("900.123.456-1");
         invoice.setDepositAmount(new BigDecimal("200000"));
 
-        InvoiceItem item = new InvoiceItem(UUID.randomUUID(), UUID.randomUUID(), "Andamio Multidireccional", new BigDecimal("50000"), 4);
+        InvoiceItem item = new InvoiceItem(1L, 101L, "Andamio Multidireccional", new BigDecimal("50000"), 4);
         invoice.addItem(item);
 
         byte[] pdfBytes = adapter.generateInvoicePdf(invoice);

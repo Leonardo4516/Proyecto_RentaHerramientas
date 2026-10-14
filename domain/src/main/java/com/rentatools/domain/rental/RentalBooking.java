@@ -3,12 +3,10 @@ package com.rentatools.domain.rental;
 import com.rentatools.domain.common.BusinessRuleValidationException;
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.UUID;
-
 public class RentalBooking {
-    private final UUID id;
-    private final UUID clientId;
-    private final UUID toolId;
+    private final Long id;
+    private final Long clientId;
+    private final Long toolId;
     private final DateRange dateRange;
     private final BigDecimal dailyRate;
     private final BigDecimal depositAmount;
@@ -19,13 +17,13 @@ public class RentalBooking {
     private final Instant createdAt;
     private ReturnInspection inspection;
 
-    public RentalBooking(UUID id, UUID clientId, UUID toolId, DateRange dateRange, BigDecimal dailyRate,
+    public RentalBooking(Long id, Long clientId, Long toolId, DateRange dateRange, BigDecimal dailyRate,
                          BigDecimal depositAmount, BigDecimal subtotal, BookingStatus status,
                          String deliveryAddress, String notes, Instant createdAt) {
         if (dailyRate == null || dailyRate.compareTo(BigDecimal.ZERO) <= 0) {
             throw new BusinessRuleValidationException("La tarifa de alquiler debe ser positiva.");
         }
-        this.id = id != null ? id : UUID.randomUUID();
+        this.id = id != null ? id : null;
         this.clientId = clientId;
         this.toolId = toolId;
         this.dateRange = dateRange;
@@ -38,7 +36,7 @@ public class RentalBooking {
         this.createdAt = createdAt != null ? createdAt : Instant.now();
     }
 
-    public static RentalBooking create(UUID clientId, UUID toolId, DateRange dateRange, BigDecimal dailyRate,
+    public static RentalBooking create(Long clientId, Long toolId, DateRange dateRange, BigDecimal dailyRate,
                                        BigDecimal depositAmount, String deliveryAddress, String notes) {
         BigDecimal subtotal = dailyRate.multiply(BigDecimal.valueOf(dateRange.totalDays()));
         return new RentalBooking(null, clientId, toolId, dateRange, dailyRate, depositAmount, subtotal,
@@ -82,9 +80,9 @@ public class RentalBooking {
         this.status = BookingStatus.CANCELADA;
     }
 
-    public UUID getId() { return id; }
-    public UUID getClientId() { return clientId; }
-    public UUID getToolId() { return toolId; }
+    public Long getId() { return id; }
+    public Long getClientId() { return clientId; }
+    public Long getToolId() { return toolId; }
     public DateRange getDateRange() { return dateRange; }
     public BigDecimal getDailyRate() { return dailyRate; }
     public BigDecimal getDepositAmount() { return depositAmount; }

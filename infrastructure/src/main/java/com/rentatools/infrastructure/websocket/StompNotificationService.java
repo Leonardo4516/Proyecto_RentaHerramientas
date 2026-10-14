@@ -21,7 +21,7 @@ public class StompNotificationService implements NotificationPort {
     }
 
     @Override
-    public void sendToClient(Object clientId, String destination, Object payload) {
+    public void sendToClient(Long clientId, String destination, Object payload) {
         String target = destination != null ? destination : "/topic/client/" + clientId;
         log.info("Emitiendo notificación WebSocket a Cliente [{}]: {}", target, payload);
         Object wrapped = createPayloadWrapper(payload);
@@ -29,7 +29,7 @@ public class StompNotificationService implements NotificationPort {
     }
 
     @Override
-    public void sendToProvider(Object providerId, String destination, Object payload) {
+    public void sendToProvider(Long providerId, String destination, Object payload) {
         String target = destination != null ? destination : "/topic/provider/" + providerId;
         log.info("Emitiendo notificación WebSocket a Proveedor [{}]: {}", target, payload);
         Object wrapped = createPayloadWrapper(payload);

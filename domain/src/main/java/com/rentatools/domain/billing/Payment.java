@@ -3,46 +3,59 @@ package com.rentatools.domain.billing;
 import com.rentatools.domain.common.BaseEntity;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.UUID;
 
-public class Payment extends BaseEntity<UUID> {
-    private UUID rentalId;
+public class Payment extends BaseEntity<Long> {
+    private Long invoiceId;
+    private Long rentalId;
+    private Long clientId;
     private BigDecimal amount;
-    private String paymentMethod;
+    private PaymentMethod paymentMethod;
+    private PaymentStatus status;
     private String transactionReference;
-    private String status = "PAGADO";
-    private Instant paidAt = Instant.now();
-
-    // Campos auxiliares / transitivos
-    private UUID invoiceId;
-    private UUID clientId;
+    private LocalDateTime paymentDate;
     private String notes;
 
     public Payment() {
         super();
-        this.status = "PAGADO";
-        this.paidAt = Instant.now();
+        this.status = PaymentStatus.PENDING;
+        this.paymentDate = LocalDateTime.now();
     }
 
-    public Payment(UUID id, UUID rentalId, BigDecimal amount, String paymentMethod, String status, String transactionReference) {
+    public Payment(Long id, Long invoiceId, Long rentalId, Long clientId, BigDecimal amount, PaymentMethod paymentMethod, PaymentStatus status, String transactionReference) {
         super(id);
+        this.invoiceId = invoiceId;
         this.rentalId = rentalId;
+        this.clientId = clientId;
         this.amount = amount;
         this.paymentMethod = paymentMethod;
-        this.status = status != null ? status : "PAGADO";
+        this.status = status != null ? status : PaymentStatus.PENDING;
         this.transactionReference = transactionReference;
-        this.paidAt = Instant.now();
+        this.paymentDate = LocalDateTime.now();
     }
 
-    public UUID getRentalId() {
+    public Long getInvoiceId() {
+        return invoiceId;
+    }
+
+    public void setInvoiceId(Long invoiceId) {
+        this.invoiceId = invoiceId;
+    }
+
+    public Long getRentalId() {
         return rentalId;
     }
 
-    public void setRentalId(UUID rentalId) {
+    public void setRentalId(Long rentalId) {
         this.rentalId = rentalId;
+    }
+
+    public Long getClientId() {
+        return clientId;
+    }
+
+    public void setClientId(Long clientId) {
+        this.clientId = clientId;
     }
 
     public BigDecimal getAmount() {
@@ -53,19 +66,19 @@ public class Payment extends BaseEntity<UUID> {
         this.amount = amount;
     }
 
-    public String getPaymentMethod() {
+    public PaymentMethod getPaymentMethod() {
         return paymentMethod;
     }
 
-    public void setPaymentMethod(String paymentMethod) {
+    public void setPaymentMethod(PaymentMethod paymentMethod) {
         this.paymentMethod = paymentMethod;
     }
 
-    public String getStatus() {
+    public PaymentStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(PaymentStatus status) {
         this.status = status;
     }
 
@@ -77,36 +90,12 @@ public class Payment extends BaseEntity<UUID> {
         this.transactionReference = transactionReference;
     }
 
-    public Instant getPaidAt() {
-        return paidAt;
-    }
-
-    public void setPaidAt(Instant paidAt) {
-        this.paidAt = paidAt;
-    }
-
     public LocalDateTime getPaymentDate() {
-        return paidAt != null ? LocalDateTime.ofInstant(paidAt, ZoneId.systemDefault()) : LocalDateTime.now();
+        return paymentDate;
     }
 
     public void setPaymentDate(LocalDateTime paymentDate) {
-        this.paidAt = paymentDate != null ? paymentDate.atZone(ZoneId.systemDefault()).toInstant() : Instant.now();
-    }
-
-    public UUID getInvoiceId() {
-        return invoiceId;
-    }
-
-    public void setInvoiceId(UUID invoiceId) {
-        this.invoiceId = invoiceId;
-    }
-
-    public UUID getClientId() {
-        return clientId;
-    }
-
-    public void setClientId(UUID clientId) {
-        this.clientId = clientId;
+        this.paymentDate = paymentDate;
     }
 
     public String getNotes() {
@@ -117,4 +106,3 @@ public class Payment extends BaseEntity<UUID> {
         this.notes = notes;
     }
 }
-

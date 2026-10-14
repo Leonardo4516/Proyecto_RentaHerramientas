@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
@@ -41,7 +40,7 @@ public class PaymentController {
 
     @GetMapping("/invoice/{invoiceId}")
     @Operation(summary = "Consultar pago por factura", description = "Obtiene los detalles del pago asociado a una factura")
-    public ResponseEntity<PaymentResponse> getPaymentByInvoice(@PathVariable UUID invoiceId) {
+    public ResponseEntity<PaymentResponse> getPaymentByInvoice(@PathVariable Long invoiceId) {
         return paymentRepository.findByInvoiceId(invoiceId)
                 .map(PaymentResponse::fromDomain)
                 .map(ResponseEntity::ok)
@@ -50,7 +49,7 @@ public class PaymentController {
 
     @GetMapping("/client/{clientId}")
     @Operation(summary = "Consultar pagos por cliente", description = "Obtiene el historial de pagos realizados por un cliente")
-    public ResponseEntity<List<PaymentResponse>> getPaymentsByClient(@PathVariable UUID clientId) {
+    public ResponseEntity<List<PaymentResponse>> getPaymentsByClient(@PathVariable Long clientId) {
         List<PaymentResponse> list = paymentRepository.findByClientId(clientId).stream()
                 .map(PaymentResponse::fromDomain)
                 .collect(Collectors.toList());

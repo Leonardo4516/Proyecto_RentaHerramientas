@@ -5,8 +5,6 @@ import com.rentatools.domain.common.EntityNotFoundException;
 import com.rentatools.domain.rental.BookingStatus;
 import com.rentatools.domain.rental.RentalBooking;
 import com.rentatools.domain.rental.RentalRepository;
-import java.util.UUID;
-
 public class ChangeRentalStatusUseCase {
     private final RentalRepository rentalRepository;
 
@@ -14,7 +12,7 @@ public class ChangeRentalStatusUseCase {
         this.rentalRepository = rentalRepository;
     }
 
-    public RentalResponse execute(UUID rentalId, BookingStatus newStatus, String reason) {
+    public RentalResponse execute(Long rentalId, BookingStatus newStatus, String reason) {
         RentalBooking rental = rentalRepository.findById(rentalId)
                 .orElseThrow(() -> new EntityNotFoundException("Alquiler no encontrado con ID: " + rentalId));
 

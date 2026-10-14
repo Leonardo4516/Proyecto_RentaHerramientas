@@ -1,28 +1,27 @@
 package com.rentatools.application.billing.dto;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
 public class InvoiceItemDto {
-    private UUID toolId;
+    private Long toolId;
     private String toolName;
     private BigDecimal dailyRate;
     private int days;
 
     public InvoiceItemDto() {}
 
-    public InvoiceItemDto(UUID toolId, String toolName, BigDecimal dailyRate, int days) {
+    public InvoiceItemDto(Long toolId, String toolName, BigDecimal dailyRate, int days) {
         this.toolId = toolId;
         this.toolName = toolName;
         this.dailyRate = dailyRate;
         this.days = days;
     }
 
-    public UUID getToolId() {
+    public Long getToolId() {
         return toolId;
     }
 
-    public void setToolId(UUID toolId) {
+    public void setToolId(Long toolId) {
         this.toolId = toolId;
     }
 

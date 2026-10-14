@@ -2,13 +2,12 @@ package com.rentatools.infrastructure.persistence.entity;
 
 import jakarta.persistence.*;
 import java.time.Instant;
-import java.util.UUID;
-
 @Entity
 @Table(name = "tool_images")
 public class ToolImageEntity {
     @Id
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tool_id", nullable = false)
@@ -25,7 +24,7 @@ public class ToolImageEntity {
 
     public ToolImageEntity() {}
 
-    public ToolImageEntity(UUID id, ToolEntity tool, String imageUrl, boolean isCover) {
+    public ToolImageEntity(Long id, ToolEntity tool, String imageUrl, boolean isCover) {
         this.id = id;
         this.tool = tool;
         this.imageUrl = imageUrl;
@@ -33,8 +32,8 @@ public class ToolImageEntity {
         this.createdAt = Instant.now();
     }
 
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
     public ToolEntity getTool() { return tool; }
     public void setTool(ToolEntity tool) { this.tool = tool; }
     public String getImageUrl() { return imageUrl; }

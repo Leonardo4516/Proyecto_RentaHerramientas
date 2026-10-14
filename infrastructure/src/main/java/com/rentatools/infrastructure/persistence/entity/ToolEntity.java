@@ -5,16 +5,15 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
-
 @Entity
 @Table(name = "tools")
 public class ToolEntity {
     @Id
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @Column(name = "provider_id", nullable = false)
-    private UUID providerId;
+    private Long providerId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
@@ -61,10 +60,10 @@ public class ToolEntity {
 
     public ToolEntity() {}
 
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
-    public UUID getProviderId() { return providerId; }
-    public void setProviderId(UUID providerId) { this.providerId = providerId; }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public Long getProviderId() { return providerId; }
+    public void setProviderId(Long providerId) { this.providerId = providerId; }
     public ToolCategoryEntity getCategory() { return category; }
     public void setCategory(ToolCategoryEntity category) { this.category = category; }
     public String getCode() { return code; }
