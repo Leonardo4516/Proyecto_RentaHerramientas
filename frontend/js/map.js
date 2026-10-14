@@ -78,7 +78,7 @@ const MapManager = (() => {
 
         const popupContent = `
           <div style="min-width: 200px;">
-            <img src="${(window.getToolImageUrl ? window.getToolImageUrl(tool) : tool.imageUrl) || window.TOOL_FALLBACK_IMG}" style="width: 100%; height: 95px; object-fit: cover; border-radius: 6px; margin-bottom: 8px;" onerror="this.onerror=null; this.src=window.TOOL_FALLBACK_IMG;">
+            <img src="${(window.getToolImageUrl ? window.getToolImageUrl(tool) : tool.imageUrl) || window.TOOL_FALLBACK_IMG}" style="width: 100%; height: 95px; object-fit: cover; border-radius: 6px; margin-bottom: 8px;" onerror="if (window.handleToolImageError) window.handleToolImageError(this); else { this.onerror=null; this.src=window.TOOL_FALLBACK_IMG; }">
             <h6 style="color: #fbbf24; margin: 0 0 4px 0; font-weight: bold;">${tool.name}</h6>
             <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 6px;"><img src="assets/img/icons/icon-location.svg" width="14" height="14" style="vertical-align: -2px; margin-right: 4px;">${tool.locationName || 'Bogotá'}</div>
             <div style="font-size: 0.85rem; font-weight: bold; color: #f8fafc; margin-bottom: 8px;">Tarifa: ${API.formatCurrency(tool.dailyRate)}/día</div>

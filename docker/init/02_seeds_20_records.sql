@@ -204,32 +204,32 @@ ON CONFLICT (id) DO NOTHING;
 
 -- 8. TOOL_IMAGES (25 registros - 4FN)
 INSERT INTO tool_images (id, tool_id, image_url, is_cover) VALUES
-('70000000-0000-0000-0000-000000000001', '60000000-0000-0000-0000-000000000001', '/assets/img/machinery/retroexcavadora-cat-420f2.jpg', True),
-('70000000-0000-0000-0000-000000000002', '60000000-0000-0000-0000-000000000002', '/assets/img/machinery/minicargador-bobcat.svg', True),
-('70000000-0000-0000-0000-000000000003', '60000000-0000-0000-0000-000000000003', '/assets/img/machinery/taladro-demoledor-bosch.svg', True),
-('70000000-0000-0000-0000-000000000004', '60000000-0000-0000-0000-000000000004', '/assets/img/machinery/allanadora-concreto.svg', True),
-('70000000-0000-0000-0000-000000000005', '60000000-0000-0000-0000-000000000005', '/assets/img/machinery/compactadora-canguro.svg', True),
-('70000000-0000-0000-0000-000000000006', '60000000-0000-0000-0000-000000000006', '/assets/img/machinery/planta-electrica-cummins.svg', True),
-('70000000-0000-0000-0000-000000000007', '60000000-0000-0000-0000-000000000007', '/assets/img/machinery/andamio-multidireccional.svg', True),
-('70000000-0000-0000-0000-000000000008', '60000000-0000-0000-0000-000000000008', '/assets/img/machinery/cortadora-pavimento.svg', True),
-('70000000-0000-0000-0000-000000000009', '60000000-0000-0000-0000-000000000009', '/assets/img/machinery/motobomba-lodos.svg', True),
-('70000000-0000-0000-0000-000000000010', '60000000-0000-0000-0000-000000000010', '/assets/img/machinery/mezcladora-diesel-380l.svg', True),
-('70000000-0000-0000-0000-000000000011', '60000000-0000-0000-0000-000000000011', '/assets/img/machinery/torre-iluminacion-generac.svg', True),
-('70000000-0000-0000-0000-000000000012', '60000000-0000-0000-0000-000000000012', '/assets/img/machinery/compresor-aire.svg', True),
-('70000000-0000-0000-0000-000000000013', '60000000-0000-0000-0000-000000000013', '/assets/img/machinery/rodillo-compactador.svg', True),
-('70000000-0000-0000-0000-000000000014', '60000000-0000-0000-0000-000000000014', '/assets/img/machinery/estacion-total.svg', True),
-('70000000-0000-0000-0000-000000000015', '60000000-0000-0000-0000-000000000015', '/assets/img/machinery/plataforma-tijera.svg', True),
-('70000000-0000-0000-0000-000000000016', '60000000-0000-0000-0000-000000000016', '/assets/img/machinery/taladro-demoledor-bosch.svg', True),
-('70000000-0000-0000-0000-000000000017', '60000000-0000-0000-0000-000000000017', '/assets/img/machinery/motosoldadora-miller.svg', True),
-('70000000-0000-0000-0000-000000000018', '60000000-0000-0000-0000-000000000018', '/assets/img/machinery/hidrolavadora-karcher.svg', True),
-('70000000-0000-0000-0000-000000000019', '60000000-0000-0000-0000-000000000019', '/assets/img/machinery/vibrador-concreto.svg', True),
-('70000000-0000-0000-0000-000000000020', '60000000-0000-0000-0000-000000000020', '/assets/img/machinery/retroexcavadora-cat-420f2.svg', True),
-('70000000-0000-0000-0000-000000000021', '60000000-0000-0000-0000-000000000021', '/assets/img/machinery/perforadora-sacanucleos.svg', True),
-('70000000-0000-0000-0000-000000000022', '60000000-0000-0000-0000-000000000022', '/assets/img/machinery/equipo-pintura-airless.svg', True),
-('70000000-0000-0000-0000-000000000023', '60000000-0000-0000-0000-000000000023', '/assets/img/machinery/malacate-electrico.svg', True),
-('70000000-0000-0000-0000-000000000024', '60000000-0000-0000-0000-000000000024', '/assets/img/machinery/vibrador-concreto.svg', True),
-('70000000-0000-0000-0000-000000000025', '60000000-0000-0000-0000-000000000025', '/assets/img/machinery/placa-compactadora.svg', True)
-ON CONFLICT (id) DO NOTHING;
+('70000000-0000-0000-0000-000000000001', '60000000-0000-0000-0000-000000000001', '/assets/img/machinery/Retroexcavadora-Oruga-CAT-320D.png', True),
+('70000000-0000-0000-0000-000000000002', '60000000-0000-0000-0000-000000000002', '/assets/img/machinery/minicargador-bobcat.jpeg', True),
+('70000000-0000-0000-0000-000000000003', '60000000-0000-0000-0000-000000000003', '/assets/img/machinery/taladro-demoledor-bosch.jpeg', True),
+('70000000-0000-0000-0000-000000000004', '60000000-0000-0000-0000-000000000004', '/assets/img/machinery/allanadora-concreto.jpeg', True),
+('70000000-0000-0000-0000-000000000005', '60000000-0000-0000-0000-000000000005', '/assets/img/machinery/compactadora-canguro.jpg', True),
+('70000000-0000-0000-0000-000000000006', '60000000-0000-0000-0000-000000000006', '/assets/img/machinery/planta-electrica-cummins.jpg', True),
+('70000000-0000-0000-0000-000000000007', '60000000-0000-0000-0000-000000000007', '/assets/img/machinery/andamio-multidireccional.jpg', True),
+('70000000-0000-0000-0000-000000000008', '60000000-0000-0000-0000-000000000008', '/assets/img/machinery/cortadora-pavimento.jpg', True),
+('70000000-0000-0000-0000-000000000009', '60000000-0000-0000-0000-000000000009', '/assets/img/machinery/motobomba-lodos.jpg', True),
+('70000000-0000-0000-0000-000000000010', '60000000-0000-0000-0000-000000000010', '/assets/img/machinery/mezcladora-diesel-380l.jpg', True),
+('70000000-0000-0000-0000-000000000011', '60000000-0000-0000-0000-000000000011', '/assets/img/machinery/torre-iluminacion-generac.jpg', True),
+('70000000-0000-0000-0000-000000000012', '60000000-0000-0000-0000-000000000012', '/assets/img/machinery/compresor-aire.jpg', True),
+('70000000-0000-0000-0000-000000000013', '60000000-0000-0000-0000-000000000013', '/assets/img/machinery/rodillo-compactador.jpg', True),
+('70000000-0000-0000-0000-000000000014', '60000000-0000-0000-0000-000000000014', '/assets/img/machinery/estacion-total.jpg', True),
+('70000000-0000-0000-0000-000000000015', '60000000-0000-0000-0000-000000000015', '/assets/img/machinery/plataforma-tijera.jpg', True),
+('70000000-0000-0000-0000-000000000016', '60000000-0000-0000-0000-000000000016', '/assets/img/machinery/martillo-rompedor-hilti.jpg', True),
+('70000000-0000-0000-0000-000000000017', '60000000-0000-0000-0000-000000000017', '/assets/img/machinery/motosoldadora-miller.jpg', True),
+('70000000-0000-0000-0000-000000000018', '60000000-0000-0000-0000-000000000018', '/assets/img/machinery/hidrolavadora-karcher.jpg', True),
+('70000000-0000-0000-0000-000000000019', '60000000-0000-0000-0000-000000000019', '/assets/img/machinery/ReglaVibratoriaDeConcreto.jpeg', True),
+('70000000-0000-0000-0000-000000000020', '60000000-0000-0000-0000-000000000020', '/assets/img/machinery/retroexcavadora-cat-420f2.jpg', True),
+('70000000-0000-0000-0000-000000000021', '60000000-0000-0000-0000-000000000021', '/assets/img/machinery/perforadora-sacanucleos.jpg', True),
+('70000000-0000-0000-0000-000000000022', '60000000-0000-0000-0000-000000000022', '/assets/img/machinery/equipo-pintura-airless.jpg', True),
+('70000000-0000-0000-0000-000000000023', '60000000-0000-0000-0000-000000000023', '/assets/img/machinery/malacate-electrico.jpg', True),
+('70000000-0000-0000-0000-000000000024', '60000000-0000-0000-0000-000000000024', '/assets/img/machinery/vibrador-concreto.jpg', True),
+('70000000-0000-0000-0000-000000000025', '60000000-0000-0000-0000-000000000025', '/assets/img/machinery/placa-compactadora.jpg', True)
+ON CONFLICT (id) DO UPDATE SET image_url = EXCLUDED.image_url;
 
 -- 9. TOOL_SPECIFICATIONS (25 registros - 4FN)
 INSERT INTO tool_specifications (id, tool_id, spec_name, spec_value) VALUES

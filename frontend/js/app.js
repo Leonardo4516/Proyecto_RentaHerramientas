@@ -1,10 +1,36 @@
-const TOOL_FALLBACK_SVG = "/assets/img/machinery/placeholder-tool.svg";
-window.TOOL_FALLBACK_IMG = TOOL_FALLBACK_SVG;
+const TOOL_FALLBACK_DATA_URI = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='400' viewBox='0 0 600 400'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%231e293b'/%3E%3Cstop offset='100%25' stop-color='%230f172a'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='600' height='400' fill='url(%23bg)'/%3E%3Crect x='20' y='20' width='560' height='360' rx='12' fill='none' stroke='%23334155' stroke-width='2' stroke-dasharray='8 8'/%3E%3Ccircle cx='300' cy='160' r='42' fill='%23334155' opacity='0.5'/%3E%3Cpath d='M280 148 h40 l10 12 h15 a5 5 0 0 1 5 5 v35 a5 5 0 0 1 -5 5 h-70 a5 5 0 0 1 -5 -5 v-35 a5 5 0 0 1 5 -5 h10 z M300 162 a15 15 0 1 0 0 30 a15 15 0 1 0 0 -30' fill='%23f59e0b'/%3E%3Ctext x='300' y='240' text-anchor='middle' fill='%23f8fafc' font-family='system-ui, -apple-system, sans-serif' font-weight='600' font-size='18'%3EEspacio Disponible para Foto%3C/text%3E%3Ctext x='300' y='268' text-anchor='middle' fill='%2394a3b8' font-family='system-ui, -apple-system, sans-serif' font-size='13'%3EAgrega la imagen en assets/img/machinery/%3C/text%3E%3C/svg%3E";
+window.TOOL_FALLBACK_IMG = TOOL_FALLBACK_DATA_URI;
+
+function handleToolImageError(img) {
+  if (!img) return;
+  const currentSrc = img.src || '';
+  if (!img.dataset.extAttempt) {
+    if (currentSrc.endsWith('.jpg')) {
+      img.dataset.extAttempt = 'jpeg';
+      img.src = currentSrc.slice(0, -4) + '.jpeg';
+      return;
+    } else if (currentSrc.endsWith('.jpeg')) {
+      img.dataset.extAttempt = 'png';
+      img.src = currentSrc.slice(0, -5) + '.png';
+      return;
+    }
+  } else if (img.dataset.extAttempt === 'jpeg') {
+    img.dataset.extAttempt = 'png';
+    img.src = currentSrc.slice(0, -5) + '.png';
+    return;
+  }
+  img.onerror = null;
+  img.src = window.TOOL_FALLBACK_IMG;
+}
+window.handleToolImageError = handleToolImageError;
 
 function getToolImageUrl(tool) {
   if (!tool) return window.TOOL_FALLBACK_IMG;
   const url = tool.imageUrl || (tool.images && tool.images[0]) || tool.coverImageUrl;
   if (url && typeof url === 'string' && url.trim().length > 0) {
+    if (url.endsWith('.svg')) {
+      return window.TOOL_FALLBACK_IMG;
+    }
     return url.startsWith('/') || url.startsWith('http') ? url : '/' + url;
   }
   return window.TOOL_FALLBACK_IMG;
@@ -286,7 +312,7 @@ const App = (() => {
       <div class="col-md-6 col-lg-4 mb-4">
         <div class="card glass-card h-100 p-0 overflow-hidden">
           <div class="position-relative">
-            <img src="${getToolImageUrl(t)}" class="card-img-top" style="height: 200px; object-fit: cover;" alt="${t.name}" onerror="this.onerror=null; this.src=window.TOOL_FALLBACK_IMG;">
+            <img src="${getToolImageUrl(t)}" class="card-img-top" style="height: 200px; object-fit: cover;" alt="${t.name}" onerror="handleToolImageError(this);">
             <div class="position-absolute top-0 start-0 m-3">
               <span class="badge ${t.status === 'DISPONIBLE' ? 'badge-available' : 'badge-rented'}">
                 <i class="fa ${t.status === 'DISPONIBLE' ? 'fa-check-circle' : 'fa-clock'} me-1"></i> ${t.status}
@@ -350,7 +376,7 @@ const App = (() => {
     const bookImg = document.getElementById('book-tool-img');
     if (bookImg) {
       bookImg.src = getToolImageUrl(tool);
-      bookImg.onerror = function() { this.onerror = null; this.src = window.TOOL_FALLBACK_IMG; };
+      bookImg.onerror = function() { handleToolImageError(this); };
     }
 
     // Fechas por defecto: Mañana y 4 días después
