@@ -2,14 +2,22 @@ package com.rentatools.domain.user;
 
 import com.rentatools.domain.common.BaseEntity;
 
-public class ProviderProfile extends BaseEntity<Long> {
-    private String businessName;
+import java.time.Instant;
+import java.util.UUID;
+
+public class ProviderProfile extends BaseEntity<UUID> {
+    private UUID userId;
+    private String companyName;
     private String taxId;
-    private String commercialRegistry;
-    private String address;
-    private String city;
+    private String commercialAddress;
+    private Double lat;
+    private Double lng;
     private Double rating;
-    private Boolean verified;
+
+    // Campos complementarios
+    private String commercialRegistry;
+    private Boolean verified = false;
+    private String city;
 
     public ProviderProfile() {
         super();
@@ -17,23 +25,40 @@ public class ProviderProfile extends BaseEntity<Long> {
         this.verified = false;
     }
 
-    public ProviderProfile(Long id, String businessName, String taxId, String commercialRegistry, String address, String city, Double rating, Boolean verified) {
+    public ProviderProfile(UUID id, UUID userId, String companyName, String taxId, String commercialAddress, Double lat, Double lng, Double rating) {
         super(id);
-        this.businessName = businessName;
+        this.userId = userId;
+        this.companyName = companyName;
         this.taxId = taxId;
-        this.commercialRegistry = commercialRegistry;
-        this.address = address;
-        this.city = city;
+        this.commercialAddress = commercialAddress;
+        this.lat = lat;
+        this.lng = lng;
         this.rating = rating != null ? rating : 5.0;
-        this.verified = verified != null ? verified : false;
+        this.verified = true;
+    }
+
+    public UUID getUserId() {
+        return userId;
+    }
+
+    public void setUserId(UUID userId) {
+        this.userId = userId;
+    }
+
+    public String getCompanyName() {
+        return companyName;
+    }
+
+    public void setCompanyName(String companyName) {
+        this.companyName = companyName;
     }
 
     public String getBusinessName() {
-        return businessName;
+        return companyName;
     }
 
     public void setBusinessName(String businessName) {
-        this.businessName = businessName;
+        this.companyName = businessName;
     }
 
     public String getTaxId() {
@@ -44,28 +69,36 @@ public class ProviderProfile extends BaseEntity<Long> {
         this.taxId = taxId;
     }
 
-    public String getCommercialRegistry() {
-        return commercialRegistry;
+    public String getCommercialAddress() {
+        return commercialAddress;
     }
 
-    public void setCommercialRegistry(String commercialRegistry) {
-        this.commercialRegistry = commercialRegistry;
+    public void setCommercialAddress(String commercialAddress) {
+        this.commercialAddress = commercialAddress;
     }
 
     public String getAddress() {
-        return address;
+        return commercialAddress;
     }
 
     public void setAddress(String address) {
-        this.address = address;
+        this.commercialAddress = address;
     }
 
-    public String getCity() {
-        return city;
+    public Double getLat() {
+        return lat;
     }
 
-    public void setCity(String city) {
-        this.city = city;
+    public void setLat(Double lat) {
+        this.lat = lat;
+    }
+
+    public Double getLng() {
+        return lng;
+    }
+
+    public void setLng(Double lng) {
+        this.lng = lng;
     }
 
     public Double getRating() {
@@ -76,6 +109,14 @@ public class ProviderProfile extends BaseEntity<Long> {
         this.rating = rating;
     }
 
+    public String getCommercialRegistry() {
+        return commercialRegistry;
+    }
+
+    public void setCommercialRegistry(String commercialRegistry) {
+        this.commercialRegistry = commercialRegistry;
+    }
+
     public Boolean getVerified() {
         return verified;
     }
@@ -83,4 +124,13 @@ public class ProviderProfile extends BaseEntity<Long> {
     public void setVerified(Boolean verified) {
         this.verified = verified;
     }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
 }
+

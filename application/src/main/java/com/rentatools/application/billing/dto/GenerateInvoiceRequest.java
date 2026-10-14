@@ -3,10 +3,11 @@ package com.rentatools.application.billing.dto;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class GenerateInvoiceRequest {
-    private Long rentalId;
-    private Long clientId;
+    private UUID rentalId;
+    private UUID clientId;
     private String clientName;
     private String clientTaxId;
     private BigDecimal depositAmount;
@@ -14,19 +15,19 @@ public class GenerateInvoiceRequest {
 
     public GenerateInvoiceRequest() {}
 
-    public Long getRentalId() {
+    public UUID getRentalId() {
         return rentalId;
     }
 
-    public void setRentalId(Long rentalId) {
+    public void setRentalId(UUID rentalId) {
         this.rentalId = rentalId;
     }
 
-    public Long getClientId() {
+    public UUID getClientId() {
         return clientId;
     }
 
-    public void setClientId(Long clientId) {
+    public void setClientId(UUID clientId) {
         this.clientId = clientId;
     }
 

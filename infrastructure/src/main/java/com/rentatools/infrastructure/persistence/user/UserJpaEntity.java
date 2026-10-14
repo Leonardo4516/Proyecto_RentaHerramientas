@@ -1,78 +1,62 @@
 package com.rentatools.infrastructure.persistence.user;
 
-import com.rentatools.domain.user.Role;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
 
 @Entity
 @Table(name = "users")
 public class UserJpaEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(unique = true, nullable = false, length = 60)
-    private String username;
+    private UUID id;
 
     @Column(unique = true, nullable = false, length = 120)
     private String email;
 
-    @Column(nullable = false, length = 255)
-    private String password;
+    @Column(name = "password_hash", nullable = false, length = 255)
+    private String passwordHash;
 
-    @Column(nullable = false, length = 120)
+    @Column(name = "full_name", nullable = false, length = 150)
     private String fullName;
 
     @Column(length = 30)
     private String phone;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
-    private Role role;
+    private Boolean active = true;
 
-    @Column(nullable = false)
-    private boolean active = true;
+    @Column(name = "created_at")
+    private Instant createdAt = Instant.now();
 
-    private LocalDateTime createdAt = LocalDateTime.now();
-
-    // Campos del perfil de Cliente
-    private String companyName;
-    private String taxId;
-    private String address;
-    private String city;
-    private String preferredPaymentMethod;
-
-    // Campos del perfil de Proveedor
-    private String businessName;
-    private String commercialRegistry;
-    private Double rating = 5.0;
-    private Boolean verified = false;
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "user_roles",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
+    private Set<RoleJpaEntity> roles = new HashSet<>();
 
     public UserJpaEntity() {}
 
-    public Long getId() {
+    public UserJpaEntity(UUID id, String email, String passwordHash, String fullName, String phone, Boolean active) {
+        this.id = id;
+        this.email = email;
+        this.passwordHash = passwordHash;
+        this.fullName = fullName;
+        this.phone = phone;
+        this.active = active != null ? active : true;
+        this.createdAt = Instant.now();
+    }
+
+    public UUID getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
     }
 
     public String getEmail() {
@@ -83,12 +67,12 @@ public class UserJpaEntity {
         this.email = email;
     }
 
-    public String getPassword() {
-        return password;
+    public String getPasswordHash() {
+        return passwordHash;
     }
 
-    public void setPassword(String password) {
-        this.password = password;
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
     }
 
     public String getFullName() {
@@ -107,99 +91,38 @@ public class UserJpaEntity {
         this.phone = phone;
     }
 
-    public Role getRole() {
-        return role;
-    }
-
-    public void setRole(Role role) {
-        this.role = role;
-    }
-
-    public boolean isActive() {
+    public Boolean getActive() {
         return active;
     }
 
-    public void setActive(boolean active) {
+    public void setActive(Boolean active) {
         this.active = active;
     }
 
-    public LocalDateTime getCreatedAt() {
+    public boolean isActive() {
+        return Boolean.TRUE.equals(active);
+    }
+
+    public Instant getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
+    public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
     }
 
-    public String getCompanyName() {
-        return companyName;
+    public Set<RoleJpaEntity> getRoles() {
+        return roles;
     }
 
-    public void setCompanyName(String companyName) {
-        this.companyName = companyName;
+    public void setRoles(Set<RoleJpaEntity> roles) {
+        this.roles = roles != null ? roles : new HashSet<>();
     }
 
-    public String getTaxId() {
-        return taxId;
-    }
-
-    public void setTaxId(String taxId) {
-        this.taxId = taxId;
-    }
-
-    public String getAddress() {
-        return address;
-    }
-
-    public void setAddress(String address) {
-        this.address = address;
-    }
-
-    public String getCity() {
-        return city;
-    }
-
-    public void setCity(String city) {
-        this.city = city;
-    }
-
-    public String getPreferredPaymentMethod() {
-        return preferredPaymentMethod;
-    }
-
-    public void setPreferredPaymentMethod(String preferredPaymentMethod) {
-        this.preferredPaymentMethod = preferredPaymentMethod;
-    }
-
-    public String getBusinessName() {
-        return businessName;
-    }
-
-    public void setBusinessName(String businessName) {
-        this.businessName = businessName;
-    }
-
-    public String getCommercialRegistry() {
-        return commercialRegistry;
-    }
-
-    public void setCommercialRegistry(String commercialRegistry) {
-        this.commercialRegistry = commercialRegistry;
-    }
-
-    public Double getRating() {
-        return rating;
-    }
-
-    public void setRating(Double rating) {
-        this.rating = rating;
-    }
-
-    public Boolean getVerified() {
-        return verified;
-    }
-
-    public void setVerified(Boolean verified) {
-        this.verified = verified;
+    public void addRole(RoleJpaEntity role) {
+        if (this.roles == null) {
+            this.roles = new HashSet<>();
+        }
+        this.roles.add(role);
     }
 }

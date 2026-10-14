@@ -2,10 +2,11 @@ package com.rentatools.domain.billing;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.UUID;
 
 public class InvoiceItem {
-    private Long id;
-    private Long toolId;
+    private UUID id;
+    private UUID toolId;
     private String toolName;
     private BigDecimal dailyRate;
     private int days;
@@ -13,7 +14,7 @@ public class InvoiceItem {
 
     public InvoiceItem() {}
 
-    public InvoiceItem(Long id, Long toolId, String toolName, BigDecimal dailyRate, int days) {
+    public InvoiceItem(UUID id, UUID toolId, String toolName, BigDecimal dailyRate, int days) {
         this.id = id;
         this.toolId = toolId;
         this.toolName = toolName;
@@ -22,19 +23,19 @@ public class InvoiceItem {
         this.subtotal = this.dailyRate.multiply(BigDecimal.valueOf(this.days)).setScale(2, RoundingMode.HALF_UP);
     }
 
-    public Long getId() {
+    public UUID getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 
-    public Long getToolId() {
+    public UUID getToolId() {
         return toolId;
     }
 
-    public void setToolId(Long toolId) {
+    public void setToolId(UUID toolId) {
         this.toolId = toolId;
     }
 

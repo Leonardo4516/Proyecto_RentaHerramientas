@@ -44,7 +44,7 @@ public class ToolController {
         this.categoryRepository = categoryRepository;
     }
 
-    @GetMapping("/public")
+    @GetMapping({"", "/public"})
     @Operation(summary = "Catálogo público de herramientas", description = "Permite filtrar por categoría y estado de disponibilidad")
     public ResponseEntity<List<ToolResponse>> listTools(
             @RequestParam(required = false) UUID categoryId,

@@ -4,12 +4,13 @@ import com.rentatools.domain.billing.Payment;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 public class PaymentResponse {
-    private Long id;
-    private Long invoiceId;
-    private Long rentalId;
-    private Long clientId;
+    private UUID id;
+    private UUID invoiceId;
+    private UUID rentalId;
+    private UUID clientId;
     private BigDecimal amount;
     private String paymentMethod;
     private String status;
@@ -27,43 +28,43 @@ public class PaymentResponse {
         r.setRentalId(payment.getRentalId());
         r.setClientId(payment.getClientId());
         r.setAmount(payment.getAmount());
-        r.setPaymentMethod(payment.getPaymentMethod() != null ? payment.getPaymentMethod().name() : null);
-        r.setStatus(payment.getStatus() != null ? payment.getStatus().name() : null);
+        r.setPaymentMethod(payment.getPaymentMethod());
+        r.setStatus(payment.getStatus());
         r.setTransactionReference(payment.getTransactionReference());
         r.setPaymentDate(payment.getPaymentDate());
         r.setNotes(payment.getNotes());
         return r;
     }
 
-    public Long getId() {
+    public UUID getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 
-    public Long getInvoiceId() {
+    public UUID getInvoiceId() {
         return invoiceId;
     }
 
-    public void setInvoiceId(Long invoiceId) {
+    public void setInvoiceId(UUID invoiceId) {
         this.invoiceId = invoiceId;
     }
 
-    public Long getRentalId() {
+    public UUID getRentalId() {
         return rentalId;
     }
 
-    public void setRentalId(Long rentalId) {
+    public void setRentalId(UUID rentalId) {
         this.rentalId = rentalId;
     }
 
-    public Long getClientId() {
+    public UUID getClientId() {
         return clientId;
     }
 
-    public void setClientId(Long clientId) {
+    public void setClientId(UUID clientId) {
         this.clientId = clientId;
     }
 

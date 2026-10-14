@@ -2,10 +2,19 @@ package com.rentatools.domain.user;
 
 import com.rentatools.domain.common.BaseEntity;
 
-public class ClientProfile extends BaseEntity<Long> {
-    private String companyName;
-    private String taxId;
+import java.time.Instant;
+import java.util.UUID;
+
+public class ClientProfile extends BaseEntity<UUID> {
+    private UUID userId;
+    private String documentType;
+    private String documentNumber;
     private String address;
+    private Double lat;
+    private Double lng;
+
+    // Campos complementarios
+    private String companyName;
     private String city;
     private String preferredPaymentMethod;
 
@@ -13,13 +22,62 @@ public class ClientProfile extends BaseEntity<Long> {
         super();
     }
 
-    public ClientProfile(Long id, String companyName, String taxId, String address, String city, String preferredPaymentMethod) {
+    public ClientProfile(UUID id, UUID userId, String documentType, String documentNumber, String address, Double lat, Double lng) {
         super(id);
-        this.companyName = companyName;
-        this.taxId = taxId;
+        this.userId = userId;
+        this.documentType = documentType;
+        this.documentNumber = documentNumber;
         this.address = address;
-        this.city = city;
-        this.preferredPaymentMethod = preferredPaymentMethod;
+        this.lat = lat;
+        this.lng = lng;
+    }
+
+    public UUID getUserId() {
+        return userId;
+    }
+
+    public void setUserId(UUID userId) {
+        this.userId = userId;
+    }
+
+    public String getDocumentType() {
+        return documentType != null ? documentType : "NIT";
+    }
+
+    public void setDocumentType(String documentType) {
+        this.documentType = documentType;
+    }
+
+    public String getDocumentNumber() {
+        return documentNumber != null ? documentNumber : "";
+    }
+
+    public void setDocumentNumber(String documentNumber) {
+        this.documentNumber = documentNumber;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public Double getLat() {
+        return lat;
+    }
+
+    public void setLat(Double lat) {
+        this.lat = lat;
+    }
+
+    public Double getLng() {
+        return lng;
+    }
+
+    public void setLng(Double lng) {
+        this.lng = lng;
     }
 
     public String getCompanyName() {
@@ -31,19 +89,11 @@ public class ClientProfile extends BaseEntity<Long> {
     }
 
     public String getTaxId() {
-        return taxId;
+        return documentNumber != null ? documentNumber : "";
     }
 
     public void setTaxId(String taxId) {
-        this.taxId = taxId;
-    }
-
-    public String getAddress() {
-        return address;
-    }
-
-    public void setAddress(String address) {
-        this.address = address;
+        this.documentNumber = taxId;
     }
 
     public String getCity() {
@@ -62,3 +112,4 @@ public class ClientProfile extends BaseEntity<Long> {
         this.preferredPaymentMethod = preferredPaymentMethod;
     }
 }
+

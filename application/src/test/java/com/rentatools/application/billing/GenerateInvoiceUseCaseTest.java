@@ -38,14 +38,18 @@ class GenerateInvoiceUseCaseTest {
 
         GenerateInvoiceUseCase useCase = new GenerateInvoiceUseCase(invoiceRepository, notificationPort);
 
+        java.util.UUID rentalId = java.util.UUID.randomUUID();
+        java.util.UUID clientId = java.util.UUID.randomUUID();
+        java.util.UUID toolId = java.util.UUID.randomUUID();
+
         GenerateInvoiceRequest req = new GenerateInvoiceRequest();
-        req.setRentalId(55L);
-        req.setClientId(10L);
+        req.setRentalId(rentalId);
+        req.setClientId(clientId);
         req.setClientName("Constructora S.A.");
         req.setClientTaxId("800.123.456-7");
         req.setDepositAmount(new BigDecimal("1000000.00"));
 
-        InvoiceItemDto item = new InvoiceItemDto(2L, "Retroexcavadora", new BigDecimal("500000.00"), 2);
+        InvoiceItemDto item = new InvoiceItemDto(toolId, "Retroexcavadora", new BigDecimal("500000.00"), 2);
         req.setItems(Collections.singletonList(item));
 
         InvoiceResponse response = useCase.execute(req);

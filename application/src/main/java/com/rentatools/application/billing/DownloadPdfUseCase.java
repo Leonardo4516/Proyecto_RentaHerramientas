@@ -6,6 +6,7 @@ import com.rentatools.domain.billing.port.PdfPort;
 import com.rentatools.domain.common.exception.ResourceNotFoundException;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 public class DownloadPdfUseCase {
     private final InvoiceRepository invoiceRepository;
@@ -16,7 +17,7 @@ public class DownloadPdfUseCase {
         this.pdfPort = pdfPort;
     }
 
-    public byte[] execute(Long invoiceId) {
+    public byte[] execute(UUID invoiceId) {
         Invoice invoice = invoiceRepository.findById(invoiceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Factura no encontrada con ID: " + invoiceId));
 

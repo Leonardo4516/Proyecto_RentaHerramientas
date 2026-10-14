@@ -1,9 +1,11 @@
 package com.rentatools.application.auth.dto;
 
+import java.util.UUID;
+
 public class AuthResponse {
     private String token;
     private String type = "Bearer";
-    private Long id;
+    private UUID id;
     private String username;
     private String email;
     private String fullName;
@@ -12,7 +14,7 @@ public class AuthResponse {
 
     public AuthResponse() {}
 
-    public AuthResponse(String token, Long id, String username, String email, String fullName, String role, String message) {
+    public AuthResponse(String token, UUID id, String username, String email, String fullName, String role, String message) {
         this.token = token;
         this.id = id;
         this.username = username;
@@ -38,11 +40,11 @@ public class AuthResponse {
         this.type = type;
     }
 
-    public Long getId() {
+    public UUID getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 

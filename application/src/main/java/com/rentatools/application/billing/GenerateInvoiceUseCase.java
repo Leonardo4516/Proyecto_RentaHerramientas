@@ -40,6 +40,7 @@ public class GenerateInvoiceUseCase {
         String invoiceNumber = "INV-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) + "-" + SEQUENCE.incrementAndGet();
 
         Invoice invoice = new Invoice();
+        invoice.setId(java.util.UUID.randomUUID());
         invoice.setInvoiceNumber(invoiceNumber);
         invoice.setRentalId(request.getRentalId());
         invoice.setClientId(request.getClientId());

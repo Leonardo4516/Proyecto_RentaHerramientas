@@ -1,61 +1,84 @@
 package com.rentatools.infrastructure.persistence.billing;
 
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.time.Instant;
+import java.util.UUID;
 
 @Entity
 @Table(name = "invoices")
 public class InvoiceJpaEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private UUID id;
 
-    @Column(unique = true, nullable = false, length = 50)
+    @Column(name = "rental_id", nullable = false)
+    private UUID rentalId;
+
+    @Column(name = "payment_id", unique = true)
+    private UUID paymentId;
+
+    @Column(name = "invoice_number", unique = true, nullable = false, length = 50)
     private String invoiceNumber;
 
-    private Long rentalId;
-    private Long clientId;
-    private String clientName;
-    private String clientTaxId;
+    @Column(name = "issued_at")
+    private Instant issuedAt = Instant.now();
 
-    private LocalDateTime issueDate;
-    private LocalDateTime dueDate;
-
+    @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal subtotal;
-    private BigDecimal taxAmount;
-    private BigDecimal depositAmount;
-    private BigDecimal totalAmount;
 
-    private boolean paid;
-    private LocalDateTime paymentDate;
-    private LocalDateTime pdfGeneratedAt;
+    @Column(nullable = false, precision = 12, scale = 2)
+    private BigDecimal tax;
 
-    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
-    @JoinColumn(name = "invoice_id")
-    private List<InvoiceItemJpaEntity> items = new ArrayList<>();
+    @Column(nullable = false, precision = 12, scale = 2)
+    private BigDecimal deposit;
+
+    @Column(nullable = false, precision = 12, scale = 2)
+    private BigDecimal total;
+
+    @Column(name = "pdf_storage_path", length = 255)
+    private String pdfStoragePath;
 
     public InvoiceJpaEntity() {}
 
-    public Long getId() {
+    public InvoiceJpaEntity(UUID id, UUID rentalId, UUID paymentId, String invoiceNumber, BigDecimal subtotal, BigDecimal tax, BigDecimal deposit, BigDecimal total) {
+        this.id = id;
+        this.rentalId = rentalId;
+        this.paymentId = paymentId;
+        this.invoiceNumber = invoiceNumber;
+        this.subtotal = subtotal;
+        this.tax = tax;
+        this.deposit = deposit;
+        this.total = total;
+        this.issuedAt = Instant.now();
+    }
+
+    public UUID getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
+    }
+
+    public UUID getRentalId() {
+        return rentalId;
+    }
+
+    public void setRentalId(UUID rentalId) {
+        this.rentalId = rentalId;
+    }
+
+    public UUID getPaymentId() {
+        return paymentId;
+    }
+
+    public void setPaymentId(UUID paymentId) {
+        this.paymentId = paymentId;
     }
 
     public String getInvoiceNumber() {
@@ -66,52 +89,12 @@ public class InvoiceJpaEntity {
         this.invoiceNumber = invoiceNumber;
     }
 
-    public Long getRentalId() {
-        return rentalId;
+    public Instant getIssuedAt() {
+        return issuedAt;
     }
 
-    public void setRentalId(Long rentalId) {
-        this.rentalId = rentalId;
-    }
-
-    public Long getClientId() {
-        return clientId;
-    }
-
-    public void setClientId(Long clientId) {
-        this.clientId = clientId;
-    }
-
-    public String getClientName() {
-        return clientName;
-    }
-
-    public void setClientName(String clientName) {
-        this.clientName = clientName;
-    }
-
-    public String getClientTaxId() {
-        return clientTaxId;
-    }
-
-    public void setClientTaxId(String clientTaxId) {
-        this.clientTaxId = clientTaxId;
-    }
-
-    public LocalDateTime getIssueDate() {
-        return issueDate;
-    }
-
-    public void setIssueDate(LocalDateTime issueDate) {
-        this.issueDate = issueDate;
-    }
-
-    public LocalDateTime getDueDate() {
-        return dueDate;
-    }
-
-    public void setDueDate(LocalDateTime dueDate) {
-        this.dueDate = dueDate;
+    public void setIssuedAt(Instant issuedAt) {
+        this.issuedAt = issuedAt;
     }
 
     public BigDecimal getSubtotal() {
@@ -122,59 +105,43 @@ public class InvoiceJpaEntity {
         this.subtotal = subtotal;
     }
 
-    public BigDecimal getTaxAmount() {
-        return taxAmount;
+    public BigDecimal getTax() {
+        return tax;
     }
 
-    public void setTaxAmount(BigDecimal taxAmount) {
-        this.taxAmount = taxAmount;
+    public void setTax(BigDecimal tax) {
+        this.tax = tax;
     }
 
-    public BigDecimal getDepositAmount() {
-        return depositAmount;
+    public BigDecimal getDeposit() {
+        return deposit;
     }
 
-    public void setDepositAmount(BigDecimal depositAmount) {
-        this.depositAmount = depositAmount;
+    public void setDeposit(BigDecimal deposit) {
+        this.deposit = deposit;
     }
 
-    public BigDecimal getTotalAmount() {
-        return totalAmount;
+    public BigDecimal getTotal() {
+        return total;
     }
 
-    public void setTotalAmount(BigDecimal totalAmount) {
-        this.totalAmount = totalAmount;
+    public void setTotal(BigDecimal total) {
+        this.total = total;
+    }
+
+    public String getPdfStoragePath() {
+        return pdfStoragePath;
+    }
+
+    public void setPdfStoragePath(String pdfStoragePath) {
+        this.pdfStoragePath = pdfStoragePath;
     }
 
     public boolean isPaid() {
-        return paid;
+        return paymentId != null;
     }
 
-    public void setPaid(boolean paid) {
-        this.paid = paid;
-    }
-
-    public LocalDateTime getPaymentDate() {
-        return paymentDate;
-    }
-
-    public void setPaymentDate(LocalDateTime paymentDate) {
-        this.paymentDate = paymentDate;
-    }
-
-    public LocalDateTime getPdfGeneratedAt() {
-        return pdfGeneratedAt;
-    }
-
-    public void setPdfGeneratedAt(LocalDateTime pdfGeneratedAt) {
-        this.pdfGeneratedAt = pdfGeneratedAt;
-    }
-
-    public List<InvoiceItemJpaEntity> getItems() {
-        return items;
-    }
-
-    public void setItems(List<InvoiceItemJpaEntity> items) {
-        this.items = items != null ? items : new ArrayList<>();
+    public BigDecimal getTotalAmount() {
+        return total != null ? total : BigDecimal.ZERO;
     }
 }

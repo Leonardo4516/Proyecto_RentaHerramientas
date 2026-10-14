@@ -1,78 +1,65 @@
 package com.rentatools.infrastructure.persistence.billing;
 
-import com.rentatools.domain.billing.PaymentMethod;
-import com.rentatools.domain.billing.PaymentStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.util.UUID;
 
 @Entity
 @Table(name = "payments")
 public class PaymentJpaEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private UUID id;
 
-    private Long invoiceId;
-    private Long rentalId;
-    private Long clientId;
+    @Column(name = "rental_id", nullable = false)
+    private UUID rentalId;
+
+    @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal amount;
 
-    @Enumerated(EnumType.STRING)
-    @Column(length = 30)
-    private PaymentMethod paymentMethod;
+    @Column(name = "payment_method", nullable = false, length = 50)
+    private String paymentMethod;
 
-    @Enumerated(EnumType.STRING)
-    @Column(length = 30)
-    private PaymentStatus status;
-
-    @Column(length = 100)
+    @Column(name = "transaction_reference", unique = true, nullable = false, length = 100)
     private String transactionReference;
 
-    private LocalDateTime paymentDate;
-    private String notes;
+    @Column(length = 30)
+    private String status = "PAGADO";
+
+    @Column(name = "paid_at")
+    private Instant paidAt = Instant.now();
 
     public PaymentJpaEntity() {}
 
-    public Long getId() {
+    public PaymentJpaEntity(UUID id, UUID rentalId, BigDecimal amount, String paymentMethod, String transactionReference, String status) {
+        this.id = id;
+        this.rentalId = rentalId;
+        this.amount = amount;
+        this.paymentMethod = paymentMethod;
+        this.transactionReference = transactionReference;
+        this.status = status != null ? status : "PAGADO";
+        this.paidAt = Instant.now();
+    }
+
+    public UUID getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 
-    public Long getInvoiceId() {
-        return invoiceId;
-    }
-
-    public void setInvoiceId(Long invoiceId) {
-        this.invoiceId = invoiceId;
-    }
-
-    public Long getRentalId() {
+    public UUID getRentalId() {
         return rentalId;
     }
 
-    public void setRentalId(Long rentalId) {
+    public void setRentalId(UUID rentalId) {
         this.rentalId = rentalId;
-    }
-
-    public Long getClientId() {
-        return clientId;
-    }
-
-    public void setClientId(Long clientId) {
-        this.clientId = clientId;
     }
 
     public BigDecimal getAmount() {
@@ -83,20 +70,12 @@ public class PaymentJpaEntity {
         this.amount = amount;
     }
 
-    public PaymentMethod getPaymentMethod() {
+    public String getPaymentMethod() {
         return paymentMethod;
     }
 
-    public void setPaymentMethod(PaymentMethod paymentMethod) {
+    public void setPaymentMethod(String paymentMethod) {
         this.paymentMethod = paymentMethod;
-    }
-
-    public PaymentStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(PaymentStatus status) {
-        this.status = status;
     }
 
     public String getTransactionReference() {
@@ -107,19 +86,19 @@ public class PaymentJpaEntity {
         this.transactionReference = transactionReference;
     }
 
-    public LocalDateTime getPaymentDate() {
-        return paymentDate;
+    public String getStatus() {
+        return status;
     }
 
-    public void setPaymentDate(LocalDateTime paymentDate) {
-        this.paymentDate = paymentDate;
+    public void setStatus(String status) {
+        this.status = status;
     }
 
-    public String getNotes() {
-        return notes;
+    public Instant getPaidAt() {
+        return paidAt;
     }
 
-    public void setNotes(String notes) {
-        this.notes = notes;
+    public void setPaidAt(Instant paidAt) {
+        this.paidAt = paidAt;
     }
 }

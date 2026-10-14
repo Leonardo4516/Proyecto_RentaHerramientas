@@ -23,7 +23,7 @@ public class GetCurrentUserUseCase {
         return UserResponse.fromDomain(user);
     }
 
-    public UserResponse execute(Long id) {
+    public UserResponse execute(java.util.UUID id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con ID: " + id));
         return UserResponse.fromDomain(user);
