@@ -208,11 +208,11 @@
       <div class="container-xl">
         <div class="row align-items-center justify-content-center text-center">
           <div class="col-12 col-xl-11 col-xxl-10">
-            <h1 class="sb-hero-title">Encuentra la Maquinaria y Herramientas Precisas para tu Proyecto</h1>
-            <p class="sb-hero-lead mx-auto">Disponibilidad en tiempo real en Bogotá y Sabana, tarifas transparentes por día, semana y mes con facturación electrónica DIAN.</p>
+            <h1 class="sb-hero-title sb-unfold-down">Encuentra la Maquinaria y Herramientas Precisas para tu Proyecto</h1>
+            <p class="sb-hero-lead sb-unfold-lead mx-auto">Disponibilidad en tiempo real en Bogotá y Sabana, tarifas transparentes por día, semana y mes con facturación electrónica DIAN.</p>
 
             <!-- WIDGET DE RESERVA FLOTANTE (ESTILO SUNBELT) -->
-            <div class="sb-booking-widget text-start">
+            <div class="sb-booking-widget sb-unfold-widget text-start">
               <div class="sb-booking-widget-grid">
                 <!-- Segmento 1: Ubicación de Obra -->
                 <div class="sb-grid-col sb-grid-col-location">
@@ -299,7 +299,7 @@
     </section>
 
     <!-- ==================== 5. BANNER DE AVISO / ALERTA DE SERVICIO ==================== -->
-    <div class="sb-alert-banner">
+    <div class="sb-alert-banner sb-unfold-notice">
       <div class="container-xl d-flex align-items-center justify-content-between flex-wrap gap-2">
         <div class="d-flex align-items-center">
           <i class="fa fa-info-circle fa-lg me-2"></i>
@@ -435,7 +435,7 @@
         <div class="row g-3">
           <!-- 1. Construcción Civil -->
           <div class="col-6 col-md-4 col-lg-2">
-            <div class="sb-industry-card" data-industry="construccion-civil" onclick="App.filterByIndustry('construccion-civil')">
+            <div class="sb-industry-card sb-unfold-item" style="--unfold-delay: 0ms;" data-industry="construccion-civil" onclick="App.filterByIndustry('construccion-civil')">
               <div class="sb-industry-img-wrap">
                 <img src="assets/img/machinery/allanadora-concreto.jpeg" alt="Construcción Civil" class="sb-industry-img">
               </div>
@@ -448,7 +448,7 @@
 
           <!-- 2. Infraestructura Vial -->
           <div class="col-6 col-md-4 col-lg-2">
-            <div class="sb-industry-card" data-industry="infraestructura-vial" onclick="App.filterByIndustry('infraestructura-vial')">
+            <div class="sb-industry-card sb-unfold-item" style="--unfold-delay: 70ms;" data-industry="infraestructura-vial" onclick="App.filterByIndustry('infraestructura-vial')">
               <div class="sb-industry-img-wrap">
                 <img src="assets/img/machinery/rodillo-compactador.jpg" alt="Infraestructura Vial" class="sb-industry-img">
               </div>
@@ -461,7 +461,7 @@
 
           <!-- 3. Minería y Agregados -->
           <div class="col-6 col-md-4 col-lg-2">
-            <div class="sb-industry-card" data-industry="mineria-agregados" onclick="App.filterByIndustry('mineria-agregados')">
+            <div class="sb-industry-card sb-unfold-item" style="--unfold-delay: 140ms;" data-industry="mineria-agregados" onclick="App.filterByIndustry('mineria-agregados')">
               <div class="sb-industry-img-wrap">
                 <img src="assets/img/machinery/Retroexcavadora-Oruga-CAT-320D.png" alt="Minería y Agregados" class="sb-industry-img">
               </div>
@@ -474,7 +474,7 @@
 
           <!-- 4. Energía y Utilities -->
           <div class="col-6 col-md-4 col-lg-2">
-            <div class="sb-industry-card" data-industry="energia-utilities" onclick="App.filterByIndustry('energia-utilities')">
+            <div class="sb-industry-card sb-unfold-item" style="--unfold-delay: 210ms;" data-industry="energia-utilities" onclick="App.filterByIndustry('energia-utilities')">
               <div class="sb-industry-img-wrap">
                 <img src="assets/img/machinery/planta-electrica-cummins.jpg" alt="Energía y Utilities" class="sb-industry-img">
               </div>
@@ -487,7 +487,7 @@
 
           <!-- 5. Eventos y Montajes -->
           <div class="col-6 col-md-4 col-lg-2">
-            <div class="sb-industry-card" data-industry="eventos-montajes" onclick="App.filterByIndustry('eventos-montajes')">
+            <div class="sb-industry-card sb-unfold-item" style="--unfold-delay: 280ms;" data-industry="eventos-montajes" onclick="App.filterByIndustry('eventos-montajes')">
               <div class="sb-industry-img-wrap">
                 <img src="assets/img/machinery/plataforma-tijera.jpg" alt="Eventos y Montajes" class="sb-industry-img">
               </div>
@@ -500,7 +500,7 @@
 
           <!-- 6. Agroindustria -->
           <div class="col-6 col-md-4 col-lg-2">
-            <div class="sb-industry-card" data-industry="agroindustria" onclick="App.filterByIndustry('agroindustria')">
+            <div class="sb-industry-card sb-unfold-item" style="--unfold-delay: 350ms;" data-industry="agroindustria" onclick="App.filterByIndustry('agroindustria')">
               <div class="sb-industry-img-wrap">
                 <img src="assets/img/machinery/motobomba-lodos.jpg" alt="Agroindustria" class="sb-industry-img">
               </div>
@@ -778,17 +778,17 @@
   <footer class="sb-footer">
     <div class="container-xl">
       <div class="row g-4">
-        <div class="col-12 col-md-3">
+        <div class="col-12 col-md-3 sb-footer-col sb-unfold-item" style="--unfold-delay: 0ms;">
           <h5 class="sb-footer-heading">Equipos y Servicios</h5>
           <ul class="sb-footer-links">
-            <li><a href="#section-catalog">Ver Todo el Catálogo</a></li>
-            <li><a href="#section-directory">Categorías Principales</a></li>
-            <li><a href="#section-industries">Soluciones por Industria</a></li>
-            <li><a href="#" onclick="App.toggleMapSection(); return false;">Sedes y Patios en Bogotá</a></li>
-            <li><a href="#">Calculadora de Flete a Obra</a></li>
+            <li><a href="#" onclick="App.navigateToSection('section-catalog'); return false;">Ver Todo el Catálogo</a></li>
+            <li><a href="#" onclick="App.navigateToSection('section-directory'); return false;">Categorías Principales</a></li>
+            <li><a href="#" onclick="App.navigateToSection('section-industries'); return false;">Soluciones por Industria</a></li>
+            <li><a href="#" onclick="App.navigateToSection('section-map'); return false;">Sedes y Patios en Bogotá</a></li>
+            <li><a href="#" onclick="App.showCoverageModal(); return false;">Calculadora de Flete a Obra</a></li>
           </ul>
         </div>
-        <div class="col-12 col-md-3">
+        <div class="col-12 col-md-3 sb-footer-col sb-unfold-item" style="--unfold-delay: 90ms;">
           <h5 class="sb-footer-heading">Soporte y Herramientas</h5>
           <ul class="sb-footer-links">
             <li><a href="#" onclick="App.openAuthModal('login'); return false;">Portal del Cliente</a></li>
@@ -798,7 +798,7 @@
             <li><a href="#">Línea de Asistencia Técnica 24/7</a></li>
           </ul>
         </div>
-        <div class="col-12 col-md-3">
+        <div class="col-12 col-md-3 sb-footer-col sb-unfold-item" style="--unfold-delay: 180ms;">
           <h5 class="sb-footer-heading">RentaTools Corporativo</h5>
           <ul class="sb-footer-links">
             <li><a href="#">Acerca de RentaTools</a></li>
@@ -808,7 +808,7 @@
             <li><a href="#">Facturación Electrónica DIAN</a></li>
           </ul>
         </div>
-        <div class="col-12 col-md-3">
+        <div class="col-12 col-md-3 sb-footer-col sb-unfold-item" style="--unfold-delay: 270ms;">
           <h5 class="sb-footer-heading">Proveedores y Aliados</h5>
           <ul class="sb-footer-links">
             <li><a href="#" onclick="App.openAddToolModal(); return false;" class="text-success fw-bold">Publicar Mi Maquinaria</a></li>
@@ -819,7 +819,7 @@
         </div>
       </div>
 
-      <div class="sb-footer-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div class="sb-footer-bottom sb-unfold-item d-flex justify-content-between align-items-center flex-wrap gap-2" style="--unfold-delay: 360ms;">
         <div>
           &copy; 2026 RentaTools PRO Colombia. Todos los derechos reservados. Plataforma empresarial de alquiler de maquinaria pesada.
         </div>

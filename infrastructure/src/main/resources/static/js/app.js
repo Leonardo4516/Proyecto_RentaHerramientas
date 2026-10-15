@@ -62,8 +62,10 @@ const App = (() => {
 
     try {
       await Promise.all([loadCategories(), loadTools()]);
+      initScrollUnfoldObserver();
     } catch (e) {
       console.warn('Error al cargar catálogo inicial:', e);
+      initScrollUnfoldObserver();
     }
   }
 
@@ -307,15 +309,42 @@ const App = (() => {
       'Seguridad y Señalización Vial': 'assets/img/machinery/retroexcavadora-cat-420f2.jpg'
     };
 
-    grid.innerHTML = cats.map(cat => {
+    grid.innerHTML = cats.map((cat, index) => {
       const imgUrl = catImageMap[cat.name] || 'assets/img/machinery/Retroexcavadora-Oruga-CAT-320D.png';
+      const delay = (index % 4) * 60 + Math.floor(index / 4) * 50;
       return `
-        <div class="sb-category-card" onclick="App.filterByCategory('${cat.name}')">
+        <div class="sb-category-card sb-unfold-item" style="--unfold-delay: ${delay}ms;" onclick="App.filterByCategory('${cat.name}')">
           <img src="${imgUrl}" alt="${cat.name}" class="sb-category-thumb" onerror="handleToolImageError(this)">
           <div class="sb-category-name">${cat.name}</div>
         </div>
       `;
     }).join('');
+
+    initScrollUnfoldObserver();
+  }
+
+  function initScrollUnfoldObserver() {
+    if (!('IntersectionObserver' in window)) {
+      document.querySelectorAll('.sb-unfold-item').forEach(el => el.classList.add('is-unfolded'));
+      return;
+    }
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          if (entry.target.classList.contains('sb-unfold-item')) {
+            entry.target.classList.add('is-unfolded');
+          }
+          entry.target.querySelectorAll('.sb-unfold-item').forEach(child => child.classList.add('is-unfolded'));
+          observer.unobserve(entry.target);
+        }
+      });
+    }, {
+      threshold: 0.08,
+      rootMargin: '0px 0px -30px 0px'
+    });
+
+    const targets = document.querySelectorAll('#section-industries, #section-directory, .sb-footer, .sb-unfold-item');
+    targets.forEach(el => observer.observe(el));
   }
 
   function filterByCategory(catName) {
@@ -2293,6 +2322,9 @@ const App = (() => {
     }
 
     if (viewName === 'catalog') {
+      setTimeout(() => {
+        initScrollUnfoldObserver();
+      }, 50);
       const mapCollapseEl = document.getElementById('map-collapse-container');
       if (mapCollapseEl && mapCollapseEl.classList.contains('show')) {
         setTimeout(() => {
@@ -2867,6 +2899,7 @@ const App = (() => {
     toggleMapSection,
     navigateToSection,
     scrollCategoryPills,
+    initScrollUnfoldObserver,
     getCurrentView: () => currentView,
     openCartModal,
     proceedToPaymentFromCart,
