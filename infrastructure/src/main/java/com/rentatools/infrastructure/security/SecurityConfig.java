@@ -63,6 +63,8 @@ public class SecurityConfig {
                         // Pagos y facturación protegidos
                         .requestMatchers("/api/v1/payments/**").authenticated()
                         .requestMatchers("/api/v1/invoices/**").authenticated()
+                        // Alquileres públicos de consulta de disponibilidad y agenda
+                        .requestMatchers(HttpMethod.GET, "/api/v1/rentals/check-availability", "/api/v1/rentals/tool/**").permitAll()
                         // Alquileres protegidos
                         .requestMatchers("/api/v1/rentals/**").authenticated()
                         // Cualquier otra petición requiere autenticación

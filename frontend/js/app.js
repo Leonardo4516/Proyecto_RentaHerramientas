@@ -26,10 +26,16 @@ window.handleToolImageError = handleToolImageError;
 
 function getToolImageUrl(tool) {
   if (!tool) return window.TOOL_FALLBACK_IMG;
-  const url = tool.imageUrl || (tool.images && tool.images[0]) || tool.coverImageUrl;
+  let url = tool.imageUrl || (tool.images && tool.images[0]) || tool.coverImageUrl;
   if (url && typeof url === 'string' && url.trim().length > 0) {
+    url = url.trim();
     if (url.endsWith('.svg')) {
       return window.TOOL_FALLBACK_IMG;
+    }
+    if (url.startsWith('/machinery/')) {
+      url = '/assets/img' + url;
+    } else if (url.startsWith('machinery/')) {
+      url = 'assets/img/' + url;
     }
     return url.startsWith('/') || url.startsWith('http') ? url : '/' + url;
   }
@@ -1198,7 +1204,143 @@ const App = (() => {
     }).join('');
   }
 
-  function openBookingModal(toolId) {
+  // --- MOTOR DE DISPONIBILIDAD Y GESTIÓN DE RESERVAS ---
+
+  function formatDateDM(dateStr) {
+    if (!dateStr) return '';
+    const cleanStr = String(dateStr).split('T')[0];
+    const parts = cleanStr.split('-');
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}`;
+    }
+    const d = new Date(cleanStr + 'T12:00:00');
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    return `${day}/${month}`;
+  }
+
+  function addDaysToStr(dateStr, days) {
+    if (!dateStr) return '';
+    const cleanStr = String(dateStr).split('T')[0];
+    const d = new Date(cleanStr + 'T12:00:00');
+    d.setDate(d.getDate() + Number(days));
+    return d.toISOString().split('T')[0];
+  }
+
+  function daysBetweenStr(startStr, endStr) {
+    if (!startStr || !endStr) return 0;
+    const s = new Date(String(startStr).split('T')[0] + 'T12:00:00');
+    const e = new Date(String(endStr).split('T')[0] + 'T12:00:00');
+    return Math.max(1, Math.round((e - s) / (1000 * 60 * 60 * 24)));
+  }
+
+  function findCollidingBooking(startStr, endStr, activeBookings) {
+    if (!activeBookings || !activeBookings.length || !startStr || !endStr) return null;
+    const reqStart = String(startStr).split('T')[0];
+    const reqEnd = String(endStr).split('T')[0];
+    return activeBookings.find(b => {
+      const bStart = (b.startDate || '').split('T')[0];
+      const bEnd = (b.endDate || '').split('T')[0];
+      if (!bStart || !bEnd) return false;
+      return bStart <= reqEnd && bEnd >= reqStart;
+    }) || null;
+  }
+
+  function findNextAvailableRange(initialStartStr, durationDays, activeBookings) {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+    const dur = Math.max(1, Number(durationDays) || 3);
+    let curStart = initialStartStr && initialStartStr >= tomorrowStr ? initialStartStr : tomorrowStr;
+    let curEnd = addDaysToStr(curStart, dur);
+
+    const activeOnly = (activeBookings || []).filter(b => 
+      b && ['PENDIENTE', 'CONFIRMADA', 'EN_CURSO'].includes(b.status)
+    );
+    const sorted = [...activeOnly].sort((a, b) => ((a.startDate || '').split('T')[0]).localeCompare((b.startDate || '').split('T')[0]));
+
+    let maxIterations = 60;
+    while (maxIterations-- > 0) {
+      const conflict = sorted.find(b => {
+        const bStart = (b.startDate || '').split('T')[0];
+        const bEnd = (b.endDate || '').split('T')[0];
+        return bStart <= curEnd && bEnd >= curStart;
+      });
+
+      if (!conflict) {
+        return { startDate: curStart, endDate: curEnd };
+      }
+      const conflictEnd = (conflict.endDate || '').split('T')[0];
+      curStart = addDaysToStr(conflictEnd, 1);
+      curEnd = addDaysToStr(curStart, dur);
+    }
+    return { startDate: curStart, endDate: curEnd };
+  }
+
+  function updateBookingAvailabilityAlert(startVal, endVal) {
+    const alertEl = document.getElementById('booking-availability-alert');
+    if (!alertEl || !activeToolForBooking) return;
+
+    if (!startVal || !endVal) {
+      alertEl.style.display = 'none';
+      return;
+    }
+
+    const activeBookings = activeToolForBooking.activeBookings || [];
+    const conflict = findCollidingBooking(startVal, endVal, activeBookings);
+
+    alertEl.style.display = 'flex';
+    if (!conflict) {
+      alertEl.className = 'alert alert-success py-2 px-3 small mb-3 d-flex align-items-center gap-2 border border-success';
+      alertEl.innerHTML = `
+        <i class="fa fa-check-circle text-success fs-5"></i>
+        <div>
+          <div class="fw-bold text-success">✅ Maquinaria Disponible para estas fechas</div>
+          <div class="text-muted" style="font-size: 0.78rem;">El equipo no presenta solapamientos y está libre para reserva y despacho a obra.</div>
+        </div>
+      `;
+    } else {
+      const startFmt = formatDateDM(conflict.startDate);
+      const endFmt = formatDateDM(conflict.endDate);
+      const nextDateStr = addDaysToStr(conflict.endDate, 1);
+      const nextFmt = formatDateDM(nextDateStr);
+
+      alertEl.className = 'alert alert-warning py-2 px-3 small mb-3 d-flex align-items-center justify-content-between gap-2 border border-warning text-dark';
+      alertEl.innerHTML = `
+        <div class="d-flex align-items-start gap-2">
+          <i class="fa fa-exclamation-triangle text-danger fs-5 mt-1"></i>
+          <div>
+            <div class="text-danger fw-bold">⚠️ Fechas no disponibles:</div>
+            <div>Este equipo ya cuenta con una reserva activa del <strong>${startFmt}</strong> al <strong>${endFmt}</strong>. Por favor selecciona otra fecha (ej. a partir del <strong>${nextFmt}</strong>).</div>
+          </div>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-danger text-nowrap ms-2" onclick="App.applyNextAvailableRange('${nextDateStr}')" title="Ajustar automáticamente a la próxima fecha libre">
+          <i class="fa fa-calendar-check me-1"></i> Usar libre
+        </button>
+      `;
+    }
+  }
+
+  function applyNextAvailableRange(suggestedStartStr) {
+    if (!activeToolForBooking) return;
+    const startInput = document.getElementById('book-start-date');
+    const endInput = document.getElementById('book-end-date');
+    if (!startInput || !endInput) return;
+
+    const curDuration = daysBetweenStr(startInput.value, endInput.value) || 3;
+    const startToUse = suggestedStartStr || startInput.value;
+    const freeRange = findNextAvailableRange(startToUse, curDuration, activeToolForBooking.activeBookings);
+
+    startInput.value = freeRange.startDate;
+    endInput.value = freeRange.endDate;
+    endInput.min = freeRange.startDate;
+
+    recalculateBookingQuote();
+  }
+
+  async function openBookingModal(toolId) {
     const user = API.getUser();
     if (!user) {
       Swal.fire({
@@ -1231,7 +1373,30 @@ const App = (() => {
       bookImg.onerror = function() { handleToolImageError(this); };
     }
 
-    // Fechas: tomadas del Hero widget si están seleccionadas y válidas (mínimo mañana), o por defecto mañana y 3 días
+    // Modalidad y Ubicación transferidas del Hero
+    const heroLoc = document.getElementById('hero-location-input')?.value || 'Bogotá D.C. & Sabana';
+    const modeText = heroDispatchMode === 'delivery' ? 'Despacho a Obra' : 'Retiro en Patio';
+    const dispatchNoteText = document.getElementById('book-dispatch-note-text');
+    if (dispatchNoteText) {
+      dispatchNoteText.innerHTML = `Modalidad: <strong>${modeText}</strong> &bull; Destino: <strong>${heroLoc}</strong>`;
+    }
+
+    // Dirección de obra y autocompletado de Bogotá y Cundinamarca
+    const addressInput = document.getElementById('book-delivery-address');
+    if (addressInput) {
+      if (!addressInput.value) {
+        if (heroLoc && heroLoc.trim() && heroLoc !== 'Bogotá D.C. & Sabana') {
+          addressInput.value = heroLoc;
+        } else if (user.address) {
+          addressInput.value = user.address;
+        } else {
+          addressInput.value = 'Bogotá D.C. - Usaquén (Cra 7 # 127, Obra Residencial)';
+        }
+      }
+      addressInput.classList.remove('is-invalid');
+    }
+
+    // Fechas base (mínimo mañana)
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -1258,41 +1423,53 @@ const App = (() => {
       endToUse = end.toISOString().split('T')[0];
     }
 
+    // Mostrar banner preliminar de consulta
+    const alertEl = document.getElementById('booking-availability-alert');
+    if (alertEl) {
+      alertEl.style.display = 'flex';
+      alertEl.className = 'alert alert-light py-2 px-3 small mb-3 d-flex align-items-center gap-2 border';
+      alertEl.innerHTML = `<span class="spinner-border spinner-border-sm text-success" role="status"></span> <span>Consultando disponibilidad en tiempo real...</span>`;
+    }
+
+    // Abrir Modal de Reserva
+    const bookingModalEl = document.getElementById('bookingModal');
+    const modal = bootstrap.Modal.getInstance(bookingModalEl) || new bootstrap.Modal(bookingModalEl);
+    modal.show();
+
+    // CHEQUEO DE DISPONIBILIDAD EN TIEMPO REAL:
+    // Consultar reservas activas del equipo (vía API.rentals.getByToolId)
+    let activeBookings = [];
+    try {
+      const toolRentals = await API.rentals.getByToolId(tool.id);
+      if (Array.isArray(toolRentals)) {
+        activeBookings = toolRentals.filter(r => 
+          r && ['PENDIENTE', 'CONFIRMADA', 'EN_CURSO'].includes(r.status)
+        );
+      }
+    } catch (e) {
+      console.warn('Aviso: no se pudieron obtener reservas previas de la herramienta:', e);
+    }
+    activeToolForBooking.activeBookings = activeBookings;
+
+    // SUGERENCIA AUTOMÁTICA DE FECHAS LIBRES:
+    // Si las fechas iniciales del Hero colisionan con una reserva activa, calcular automáticamente el próximo rango libre
+    const durationDays = daysBetweenStr(startToUse, endToUse) || 3;
+    const initialConflict = findCollidingBooking(startToUse, endToUse, activeBookings);
+    if (initialConflict) {
+      const freeRange = findNextAvailableRange(startToUse, durationDays, activeBookings);
+      startToUse = freeRange.startDate;
+      endToUse = freeRange.endDate;
+    }
+
     if (startDateInput) startDateInput.value = startToUse;
     if (endDateInput) {
       endDateInput.value = endToUse;
-      const nextDay = new Date(startToUse);
+      const nextDay = new Date(startToUse + 'T12:00:00');
       nextDay.setDate(nextDay.getDate() + 1);
       endDateInput.min = nextDay.toISOString().split('T')[0];
     }
 
-    // Modalidad y Ubicación transferidas del Hero
-    const heroLoc = document.getElementById('hero-location-input')?.value || 'Bogotá D.C. & Sabana';
-    const modeText = heroDispatchMode === 'delivery' ? 'Despacho a Obra' : 'Retiro en Patio';
-    const dispatchNoteText = document.getElementById('book-dispatch-note-text');
-    if (dispatchNoteText) {
-      dispatchNoteText.innerHTML = `Modalidad: <strong>${modeText}</strong> &bull; Destino: <strong>${heroLoc}</strong>`;
-    }
-
-    // Dirección de obra y autocompletado de Bogotá y Cundinamarca
-    const addressInput = document.getElementById('book-delivery-address');
-    if (addressInput) {
-      if (!addressInput.value) {
-        if (heroLoc && heroLoc.trim() && heroLoc !== 'Bogotá D.C. & Sabana') {
-          addressInput.value = heroLoc;
-        } else if (user.address) {
-          addressInput.value = user.address;
-        } else {
-          addressInput.value = 'Bogotá D.C. - Usaquén (Cra 7 # 127, Obra Residencial)';
-        }
-      }
-      addressInput.classList.remove('is-invalid');
-    }
-
     recalculateBookingQuote();
-
-    const modal = new bootstrap.Modal(document.getElementById('bookingModal'));
-    modal.show();
   }
 
   function recalculateBookingQuote() {
@@ -1306,8 +1483,8 @@ const App = (() => {
     let endVal = endInput.value;
     if (!startVal || !endVal) return;
 
-    let startDate = new Date(startVal + 'T00:00:00');
-    let endDate = new Date(endVal + 'T00:00:00');
+    let startDate = new Date(startVal + 'T12:00:00');
+    let endDate = new Date(endVal + 'T12:00:00');
 
     // Si fecha final es anterior o igual a la inicial, ajustar automáticamente a 1 día después
     if (endDate <= startDate) {
@@ -1315,7 +1492,7 @@ const App = (() => {
       adjusted.setDate(adjusted.getDate() + 1);
       endVal = adjusted.toISOString().split('T')[0];
       endInput.value = endVal;
-      endDate = new Date(endVal + 'T00:00:00');
+      endDate = new Date(endVal + 'T12:00:00');
     }
     endInput.min = startVal;
 
@@ -1347,10 +1524,69 @@ const App = (() => {
     };
 
     updateCartBadge();
+    updateBookingAvailabilityAlert(startVal, endVal);
   }
 
   async function proceedToPaymentFromBooking() {
     if (!activeToolForBooking || !activeToolForBooking.calculatedQuote) return;
+
+    const q = activeToolForBooking.calculatedQuote;
+    const startVal = q.startDate;
+    const endVal = q.endDate;
+
+    // BLOQUEO PREVENTIVO:
+    // Antes de cerrar #bookingModal y abrir #paymentModal, verificar que el rango esté disponible
+    const activeBookings = activeToolForBooking.activeBookings || [];
+    let conflict = findCollidingBooking(startVal, endVal, activeBookings);
+
+    // Confirmar adicionalmente con el endpoint del backend si no detectó conflicto local
+    if (!conflict) {
+      try {
+        const check = await API.rentals.checkAvailability(activeToolForBooking.id, startVal, endVal);
+        if (check && !check.isAvailable) {
+          conflict = {
+            startDate: check.startDate || startVal,
+            endDate: check.endDate || endVal,
+            message: check.message
+          };
+        }
+      } catch (err) {
+        console.warn('Verificación backend:', err);
+      }
+    }
+
+    // Si está ocupado, NO abrir #paymentModal. Mostrar SweetAlert y resaltar alerta en #bookingModal
+    if (conflict) {
+      const startFmt = formatDateDM(conflict.startDate);
+      const endFmt = formatDateDM(conflict.endDate);
+      const nextDateStr = addDaysToStr(conflict.endDate, 1);
+      const nextFmt = formatDateDM(nextDateStr);
+
+      const alertEl = document.getElementById('booking-availability-alert');
+      if (alertEl) {
+        alertEl.classList.add('border-danger', 'shadow');
+        alertEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+
+      Swal.fire({
+        icon: 'warning',
+        title: 'Fechas No Disponibles',
+        html: `
+          <div class="text-start">
+            <p class="mb-2">No es posible continuar con el pago: La maquinaria ya cuenta con una reserva activa en las fechas solicitadas.</p>
+            <div class="alert alert-warning py-2 px-3 small border mb-3">
+              <i class="fa fa-calendar-times text-danger me-1"></i> <strong>Periodo ocupado:</strong> del ${startFmt} al ${endFmt}.
+            </div>
+            <p class="mb-0 small text-muted">Por favor selecciona fechas disponibles en el formulario (ej. a partir del <strong>${nextFmt}</strong>).</p>
+          </div>
+        `,
+        confirmButtonColor: '#00843D',
+        confirmButtonText: 'Seleccionar Fechas Libres',
+        background: '#ffffff',
+        color: '#101820'
+      });
+      return; // Bloqueo estricto
+    }
 
     const addressInput = document.getElementById('book-delivery-address');
     const deliveryAddress = (addressInput?.value || '').trim();
@@ -1379,7 +1615,6 @@ const App = (() => {
     if (bookingModal) bookingModal.hide();
 
     // Abrir Modal de Pago con desglose completo
-    const q = activeToolForBooking.calculatedQuote;
     document.getElementById('pay-tool-title').textContent = activeToolForBooking.name;
     document.getElementById('pay-summary-total').textContent = API.formatCurrency(q.total);
     document.getElementById('pay-summary-breakdown').textContent = `${q.days} días de renta + IVA 19% (${API.formatCurrency(q.iva)}) + Garantía (${API.formatCurrency(q.deposit)})`;
@@ -2075,14 +2310,23 @@ const App = (() => {
         }
       }
 
+      // Rol verificado y permisos
+      const isProvider = (user.role === 'ROLE_PROVEEDOR' || user.role === 'ROLE_ADMIN');
+      const isAdmin = (user.role === 'ROLE_ADMIN');
+      const isClient = (user.role === 'ROLE_CLIENTE' || user.role === 'ROLE_ADMIN');
+
       // Habilitar pestañas contextuales según el rol
       const clientNav = document.getElementById('nav-client-dashboard');
       const providerNav = document.getElementById('nav-provider-dashboard');
       const adminNav = document.getElementById('nav-admin-dashboard');
+      const clientTabLink = document.getElementById('nav-client-tab-link');
+      const providerTabLink = document.getElementById('nav-provider-tab-link');
 
-      if (clientNav) clientNav.style.display = (user.role === 'ROLE_CLIENTE' || user.role === 'ROLE_ADMIN') ? 'block' : 'none';
-      if (providerNav) providerNav.style.display = (user.role === 'ROLE_PROVEEDOR' || user.role === 'ROLE_ADMIN') ? 'block' : 'none';
-      if (adminNav) adminNav.style.display = (user.role === 'ROLE_ADMIN') ? 'block' : 'none';
+      if (clientNav) clientNav.style.display = isClient ? 'block' : 'none';
+      if (providerNav) providerNav.style.display = isProvider ? 'block' : 'none';
+      if (adminNav) adminNav.style.display = isAdmin ? 'block' : 'none';
+      if (clientTabLink) clientTabLink.style.display = isClient ? 'block' : 'none';
+      if (providerTabLink) providerTabLink.style.display = isProvider ? 'block' : 'none';
 
       // Rótulos contextuales según el rol (Admin -> "Alquileres Activos", Cliente -> "Mis Alquileres")
       const clientNavLabel = document.getElementById('nav-client-dashboard-label');
@@ -2099,14 +2343,15 @@ const App = (() => {
         if (clientHeaderTitle) clientHeaderTitle.textContent = 'Mis Alquileres & Facturación';
       }
 
-      // Enlaces del menú desplegable del usuario: Mis Alquileres & Facturas, Gestión Proveedor, Añadir Maquinaria
-      if (clientDropdownItem) clientDropdownItem.style.display = 'block';
-      if (providerDropdownItem) providerDropdownItem.style.display = 'block';
-      if (dropdownAddToolItem) dropdownAddToolItem.style.display = 'block';
-      if (adminDropdownItem) adminDropdownItem.style.display = (user.role === 'ROLE_ADMIN') ? 'block' : 'none';
+      // Enlaces del menú desplegable del usuario:
+      // Mis Alquileres visible para Cliente y Admin
+      if (clientDropdownItem) clientDropdownItem.style.display = isClient ? 'block' : 'none';
+      // Gestión Proveedor y Añadir Maquinaria estrictamente ocultos para ROLE_CLIENTE
+      if (providerDropdownItem) providerDropdownItem.style.display = isProvider ? 'block' : 'none';
+      if (dropdownAddToolItem) dropdownAddToolItem.style.display = isProvider ? 'block' : 'none';
+      if (adminDropdownItem) adminDropdownItem.style.display = isAdmin ? 'block' : 'none';
 
-      // Botón rápido en la barra superior para añadir maquinaria (Solo PROVEEDOR o ADMIN)
-      const isProvider = (user.role === 'ROLE_PROVEEDOR' || user.role === 'ROLE_ADMIN');
+      // Botón rápido en la barra superior para añadir maquinaria (Solo PROVEEDOR o ADMIN, estrictamente oculto para ROLE_CLIENTE)
       const navAddToolBtn = document.getElementById('nav-add-tool-btn');
       if (navAddToolBtn) navAddToolBtn.style.display = isProvider ? 'inline-flex' : 'none';
     } else {
@@ -2122,9 +2367,13 @@ const App = (() => {
       const clientNav = document.getElementById('nav-client-dashboard');
       const providerNav = document.getElementById('nav-provider-dashboard');
       const adminNav = document.getElementById('nav-admin-dashboard');
+      const clientTabLink = document.getElementById('nav-client-tab-link');
+      const providerTabLink = document.getElementById('nav-provider-tab-link');
       if (clientNav) clientNav.style.display = 'none';
       if (providerNav) providerNav.style.display = 'none';
       if (adminNav) adminNav.style.display = 'none';
+      if (clientTabLink) clientTabLink.style.display = 'none';
+      if (providerTabLink) providerTabLink.style.display = 'none';
 
       if (clientDropdownItem) clientDropdownItem.style.display = 'none';
       if (providerDropdownItem) providerDropdownItem.style.display = 'none';
@@ -2522,6 +2771,8 @@ const App = (() => {
     init,
     openBookingModal,
     recalculateBookingQuote,
+    updateBookingAvailabilityAlert,
+    applyNextAvailableRange,
     proceedToPaymentFromBooking,
     submitPayment,
     switchView,

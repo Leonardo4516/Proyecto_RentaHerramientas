@@ -120,6 +120,9 @@ const API = (() => {
           body: JSON.stringify(rentalData)
         }),
       getAll: () => request('/api/v1/rentals'),
+      getByToolId: (toolId) => request(`/api/v1/rentals/tool/${toolId}`),
+      checkAvailability: (toolId, startDate, endDate) =>
+        request(`/api/v1/rentals/check-availability?toolId=${encodeURIComponent(toolId)}&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`),
       updateStatus: (id, status) =>
         request(`/api/v1/rentals/${id}/status`, {
           method: 'PUT',

@@ -137,13 +137,13 @@
                   <span id="dropdown-client-label">Mis Alquileres & Facturas</span>
                 </a>
               </li>
-              <li id="dropdown-provider-item">
+              <li id="dropdown-provider-item" style="display: none;">
                 <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="#" onclick="App.handleProviderDashboardAccess(); return false;">
                   <i class="fa fa-dolly-flatbed text-warning" style="width: 18px;"></i>
                   <span>Gestión Proveedor</span>
                 </a>
               </li>
-              <li id="dropdown-add-tool-item">
+              <li id="dropdown-add-tool-item" style="display: none;">
                 <a class="dropdown-item py-2 d-flex align-items-center gap-2 text-success fw-bold" href="#" onclick="App.handleAddToolAccess(); return false;">
                   <i class="fa fa-plus-circle" style="width: 18px;"></i>
                   <span>Añadir Maquinaria</span>
@@ -207,7 +207,7 @@
     <section class="sb-hero">
       <div class="container-xl">
         <div class="row align-items-center justify-content-center text-center">
-          <div class="col-12 col-lg-10">
+          <div class="col-12 col-xl-11 col-xxl-10">
             <h1 class="sb-hero-title">Encuentra la Maquinaria y Herramientas Precisas para tu Proyecto</h1>
             <p class="sb-hero-lead mx-auto">Disponibilidad en tiempo real en Bogotá y Sabana, tarifas transparentes por día, semana y mes con facturación electrónica DIAN.</p>
 
@@ -215,7 +215,7 @@
             <div class="sb-booking-widget text-start">
               <div class="row g-2 align-items-center">
                 <!-- Segmento 1: Ubicación de Obra -->
-                <div class="col-12 col-md-4 col-lg-3">
+                <div class="col-12 col-md-6 col-lg-3">
                   <div class="sb-widget-segment">
                     <span class="sb-widget-label"><i class="fa fa-map-marker-alt"></i> Ubicación en Obra</span>
                     <input type="text" id="hero-location-input" class="sb-widget-input" list="hero-location-suggestions" value="Bogotá D.C. & Sabana" placeholder="Ingresa localidad o municipio" autocomplete="off">
@@ -233,7 +233,7 @@
                 </div>
 
                 <!-- Segmento 2: Fecha Inicio -->
-                <div class="col-6 col-md-4 col-lg-2">
+                <div class="col-6 col-md-3 col-lg-2">
                   <div class="sb-widget-segment">
                     <span class="sb-widget-label"><i class="fa fa-calendar-alt"></i> Fecha Inicio</span>
                     <input type="date" id="hero-start-date" class="sb-widget-input">
@@ -241,7 +241,7 @@
                 </div>
 
                 <!-- Segmento 3: Fecha Devolución -->
-                <div class="col-6 col-md-4 col-lg-2">
+                <div class="col-6 col-md-3 col-lg-2">
                   <div class="sb-widget-segment">
                     <span class="sb-widget-label"><i class="fa fa-calendar-check"></i> Devolución</span>
                     <input type="date" id="hero-end-date" class="sb-widget-input">
@@ -249,8 +249,8 @@
                 </div>
 
                 <!-- Segmento 4: Despacho / Retiro -->
-                <div class="col-12 col-md-6 col-lg-3">
-                  <div class="sb-widget-segment">
+                <div class="col-12 col-md-7 col-lg-3 col-xl-3">
+                  <div class="sb-widget-segment sb-widget-segment-dispatch">
                     <span class="sb-widget-label"><i class="fa fa-truck-moving"></i> Modalidad</span>
                     <div class="sb-dispatch-toggle">
                       <button type="button" class="sb-dispatch-btn active" id="btn-hero-delivery" onclick="App.setHeroDispatchMode('delivery')">
@@ -264,7 +264,7 @@
                 </div>
 
                 <!-- Segmento 5: Botón Primario Cotizar Ahora -->
-                <div class="col-12 col-md-6 col-lg-2">
+                <div class="col-12 col-md-5 col-lg-2 col-xl-2">
                   <button type="button" class="sb-widget-submit-btn" id="btn-hero-quote" onclick="App.applyHeroBookingFilter()">
                     <span>Cotizar Ahora</span>
                     <i class="fa fa-arrow-right"></i>
@@ -835,6 +835,9 @@
                   <input type="date" id="book-end-date" class="sb-form-control">
                 </div>
               </div>
+
+              <!-- Banner Visual de Disponibilidad en Tiempo Real -->
+              <div id="booking-availability-alert" class="alert py-2 px-3 small mb-3 align-items-center justify-content-between gap-2 shadow-sm" style="display: none;"></div>
 
               <!-- Dirección de obra y logística cama baja -->
               <div class="mb-3">
