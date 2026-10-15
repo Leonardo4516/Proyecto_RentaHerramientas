@@ -213,9 +213,9 @@
 
             <!-- WIDGET DE RESERVA FLOTANTE (ESTILO SUNBELT) -->
             <div class="sb-booking-widget text-start">
-              <div class="row g-2 align-items-center">
+              <div class="sb-booking-widget-grid">
                 <!-- Segmento 1: Ubicación de Obra -->
-                <div class="col-12 col-md-6 col-lg-3">
+                <div class="sb-grid-col sb-grid-col-location">
                   <div class="sb-widget-segment">
                     <span class="sb-widget-label"><i class="fa fa-map-marker-alt"></i> Ubicación en Obra</span>
                     <input type="text" id="hero-location-input" class="sb-widget-input" list="hero-location-suggestions" value="Bogotá D.C. & Sabana" placeholder="Ingresa localidad o municipio" autocomplete="off">
@@ -233,7 +233,7 @@
                 </div>
 
                 <!-- Segmento 2: Fecha Inicio -->
-                <div class="col-6 col-md-3 col-lg-2">
+                <div class="sb-grid-col sb-grid-col-date">
                   <div class="sb-widget-segment">
                     <span class="sb-widget-label"><i class="fa fa-calendar-alt"></i> Fecha Inicio</span>
                     <input type="date" id="hero-start-date" class="sb-widget-input">
@@ -241,7 +241,7 @@
                 </div>
 
                 <!-- Segmento 3: Fecha Devolución -->
-                <div class="col-6 col-md-3 col-lg-2">
+                <div class="sb-grid-col sb-grid-col-date">
                   <div class="sb-widget-segment">
                     <span class="sb-widget-label"><i class="fa fa-calendar-check"></i> Devolución</span>
                     <input type="date" id="hero-end-date" class="sb-widget-input">
@@ -249,7 +249,7 @@
                 </div>
 
                 <!-- Segmento 4: Despacho / Retiro -->
-                <div class="col-12 col-md-7 col-lg-3 col-xl-3">
+                <div class="sb-grid-col sb-grid-col-dispatch">
                   <div class="sb-widget-segment sb-widget-segment-dispatch">
                     <span class="sb-widget-label"><i class="fa fa-truck-moving"></i> Modalidad</span>
                     <div class="sb-dispatch-toggle">
@@ -264,7 +264,7 @@
                 </div>
 
                 <!-- Segmento 5: Botón Primario Cotizar Ahora -->
-                <div class="col-12 col-md-5 col-lg-2 col-xl-2">
+                <div class="sb-grid-col sb-grid-col-action">
                   <button type="button" class="sb-widget-submit-btn" id="btn-hero-quote" onclick="App.applyHeroBookingFilter()">
                     <span>Cotizar Ahora</span>
                     <i class="fa fa-arrow-right"></i>
