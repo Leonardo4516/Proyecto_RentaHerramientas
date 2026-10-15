@@ -95,14 +95,19 @@ h1, h2, h3, h4, h5, h6 {
   background-color: var(--sb-green-darker);
   color: #ffffff;
   font-size: 0.8125rem;
-  padding: 7px 0;
+  padding: 6px 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
   font-weight: 500;
+  white-space: nowrap !important;
+  line-height: 1.4;
+}
+.sb-utility-bar * {
+  white-space: nowrap !important;
 }
 .sb-utility-bar a {
   color: #ffffff;
   text-decoration: none;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.2s ease, color 0.2s ease;
 }
 .sb-utility-bar a:hover {
   opacity: 0.85;
@@ -119,6 +124,7 @@ h1, h2, h3, h4, h5, h6 {
   align-items: center;
   gap: 4px;
   transition: all 0.2s ease;
+  white-space: nowrap !important;
 }
 .sb-utility-badge:hover {
   background: var(--sb-yellow);
@@ -1466,11 +1472,12 @@ h1, h2, h3, h4, h5, h6 {
   color: #ffffff !important;
   font-size: 0.75rem;
   font-weight: 700;
-  padding: 2px 10px;
+  padding: 3px 12px;
   border-radius: 9999px;
   text-decoration: none;
   align-items: center;
   gap: 5px;
+  white-space: nowrap !important;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 .sb-whatsapp-btn:hover {
