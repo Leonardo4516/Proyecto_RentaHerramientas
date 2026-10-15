@@ -47,7 +47,7 @@
         </a>
       </div>
       <div class="d-flex align-items-center gap-2 gap-md-3 text-nowrap">
-        <a href="#section-industries" class="d-none d-xxl-inline text-white text-decoration-none sb-utility-hover text-nowrap">
+        <a href="#" onclick="App.navigateToSection('section-industries'); return false;" class="d-none d-xxl-inline text-white text-decoration-none sb-utility-hover text-nowrap">
           <i class="fa fa-hard-hat text-warning me-1"></i> Soluciones por Industria
         </a>
         <span class="d-none d-xxl-inline text-white-50">|</span>
@@ -87,7 +87,7 @@
           
           <!-- Campana de Notificaciones -->
           <div class="dropdown">
-            <button class="btn btn-sb-pill-outline p-2 px-3 dropdown-toggle" type="button" id="notifDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+            <button class="btn btn-sb-pill-outline p-2 px-3 dropdown-toggle" type="button" id="notifDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
               <i class="fa fa-bell text-warning"></i>
               <span id="notif-badge" class="badge bg-danger rounded-pill ms-1" style="display: none;">0</span>
             </button>
@@ -188,11 +188,11 @@
     <div class="sb-subnav">
       <div class="container-xl">
         <ul class="sb-subnav-list">
-          <li><a href="#" class="sb-subnav-link active" onclick="App.switchView('catalog'); return false;"><i class="fa fa-th-large me-1"></i> Catálogo Completo</a></li>
-          <li><a href="#section-directory" class="sb-subnav-link"><i class="fa fa-layer-group me-1"></i> Categorías ⌵</a></li>
-          <li><a href="#section-industries" class="sb-subnav-link"><i class="fa fa-hard-hat me-1"></i> Industrias ⌵</a></li>
-          <li><a href="#section-experience" class="sb-subnav-link"><i class="fa fa-shield-alt me-1"></i> Seguridad & Servicio</a></li>
-          <li><a href="#" class="sb-subnav-link text-success fw-bold" onclick="App.toggleMapSection(); return false;"><i class="fa fa-map-marked-alt me-1"></i> Mapa en Vivo</a></li>
+          <li><a href="#" class="sb-subnav-link active" onclick="App.navigateToSection('section-catalog'); return false;"><i class="fa fa-th-large me-1"></i> Catálogo Completo</a></li>
+          <li><a href="#" class="sb-subnav-link" onclick="App.navigateToSection('section-directory'); return false;"><i class="fa fa-layer-group me-1"></i> Categorías ⌵</a></li>
+          <li><a href="#" class="sb-subnav-link" onclick="App.navigateToSection('section-industries'); return false;"><i class="fa fa-hard-hat me-1"></i> Industrias ⌵</a></li>
+          <li><a href="#" class="sb-subnav-link" onclick="App.navigateToSection('section-experience'); return false;"><i class="fa fa-shield-alt me-1"></i> Seguridad & Servicio</a></li>
+          <li><a href="#" class="sb-subnav-link text-success fw-bold" onclick="App.navigateToSection('section-map'); return false;"><i class="fa fa-map-marked-alt me-1"></i> Mapa en Vivo</a></li>
           <li id="nav-client-tab-link" style="display: none;"><a href="#" class="sb-subnav-link" onclick="App.switchView('client-dashboard'); return false;">Mis Alquileres</a></li>
           <li id="nav-provider-tab-link" style="display: none;"><a href="#" class="sb-subnav-link text-warning fw-bold" onclick="App.switchView('provider-dashboard'); return false;">Portal Proveedor</a></li>
         </ul>
@@ -436,60 +436,84 @@
           <!-- 1. Construcción Civil -->
           <div class="col-6 col-md-4 col-lg-2">
             <div class="sb-industry-card" data-industry="construccion-civil" onclick="App.filterByIndustry('construccion-civil')">
-              <img src="assets/img/machinery/allanadora-concreto.jpeg" alt="Construcción Civil" class="sb-industry-img">
-              <h5 class="sb-industry-title">Construcción Civil</h5>
-              <p class="sb-industry-subtitle">Edificación, Concreto, Formaletas y Andamios</p>
+              <div class="sb-industry-img-wrap">
+                <img src="assets/img/machinery/allanadora-concreto.jpeg" alt="Construcción Civil" class="sb-industry-img">
+              </div>
+              <div class="sb-industry-body">
+                <h5 class="sb-industry-title">Construcción Civil</h5>
+                <p class="sb-industry-subtitle">Edificación, Concreto, Formaletas y Andamios</p>
+              </div>
             </div>
           </div>
 
           <!-- 2. Infraestructura Vial -->
           <div class="col-6 col-md-4 col-lg-2">
             <div class="sb-industry-card" data-industry="infraestructura-vial" onclick="App.filterByIndustry('infraestructura-vial')">
-              <img src="assets/img/machinery/rodillo-compactador.jpg" alt="Infraestructura Vial" class="sb-industry-img">
-              <h5 class="sb-industry-title">Infraestructura Vial</h5>
-              <p class="sb-industry-subtitle">Pavimentación, Asfalto, Rodillos y Señalización</p>
+              <div class="sb-industry-img-wrap">
+                <img src="assets/img/machinery/rodillo-compactador.jpg" alt="Infraestructura Vial" class="sb-industry-img">
+              </div>
+              <div class="sb-industry-body">
+                <h5 class="sb-industry-title">Infraestructura Vial</h5>
+                <p class="sb-industry-subtitle">Pavimentación, Asfalto, Rodillos y Señalización</p>
+              </div>
             </div>
           </div>
 
           <!-- 3. Minería y Agregados -->
           <div class="col-6 col-md-4 col-lg-2">
             <div class="sb-industry-card" data-industry="mineria-agregados" onclick="App.filterByIndustry('mineria-agregados')">
-              <img src="assets/img/machinery/Retroexcavadora-Oruga-CAT-320D.png" alt="Minería y Agregados" class="sb-industry-img">
-              <h5 class="sb-industry-title">Minería y Agregados</h5>
-              <p class="sb-industry-subtitle">Orugas, Canteras, Martillos y Achique Pesado</p>
+              <div class="sb-industry-img-wrap">
+                <img src="assets/img/machinery/Retroexcavadora-Oruga-CAT-320D.png" alt="Minería y Agregados" class="sb-industry-img">
+              </div>
+              <div class="sb-industry-body">
+                <h5 class="sb-industry-title">Minería y Agregados</h5>
+                <p class="sb-industry-subtitle">Orugas, Canteras, Martillos y Achique Pesado</p>
+              </div>
             </div>
           </div>
 
           <!-- 4. Energía y Utilities -->
           <div class="col-6 col-md-4 col-lg-2">
             <div class="sb-industry-card" data-industry="energia-utilities" onclick="App.filterByIndustry('energia-utilities')">
-              <img src="assets/img/machinery/planta-electrica-cummins.jpg" alt="Energía y Utilities" class="sb-industry-img">
-              <h5 class="sb-industry-title">Energía y Utilities</h5>
-              <p class="sb-industry-subtitle">Plantas Diésel, Torres de Luz y Motosoldadoras</p>
+              <div class="sb-industry-img-wrap">
+                <img src="assets/img/machinery/planta-electrica-cummins.jpg" alt="Energía y Utilities" class="sb-industry-img">
+              </div>
+              <div class="sb-industry-body">
+                <h5 class="sb-industry-title">Energía y Utilities</h5>
+                <p class="sb-industry-subtitle">Plantas Diésel, Torres de Luz y Motosoldadoras</p>
+              </div>
             </div>
           </div>
 
           <!-- 5. Eventos y Montajes -->
           <div class="col-6 col-md-4 col-lg-2">
             <div class="sb-industry-card" data-industry="eventos-montajes" onclick="App.filterByIndustry('eventos-montajes')">
-              <img src="assets/img/machinery/plataforma-tijera.jpg" alt="Eventos y Montajes" class="sb-industry-img">
-              <h5 class="sb-industry-title">Eventos y Montajes</h5>
-              <p class="sb-industry-subtitle">Plataformas de Tijera, Andamios y Generación</p>
+              <div class="sb-industry-img-wrap">
+                <img src="assets/img/machinery/plataforma-tijera.jpg" alt="Eventos y Montajes" class="sb-industry-img">
+              </div>
+              <div class="sb-industry-body">
+                <h5 class="sb-industry-title">Eventos y Montajes</h5>
+                <p class="sb-industry-subtitle">Plataformas de Tijera, Andamios y Generación</p>
+              </div>
             </div>
           </div>
 
           <!-- 6. Agroindustria -->
           <div class="col-6 col-md-4 col-lg-2">
             <div class="sb-industry-card" data-industry="agroindustria" onclick="App.filterByIndustry('agroindustria')">
-              <img src="assets/img/machinery/motobomba-lodos.jpg" alt="Agroindustria" class="sb-industry-img">
-              <h5 class="sb-industry-title">Agroindustria</h5>
-              <p class="sb-industry-subtitle">Riego, Achique de Agua, Descapote y Bobcat</p>
+              <div class="sb-industry-img-wrap">
+                <img src="assets/img/machinery/motobomba-lodos.jpg" alt="Agroindustria" class="sb-industry-img">
+              </div>
+              <div class="sb-industry-body">
+                <h5 class="sb-industry-title">Agroindustria</h5>
+                <p class="sb-industry-subtitle">Riego, Achique de Agua, Descapote y Bobcat</p>
+              </div>
             </div>
           </div>
         </div>
 
         <div class="text-center mt-4">
-          <a href="#section-catalog" class="btn-sb-pill-outline px-4 py-2">
+          <a href="#" onclick="App.navigateToSection('section-catalog'); return false;" class="btn-sb-pill-outline px-4 py-2">
             Explorar Todas las Industrias
           </a>
         </div>
@@ -530,10 +554,20 @@
         <!-- Filtros Rápidos y Radio de Cobertura -->
         <div class="bg-white border rounded-3 p-3 mb-4 shadow-sm">
           <div class="row g-3 align-items-center">
-            <!-- Píldoras de Categorías -->
+            <!-- Píldoras de Categorías con navegación suave y sin scrollbar visible -->
             <div class="col-12 col-lg-8">
-              <div class="category-pills" id="category-pills-container">
-                <div class="category-pill active" data-category="TODAS"><i class="fa fa-layer-group me-1"></i> Todas</div>
+              <div class="category-pills-wrapper">
+                <button class="sb-pill-nav-btn sb-pill-nav-prev" type="button" aria-label="Anterior" onclick="App.scrollCategoryPills(-220)" title="Ver categorías anteriores">
+                  <i class="fa fa-chevron-left"></i>
+                </button>
+                <div class="category-pills-scroll-area">
+                  <div class="category-pills" id="category-pills-container">
+                    <div class="category-pill active" data-category="TODAS"><i class="fa fa-layer-group me-1"></i> Todas</div>
+                  </div>
+                </div>
+                <button class="sb-pill-nav-btn sb-pill-nav-next" type="button" aria-label="Siguiente" onclick="App.scrollCategoryPills(220)" title="Ver más categorías">
+                  <i class="fa fa-chevron-right"></i>
+                </button>
               </div>
             </div>
 

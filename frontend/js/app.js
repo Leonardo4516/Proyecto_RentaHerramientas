@@ -50,6 +50,7 @@ const App = (() => {
   let selectedCategory = 'TODAS';
   let activeToolForBooking = null;
   let cachedRentals = [];
+  let currentView = 'catalog';
 
   async function init() {
     setupEventListeners();
@@ -634,10 +635,20 @@ const App = (() => {
       confirmButtonColor: '#00843D',
       background: '#ffffff',
       color: '#101820',
-      width: '650px'
-    }).then(() => {
-      const catalogSec = document.getElementById('section-catalog');
-      if (catalogSec) catalogSec.scrollIntoView({ behavior: 'smooth' });
+      width: '650px',
+      returnFocus: false
+    }).then((result) => {
+      if (result.isConfirmed) {
+        if (currentView !== 'catalog') {
+          switchView('catalog');
+        }
+        setTimeout(() => {
+          const catalogSec = document.getElementById('section-catalog');
+          if (catalogSec) {
+            catalogSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 150);
+      }
     });
   }
 
@@ -942,10 +953,64 @@ const App = (() => {
   }
 
   function toggleMapSection() {
-    const mapContainer = document.getElementById('map-collapse-container');
-    if (mapContainer) {
-      const bsCollapse = bootstrap.Collapse.getInstance(mapContainer) || new bootstrap.Collapse(mapContainer);
-      bsCollapse.toggle();
+    if (currentView !== 'catalog') {
+      switchView('catalog');
+    }
+    setTimeout(() => {
+      const mapContainer = document.getElementById('map-collapse-container');
+      if (mapContainer) {
+        const bsCollapse = bootstrap.Collapse.getOrCreateInstance(mapContainer);
+        bsCollapse.toggle();
+        const isShowing = !mapContainer.classList.contains('show');
+        const statusSpan = document.getElementById('map-toggle-status');
+        const chevron = document.getElementById('map-toggle-chevron');
+        if (statusSpan) statusSpan.textContent = isShowing ? 'Ocultar mapa' : 'Ver mapa';
+        if (chevron) chevron.className = isShowing ? 'fa fa-chevron-up ms-1' : 'fa fa-chevron-down ms-1';
+        if (isShowing) {
+          const catalogSec = document.getElementById('section-catalog');
+          if (catalogSec) catalogSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          if (window.MapManager && window.MapManager.invalidateSize) {
+            setTimeout(() => window.MapManager.invalidateSize(), 300);
+          }
+        }
+      }
+    }, 120);
+  }
+
+  function navigateToSection(sectionId) {
+    if (currentView !== 'catalog') {
+      switchView('catalog');
+    }
+    setTimeout(() => {
+      if (sectionId === 'section-map') {
+        const mapContainer = document.getElementById('map-collapse-container');
+        if (mapContainer && !mapContainer.classList.contains('show')) {
+          const bsCollapse = bootstrap.Collapse.getOrCreateInstance(mapContainer);
+          bsCollapse.show();
+        }
+        const statusSpan = document.getElementById('map-toggle-status');
+        const chevron = document.getElementById('map-toggle-chevron');
+        if (statusSpan) statusSpan.textContent = 'Ocultar mapa';
+        if (chevron) chevron.className = 'fa fa-chevron-up ms-1';
+
+        const catalogSec = document.getElementById('section-catalog');
+        if (catalogSec) catalogSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (window.MapManager && window.MapManager.invalidateSize) {
+          setTimeout(() => window.MapManager.invalidateSize(), 300);
+        }
+      } else {
+        const target = document.getElementById(sectionId);
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+    }, 120);
+  }
+
+  function scrollCategoryPills(offset) {
+    const container = document.getElementById('category-pills-container');
+    if (container) {
+      container.scrollBy({ left: offset, behavior: 'smooth' });
     }
   }
 
@@ -1936,10 +2001,10 @@ const App = (() => {
         const toolName = tool ? tool.name : (r.toolName || `Maquinaria #${r.toolId}`);
         return `
         <tr>
-          <td><span class="fw-bold text-light">#${r.id}</span></td>
-          <td><span class="text-warning fw-semibold">${toolName}</span></td>
-          <td>${r.startDate} al ${r.endDate} <small class="text-muted">(${r.days} d)</small></td>
-          <td class="fw-bold">${API.formatCurrency(r.total)}</td>
+          <td><strong class="text-dark">#${r.id}</strong></td>
+          <td><span class="text-dark fw-bold">${toolName}</span></td>
+          <td class="text-secondary">${r.startDate} al ${r.endDate} <small class="text-muted">(${r.days} d)</small></td>
+          <td class="fw-bold text-dark">${API.formatCurrency(r.total)}</td>
           <td>
             <span class="badge ${r.status === 'CONFIRMADA' ? 'badge-available' : (r.status === 'DEVUELTO' || r.status === 'COMPLETADA' ? 'bg-secondary' : 'badge-rented')}">
               ${r.status}
@@ -1975,11 +2040,11 @@ const App = (() => {
         const toolName = tool ? tool.name : (r.toolName || `Maquinaria #${r.toolId}`);
         return `
         <tr>
-          <td>#${r.id}</td>
-          <td class="fw-bold text-light">${toolName}</td>
-          <td>${r.clientName || 'Cliente Constructora'}</td>
+          <td><strong class="text-dark">#${r.id}</strong></td>
+          <td class="fw-bold text-dark">${toolName}</td>
+          <td class="text-secondary">${r.clientName || 'Cliente Constructora'}</td>
           <td>${r.days} días</td>
-          <td>${API.formatCurrency(r.total)}</td>
+          <td class="fw-bold text-dark">${API.formatCurrency(r.total)}</td>
           <td><span class="badge ${r.status === 'CONFIRMADA' ? 'badge-available' : (r.status === 'COMPLETADA' ? 'bg-secondary' : 'badge-rented')}">${r.status}</span></td>
           <td>
             <div class="provider-actions-cell">
@@ -2211,6 +2276,7 @@ const App = (() => {
   // --- VISTAS & SESIÓN ---
 
   function switchView(viewName) {
+    currentView = viewName;
     document.querySelectorAll('.app-view').forEach(v => v.style.display = 'none');
     document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
 
@@ -2799,6 +2865,9 @@ const App = (() => {
     downloadCatalogPdf,
     filterByCategory,
     toggleMapSection,
+    navigateToSection,
+    scrollCategoryPills,
+    getCurrentView: () => currentView,
     openCartModal,
     proceedToPaymentFromCart,
     modifyBookingFromCart,

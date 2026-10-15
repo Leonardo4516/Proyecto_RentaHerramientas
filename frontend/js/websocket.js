@@ -7,7 +7,10 @@ const RealtimeManager = (() => {
 
   function getStorageKey() {
     const user = (typeof API !== 'undefined' && API.getUser) ? API.getUser() : null;
-    return user ? `rentatools_notifs_${user.username.toLowerCase()}` : 'rentatools_notifs_guest';
+    if (user && user.role) {
+      return `rentatools_notifs_${user.role}_${(user.username || user.id || 'user').toLowerCase()}`;
+    }
+    return 'rentatools_notifs_guest';
   }
 
   function loadUserNotifications() {
@@ -176,15 +179,15 @@ const RealtimeManager = (() => {
     }
     if (list) {
       if (notifications.length === 0) {
-        list.innerHTML = '<li class="p-4 text-center small text-slate-300" style="color: #cbd5e1 !important;"><i class="fa fa-bell-slash me-2 text-warning"></i>Sin notificaciones pendientes</li>';
+        list.innerHTML = '<li class="p-4 text-center small text-muted"><i class="fa fa-bell-slash me-2 text-warning"></i>Sin notificaciones pendientes</li>';
       } else {
-        list.innerHTML = notifications.slice(0, 10).map(n => `
+        list.innerHTML = notifications.slice(0, 15).map(n => `
           <li class="dropdown-item notif-item mb-2 p-2">
             <div class="d-flex justify-content-between align-items-center mb-1">
               <span class="badge bg-warning text-dark fw-bold px-2 py-0" style="font-size: 0.72rem;">${n.channel}</span>
-              <span class="notif-item-time">${n.time}</span>
+              <span class="notif-item-time" style="color: #64748b !important; font-size: 0.75rem;">${n.time}</span>
             </div>
-            <div class="notif-item-content mt-1">${n.content}</div>
+            <div class="notif-item-content mt-1" style="color: #1e293b !important; font-weight: 500; font-size: 0.84rem; white-space: normal; line-height: 1.4;">${n.content}</div>
           </li>
         `).join('');
       }
