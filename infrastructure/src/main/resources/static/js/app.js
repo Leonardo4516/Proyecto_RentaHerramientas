@@ -43,11 +43,15 @@ const App = (() => {
   let categories = [];
   let selectedCategory = 'TODAS';
   let activeToolForBooking = null;
+  let cachedRentals = [];
 
   async function init() {
     setupEventListeners();
     checkAuthStatus();
     RealtimeManager.init();
+
+    // Fechas por defecto para el widget Hero (mínimo mañana y +6 días)
+    initHeroWidgetDates();
 
     try {
       await Promise.all([loadCategories(), loadTools()]);
@@ -119,8 +123,31 @@ const App = (() => {
     }
 
     // Cambios en fechas de reserva para cotización en vivo
-    document.getElementById('book-start-date')?.addEventListener('change', recalculateBookingQuote);
-    document.getElementById('book-end-date')?.addEventListener('change', recalculateBookingQuote);
+    const bookStartEl = document.getElementById('book-start-date');
+    const bookEndEl = document.getElementById('book-end-date');
+    if (bookStartEl) {
+      bookStartEl.addEventListener('change', () => {
+        if (bookEndEl && bookStartEl.value) {
+          bookEndEl.min = bookStartEl.value;
+          if (bookEndEl.value && bookEndEl.value <= bookStartEl.value) {
+            const nextDay = new Date(bookStartEl.value + 'T00:00:00');
+            nextDay.setDate(nextDay.getDate() + 1);
+            bookEndEl.value = nextDay.toISOString().split('T')[0];
+          }
+        }
+        recalculateBookingQuote();
+      });
+      bookStartEl.addEventListener('input', recalculateBookingQuote);
+    }
+    if (bookEndEl) {
+      bookEndEl.addEventListener('change', recalculateBookingQuote);
+      bookEndEl.addEventListener('input', recalculateBookingQuote);
+    }
+
+    // Limpiar estado inválido de dirección de entrega
+    document.getElementById('book-delivery-address')?.addEventListener('input', (e) => {
+      e.target.classList.remove('is-invalid');
+    });
 
     // Selector de método de pago
     document.querySelectorAll('input[name="paymentMethod"]').forEach(radio => {
@@ -129,11 +156,12 @@ const App = (() => {
       });
     });
 
-    // Formateo dinámico y remoción de errores en campos de tarjeta de crédito/débito
+    // Formateo dinámico y detección de marca de tarjeta de crédito/débito
     const cardNumberInput = document.getElementById('card-number');
     const cardExpiryInput = document.getElementById('card-expiry');
     const cardCvcInput = document.getElementById('card-cvc');
     const cardHolderInput = document.getElementById('card-holder-name');
+    const cardBrandIcon = document.getElementById('card-brand-icon');
 
     if (cardNumberInput) {
       cardNumberInput.addEventListener('input', (e) => {
@@ -141,6 +169,19 @@ const App = (() => {
         let formatted = val.match(/.{1,4}/g)?.join(' ') || val;
         e.target.value = formatted;
         e.target.classList.remove('is-invalid');
+
+        if (cardBrandIcon) {
+          cardBrandIcon.className = 'fa sb-card-brand-icon';
+          if (/^4/.test(val)) {
+            cardBrandIcon.classList.add('fa-cc-visa', 'text-primary');
+          } else if (/^(5[1-5]|2[2-7])/.test(val)) {
+            cardBrandIcon.classList.add('fa-cc-mastercard', 'text-warning');
+          } else if (/^3[47]/.test(val)) {
+            cardBrandIcon.classList.add('fa-cc-amex', 'text-info');
+          } else {
+            cardBrandIcon.classList.add('fa-credit-card', 'text-muted');
+          }
+        }
       });
     }
 
@@ -178,6 +219,14 @@ const App = (() => {
       pseEmailInput.addEventListener('input', () => pseEmailInput.classList.remove('is-invalid'));
     }
 
+    // Campos de inspección de devolución
+    document.getElementById('return-horometro')?.addEventListener('input', (e) => {
+      e.target.classList.remove('is-invalid');
+    });
+    document.getElementById('damage-cost')?.addEventListener('input', (e) => {
+      e.target.classList.remove('is-invalid');
+    });
+
     // Suscripción a eventos WebSocket para refresco en tiempo real
     RealtimeManager.onNotification((notif) => {
       if (notif.channel === 'Catálogo') {
@@ -199,9 +248,85 @@ const App = (() => {
       if (Array.isArray(data) && data.length > 0) {
         categories = data;
         renderCategoryPills(categories);
+        renderCategoryDirectory(categories);
+        populateAddToolCategories(categories);
+        enrichToolsWithCategories();
       }
     } catch (e) {
       console.warn('Error cargando categorías desde la base de datos:', e);
+    }
+  }
+
+  function enrichToolsWithCategories() {
+    if (!categories || categories.length === 0 || !allTools || allTools.length === 0) return;
+    allTools.forEach(t => {
+      const cat = categories.find(c => c.id === t.categoryId);
+      if (cat) {
+        t.categoryName = cat.name;
+      }
+    });
+  }
+
+  function populateAddToolCategories(cats) {
+    const select = document.getElementById('add-tool-category');
+    if (!select || !cats || cats.length === 0) return;
+    select.innerHTML = cats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  }
+
+  function renderCategoryDirectory(cats) {
+    const grid = document.getElementById('sb-category-grid');
+    if (!grid) return;
+
+    const catImageMap = {
+      'Excavación y Movimiento de Tierras': 'assets/img/machinery/Retroexcavadora-Oruga-CAT-320D.png',
+      'Concreto y Mezclado': 'assets/img/machinery/mezcladora-diesel-380l.jpg',
+      'Trabajo en Altura y Andamios': 'assets/img/machinery/plataforma-tijera.jpg',
+      'Demolición y Rotura': 'assets/img/machinery/taladro-demoledor-bosch.jpeg',
+      'Generación de Energía y Plantas Eléctricas': 'assets/img/machinery/planta-electrica-cummins.jpg',
+      'Corte y Perforación de Suelos': 'assets/img/machinery/cortadora-pavimento.jpg',
+      'Compactación de Terreno': 'assets/img/machinery/rodillo-compactador.jpg',
+      'Bombeo y Evacuación de Agua': 'assets/img/machinery/motobomba-lodos.jpg',
+      'Compresores y Aire Comprimido': 'assets/img/machinery/compresor-aire.jpg',
+      'Elevación y Montacargas': 'assets/img/machinery/malacate-electrico.jpg',
+      'Soldadura Industrial': 'assets/img/machinery/motosoldadora-miller.jpg',
+      'Iluminación de Obras Nocturnas': 'assets/img/machinery/torre-iluminacion-generac.jpg',
+      'Topografía y Medición Láser': 'assets/img/machinery/estacion-total.jpg',
+      'Pintura y Recubrimientos Airless': 'assets/img/machinery/equipo-pintura-airless.jpg',
+      'Limpieza e Hidrolavado Industrial': 'assets/img/machinery/hidrolavadora-karcher.jpg',
+      'Jardinería y Descapote de Terreno': 'assets/img/machinery/compactadora-canguro.jpg',
+      'Formaletas y Encofrados Metálicos': 'assets/img/machinery/andamio-multidireccional.jpg',
+      'Herramienta Eléctrica de Taller': 'assets/img/machinery/martillo-rompedor-hilti.jpg',
+      'Carga y Transporte Ligero': 'assets/img/machinery/minicargador-bobcat.jpeg',
+      'Seguridad y Señalización Vial': 'assets/img/machinery/retroexcavadora-cat-420f2.jpg'
+    };
+
+    grid.innerHTML = cats.map(cat => {
+      const imgUrl = catImageMap[cat.name] || 'assets/img/machinery/Retroexcavadora-Oruga-CAT-320D.png';
+      return `
+        <div class="sb-category-card" onclick="App.filterByCategory('${cat.name}')">
+          <img src="${imgUrl}" alt="${cat.name}" class="sb-category-thumb" onerror="handleToolImageError(this)">
+          <div class="sb-category-name">${cat.name}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function filterByCategory(catName) {
+    selectedCategory = catName;
+    const container = document.getElementById('category-pills-container');
+    if (container) {
+      container.querySelectorAll('.category-pill').forEach(p => {
+        if (p.dataset.category && p.dataset.category.toLowerCase() === catName.toLowerCase()) {
+          p.classList.add('active');
+        } else {
+          p.classList.remove('active');
+        }
+      });
+    }
+    filterTools(document.getElementById('search-input')?.value || '');
+    const catalogSec = document.getElementById('section-catalog');
+    if (catalogSec) {
+      catalogSec.scrollIntoView({ behavior: 'smooth' });
     }
   }
 
@@ -260,9 +385,12 @@ const App = (() => {
   async function loadTools() {
     try {
       allTools = await API.tools.getAll();
+      enrichToolsWithCategories();
       filteredTools = [...allTools];
       renderTools(filteredTools);
-      MapManager.updateToolsOnMap(filteredTools);
+      if (typeof MapManager !== 'undefined' && MapManager.updateToolsOnMap) {
+        MapManager.updateToolsOnMap(filteredTools);
+      }
     } catch (err) {
       console.error('Error cargando maquinaria:', err);
     }
@@ -289,6 +417,702 @@ const App = (() => {
     }
   }
 
+  let heroDispatchMode = 'delivery';
+
+  function initHeroWidgetDates() {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+    const heroEnd = new Date(tomorrow);
+    heroEnd.setDate(heroEnd.getDate() + 6);
+    const defaultEndStr = heroEnd.toISOString().split('T')[0];
+
+    const heroStartEl = document.getElementById('hero-start-date');
+    const heroEndEl = document.getElementById('hero-end-date');
+
+    if (heroStartEl) {
+      heroStartEl.min = tomorrowStr;
+      if (!heroStartEl.value || heroStartEl.value < tomorrowStr) {
+        heroStartEl.value = tomorrowStr;
+      }
+      heroStartEl.addEventListener('change', () => validateHeroDates('start'));
+    }
+
+    if (heroEndEl) {
+      const nextDay = new Date(heroStartEl ? heroStartEl.value : tomorrowStr);
+      nextDay.setDate(nextDay.getDate() + 1);
+      const nextDayStr = nextDay.toISOString().split('T')[0];
+      heroEndEl.min = nextDayStr;
+      if (!heroEndEl.value || heroEndEl.value <= (heroStartEl ? heroStartEl.value : tomorrowStr)) {
+        heroEndEl.value = defaultEndStr > nextDayStr ? defaultEndStr : nextDayStr;
+      }
+      heroEndEl.addEventListener('change', () => validateHeroDates('end'));
+    }
+  }
+
+  function validateHeroDates(changedInput) {
+    const startEl = document.getElementById('hero-start-date');
+    const endEl = document.getElementById('hero-end-date');
+    if (!startEl || !endEl) return;
+
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+    if (startEl.value && startEl.value < tomorrowStr) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Fecha de inicio no válida',
+        text: 'Las reservas de maquinaria pesada deben coordinarse como mínimo a partir de mañana.',
+        confirmButtonColor: '#00843D',
+        timer: 3000
+      });
+      startEl.value = tomorrowStr;
+    }
+
+    if (startEl.value) {
+      const startDate = new Date(startEl.value + 'T00:00:00');
+      const minEndDate = new Date(startDate);
+      minEndDate.setDate(minEndDate.getDate() + 1);
+      const minEndDateStr = minEndDate.toISOString().split('T')[0];
+      endEl.min = minEndDateStr;
+
+      if (endEl.value && endEl.value <= startEl.value) {
+        if (changedInput === 'end') {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Fecha de devolución inválida',
+            text: 'La fecha de devolución debe ser posterior a la fecha de inicio del alquiler.',
+            confirmButtonColor: '#00843D',
+            timer: 3000
+          });
+        }
+        endEl.value = minEndDateStr;
+      }
+    }
+  }
+
+  function selectHeroLocation(locName) {
+    const input = document.getElementById('hero-location-input');
+    if (input) {
+      input.value = `${locName} (Bogotá & Sabana)`;
+      input.focus();
+    }
+  }
+
+  function setHeroDispatchMode(mode) {
+    heroDispatchMode = mode;
+    const btnDelivery = document.getElementById('btn-hero-delivery');
+    const btnPickup = document.getElementById('btn-hero-pickup');
+    if (btnDelivery && btnPickup) {
+      const delIcon = btnDelivery.querySelector('i');
+      const pickIcon = btnPickup.querySelector('i');
+      if (mode === 'delivery') {
+        btnDelivery.classList.add('active');
+        btnPickup.classList.remove('active');
+        if (delIcon) delIcon.className = 'fa fa-dot-circle me-1';
+        if (pickIcon) pickIcon.className = 'fa fa-circle me-1 text-muted';
+      } else {
+        btnPickup.classList.add('active');
+        btnDelivery.classList.remove('active');
+        if (delIcon) delIcon.className = 'fa fa-circle me-1 text-muted';
+        if (pickIcon) pickIcon.className = 'fa fa-dot-circle me-1';
+      }
+    }
+  }
+
+  function applyHeroBookingFilter() {
+    const locInput = document.getElementById('hero-location-input');
+    const startInput = document.getElementById('hero-start-date');
+    const endInput = document.getElementById('hero-end-date');
+
+    const locationVal = locInput ? locInput.value.trim() : '';
+    const startVal = startInput ? startInput.value : '';
+    const endVal = endInput ? endInput.value : '';
+
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+    if (!startVal || startVal < tomorrowStr) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Fecha de inicio no válida',
+        text: 'La fecha de inicio de la reserva debe ser como mínimo a partir de mañana.',
+        confirmButtonColor: '#00843D',
+        confirmButtonText: 'Ajustar fecha'
+      });
+      if (startInput) startInput.value = tomorrowStr;
+      return;
+    }
+
+    if (!endVal || new Date(startVal + 'T00:00:00') >= new Date(endVal + 'T00:00:00')) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Fechas Inválidas',
+        text: 'La fecha de devolución debe ser posterior a la fecha de inicio del alquiler.',
+        confirmButtonColor: '#00843D',
+        background: '#ffffff',
+        color: '#101820'
+      });
+      const nextDay = new Date(startVal + 'T00:00:00');
+      nextDay.setDate(nextDay.getDate() + 1);
+      if (endInput) endInput.value = nextDay.toISOString().split('T')[0];
+      return;
+    }
+
+    // Scroll suave al catálogo
+    const catalogSec = document.getElementById('section-catalog');
+    if (catalogSec) {
+      catalogSec.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    const modeText = heroDispatchMode === 'delivery' ? 'Despacho a Obra' : 'Retiro en Patio';
+    Swal.fire({
+      toast: true,
+      position: 'top-end',
+      icon: 'success',
+      title: 'Disponibilidad en Tiempo Real',
+      html: `Ubicación: <strong>${locationVal || 'Bogotá D.C. & Sabana'}</strong><br>` +
+            `Modalidad: <span class="badge bg-success">${modeText}</span><br>` +
+            `Periodo: <strong>${startVal}</strong> al <strong>${endVal}</strong>`,
+      showConfirmButton: false,
+      timer: 3500,
+      timerProgressBar: true,
+      background: '#ffffff',
+      color: '#101820'
+    });
+  }
+
+  function showCoverageModal() {
+    Swal.fire({
+      title: '<i class="fa fa-map-marked-alt text-success me-2"></i>Cobertura Operativa & Patios de Maquinaria',
+      html: `
+        <div class="text-start small text-dark p-2">
+          <p class="mb-3">RentaTools PRO cuenta con <strong>despacho logístico en cama baja</strong> y patios de maquinaria certificados en Bogotá D.C. y la Sabana:</p>
+          <div class="row g-2 mb-3">
+            <div class="col-12 col-md-6">
+              <div class="p-3 border rounded bg-light h-100">
+                <strong class="text-success"><i class="fa fa-city me-1"></i> Bogotá D.C.:</strong>
+                <ul class="mb-0 ps-3 mt-1 text-muted">
+                  <li><strong>Norte:</strong> Usaquén, Suba, Calle 170</li>
+                  <li><strong>Occidente:</strong> Fontibón, Engativá, Zona Franca</li>
+                  <li><strong>Centro / Industrial:</strong> Puente Aranda, Kennedy</li>
+                  <li><strong>Sur:</strong> Bosa, Tunjuelito, Autopista Sur</li>
+                </ul>
+              </div>
+            </div>
+            <div class="col-12 col-md-6">
+              <div class="p-3 border rounded bg-light h-100">
+                <strong class="text-warning text-dark"><i class="fa fa-mountain me-1"></i> Sabana de Bogotá:</strong>
+                <ul class="mb-0 ps-3 mt-1 text-muted">
+                  <li><strong>Sabana Centro:</strong> Chía, Cajicá, Cota, Zipaquirá</li>
+                  <li><strong>Norte Industrial:</strong> Tocancipá, Gachancipá</li>
+                  <li><strong>Sabana Occidente:</strong> Mosquera, Madrid, Funza</li>
+                  <li><strong>Sur / Soacha:</strong> Soacha, Sibaté</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div class="alert alert-success d-flex align-items-center gap-2 mb-0 py-2">
+            <i class="fa fa-clock fa-lg"></i>
+            <div><strong>Tiempos de Despacho:</strong> Menos de 4 horas para emergencias y entregas el mismo día con flota de camas bajas activa.</div>
+          </div>
+        </div>
+      `,
+      confirmButtonText: 'Ver Maquinaria Disponible',
+      confirmButtonColor: '#00843D',
+      background: '#ffffff',
+      color: '#101820',
+      width: '650px'
+    }).then(() => {
+      const catalogSec = document.getElementById('section-catalog');
+      if (catalogSec) catalogSec.scrollIntoView({ behavior: 'smooth' });
+    });
+  }
+
+  function handleContractorQuickAccess() {
+    const user = API.getUser();
+    if (user) {
+      if (user.role === 'ROLE_PROVEEDOR' || user.role === 'ROLE_ADMIN') {
+        switchView('provider-dashboard');
+      } else {
+        switchView('client-dashboard');
+      }
+    } else {
+      Swal.fire({
+        title: '<i class="fa fa-dolly-flatbed text-warning me-2"></i>Acceso Contratistas & Proveedores',
+        html: `
+          <p class="text-muted text-start mb-3">Accede a tu cuenta de RentaTools para publicar maquinaria pesada, gestionar alquileres activos o cotizar para tus frentes de obra.</p>
+          <div class="d-flex flex-column gap-2">
+            <button class="btn btn-sb-green w-100 py-2 fw-bold" onclick="Swal.close(); App.openAuthModal('login');">
+              <i class="fa fa-sign-in-alt me-1"></i> Iniciar Sesión en mi Portal
+            </button>
+            <button class="btn btn-outline-secondary w-100 py-2 fw-bold" onclick="Swal.close(); App.openAuthModal('register');">
+              <i class="fa fa-user-plus me-1"></i> Registrarse como Proveedor / Contratista
+            </button>
+          </div>
+        `,
+        showConfirmButton: false,
+        showCloseButton: true,
+        background: '#ffffff',
+        color: '#101820'
+      });
+    }
+  }
+
+  function handleProviderDashboardAccess() {
+    const user = API.getUser();
+    if (user && (user.role === 'ROLE_PROVEEDOR' || user.role === 'ROLE_ADMIN')) {
+      switchView('provider-dashboard');
+    } else {
+      Swal.fire({
+        icon: 'info',
+        title: 'Gestión Proveedor',
+        html: '<p class="text-muted">Tu sesión actual tiene rol <strong>CLIENTE</strong>. La vista de <em>Gestión Proveedor</em> está reservada para empresas propietarias de maquinaria.</p><p class="small text-muted mb-0">Para publicar equipos, contáctanos a soporte@rentatools.com o regístrate con perfil PROVEEDOR.</p>',
+        confirmButtonColor: '#00843D',
+        confirmButtonText: 'Entendido'
+      });
+    }
+  }
+
+  function handleAddToolAccess() {
+    const user = API.getUser();
+    if (user && (user.role === 'ROLE_PROVEEDOR' || user.role === 'ROLE_ADMIN')) {
+      openAddToolModal();
+    } else {
+      Swal.fire({
+        icon: 'info',
+        title: 'Publicar Maquinaria',
+        html: '<p class="text-muted">Para añadir maquinaria a la flota oficial de RentaTools se requiere rol de <strong>PROVEEDOR</strong> verificado.</p><p class="small text-muted mb-0">Inicia sesión con tu cuenta de proveedor o regístrate para monetizar tus activos de construcción.</p>',
+        confirmButtonColor: '#00843D',
+        confirmButtonText: 'Entendido'
+      });
+    }
+  }
+
+  const industriesMap = {
+    'construccion-civil': {
+      name: 'Construcción Civil & Edificación',
+      categories: ['Concreto y Mezclado', 'Trabajo en Altura y Andamios', 'Formaletas y Encofrados Metálicos', 'Demolición y Rotura', 'Herramienta Eléctrica de Taller', 'Excavación y Movimiento de Tierras'],
+      keywords: ['allanadora', 'mezcladora', 'vibrador', 'andamio', 'formaleta', 'taladro', 'regla', 'concreto', 'helicóptero']
+    },
+    'infraestructura-vial': {
+      name: 'Infraestructura Vial & Asfalto',
+      categories: ['Compactación de Terreno', 'Corte y Perforación de Suelos', 'Seguridad y Señalización Vial', 'Excavación y Movimiento de Tierras'],
+      keywords: ['rodillo', 'compactador', 'cortadora', 'pavimento', 'bailarina', 'placa', 'canguro', 'vías', 'asfalto']
+    },
+    'mineria-agregados': {
+      name: 'Minería & Canteras de Agregados',
+      categories: ['Excavación y Movimiento de Tierras', 'Bombeo y Evacuación de Agua', 'Compresores y Aire Comprimido', 'Demolición y Rotura'],
+      keywords: ['oruga', 'cat 320d', 'retroexcavadora', 'martillo', 'motobomba', 'compresor', 'lodos', 'minería', 'rompedor']
+    },
+    'energia-utilities': {
+      name: 'Energía & Utilities',
+      categories: ['Generación de Energía y Plantas Eléctricas', 'Iluminación de Obras Nocturnas', 'Soldadura Industrial', 'Compresores y Aire Comprimido'],
+      keywords: ['planta eléctrica', 'cummins', 'torre de iluminación', 'motosoldadora', 'generador', 'energía', 'diésel']
+    },
+    'eventos-montajes': {
+      name: 'Eventos, Bodegas & Montajes',
+      categories: ['Elevación y Montacargas', 'Trabajo en Altura y Andamios', 'Iluminación de Obras Nocturnas', 'Generación de Energía y Plantas Eléctricas'],
+      keywords: ['tijera', 'plataforma', 'andamio', 'torre', 'malacate', 'elevadora', 'montacargas']
+    },
+    'agroindustria': {
+      name: 'Agroindustria & Adecuación de Tierras',
+      categories: ['Jardinería y Descapote de Terreno', 'Bombeo y Evacuación de Agua', 'Carga y Transporte Ligero', 'Excavación y Movimiento de Tierras'],
+      keywords: ['bobcat', 'minicargador', 'motobomba', 'lodos', 'dúmper', 'ahoyadora', 'jcb', 'descapote', 'riego']
+    }
+  };
+
+  let activeIndustryKey = null;
+
+  function filterByIndustry(industryKey) {
+    const indData = industriesMap[industryKey];
+    if (!indData) return;
+
+    activeIndustryKey = industryKey;
+
+    // Resaltar tarjeta visualmente en sección de industrias
+    document.querySelectorAll('.sb-industry-card').forEach(card => {
+      if (card.dataset.industry === industryKey) {
+        card.classList.add('active-industry-card');
+      } else {
+        card.classList.remove('active-industry-card');
+      }
+    });
+
+    // Resetear pills de categoría visualmente a 'TODAS'
+    selectedCategory = 'TODAS';
+    const container = document.getElementById('category-pills-container');
+    if (container) {
+      container.querySelectorAll('.category-pill').forEach(p => {
+        p.classList.remove('active');
+        if (p.dataset.category === 'TODAS') p.classList.add('active');
+      });
+    }
+
+    // Filtrar herramientas por categorías y keywords de la industria
+    const targetCats = indData.categories.map(c => c.toLowerCase());
+    const targetKeys = indData.keywords.map(k => k.toLowerCase());
+
+    filteredTools = allTools.filter(tool => {
+      const toolCat = (tool.categoryName || tool.category || '').toLowerCase();
+      const toolName = (tool.name || '').toLowerCase();
+      const toolDesc = (tool.description || '').toLowerCase();
+      const toolBrand = (tool.brand || '').toLowerCase();
+
+      const matchesCat = targetCats.some(cat => toolCat.includes(cat) || cat.includes(toolCat));
+      const matchesKey = targetKeys.some(key => 
+        toolName.includes(key) || toolDesc.includes(key) || toolBrand.includes(key) || toolCat.includes(key)
+      );
+
+      return matchesCat || matchesKey;
+    });
+
+    renderTools(filteredTools);
+    if (typeof MapManager !== 'undefined' && MapManager.updateToolsOnMap) {
+      MapManager.updateToolsOnMap(filteredTools);
+    }
+
+    // Mostrar Banner Informativo arriba del catálogo
+    const banner = document.getElementById('industry-active-banner');
+    const titleEl = document.getElementById('industry-banner-title');
+    const countEl = document.getElementById('industry-banner-count');
+    if (banner && titleEl && countEl) {
+      titleEl.textContent = indData.name;
+      countEl.textContent = filteredTools.length;
+      banner.style.setProperty('display', 'flex', 'important');
+    }
+
+    // Scroll suave hacia el catálogo
+    const catalogSec = document.getElementById('section-catalog');
+    if (catalogSec) {
+      catalogSec.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Toast de confirmación
+    Swal.fire({
+      toast: true,
+      position: 'top-end',
+      icon: 'info',
+      title: `Sector: ${indData.name}`,
+      text: `${filteredTools.length} maquinarias y equipos encontrados para esta industria`,
+      showConfirmButton: false,
+      timer: 3000,
+      timerProgressBar: true
+    });
+  }
+
+  function clearIndustryFilter() {
+    activeIndustryKey = null;
+    document.querySelectorAll('.sb-industry-card').forEach(card => card.classList.remove('active-industry-card'));
+    const banner = document.getElementById('industry-active-banner');
+    if (banner) banner.style.setProperty('display', 'none', 'important');
+
+    selectedCategory = 'TODAS';
+    filteredTools = [...allTools];
+    renderTools(filteredTools);
+    if (typeof MapManager !== 'undefined' && MapManager.updateToolsOnMap) {
+      MapManager.updateToolsOnMap(filteredTools);
+    }
+  }
+
+  function downloadCatalogPdf() {
+    Swal.fire({
+      title: 'Generando Catálogo Oficial (PDF)',
+      html: '<p class="text-muted">Preparando el catálogo técnico con fichas de maquinaria, especificaciones y tarifas en COP para impresión y descarga...</p><div class="spinner-border text-success my-2" role="status"></div>',
+      showConfirmButton: false,
+      timer: 1200
+    }).then(() => {
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Ventana Emergente Bloqueada',
+          text: 'Por favor permite las ventanas emergentes en tu navegador para ver y descargar el catálogo en PDF.',
+          confirmButtonColor: '#00843D'
+        });
+        return;
+      }
+
+      const toolsList = (allTools && allTools.length > 0) ? allTools : [
+        { name: 'Retroexcavadora Oruga CAT 320D', brand: 'Caterpillar', model: '320D', dailyRate: 850000, depositAmount: 2500000, categoryName: 'Excavación y Movimiento de Tierras' },
+        { name: 'Minicargador Bobcat S570', brand: 'Bobcat', model: 'S570', dailyRate: 350000, depositAmount: 1200000, categoryName: 'Excavación y Movimiento de Tierras' },
+        { name: 'Planta Eléctrica Diésel 50kVA Insonorizada', brand: 'Cummins', model: 'C55D5', dailyRate: 280000, depositAmount: 1000000, categoryName: 'Generación de Energía' },
+        { name: 'Rodillo Vibrocompactador Doble 1.2 Ton', brand: 'Dynapac', model: 'CC1200', dailyRate: 310000, depositAmount: 1100000, categoryName: 'Compactación de Terreno' },
+        { name: 'Plataforma Elevadora Tijera Eléctrica 8m', brand: 'Genie', model: 'GS-1930', dailyRate: 180000, depositAmount: 650000, categoryName: 'Trabajo en Altura' }
+      ];
+
+      const rows = toolsList.map((t, idx) => `
+        <tr>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-weight: bold; color: #101820;">${idx + 1}. ${t.name}</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; color: #475569;">${t.brand || ''} ${t.model || ''}</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; color: #475569;">${t.categoryName || t.category || 'Maquinaria'}</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-weight: bold; color: #00843D;">${API.formatCurrency(t.dailyRate || t.dailyPrice || 0)}/día</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">${API.formatCurrency(t.depositAmount || 0)}</td>
+        </tr>
+      `).join('');
+
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+          <meta charset="UTF-8">
+          <title>Catálogo Oficial de Maquinaria y Equipos 2026 - RentaTools PRO</title>
+          <style>
+            body { font-family: 'Helvetica Neue', Arial, sans-serif; margin: 30px; color: #101820; line-height: 1.4; }
+            .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #00843D; padding-bottom: 16px; margin-bottom: 24px; }
+            .logo-text { font-size: 26px; font-weight: 900; color: #101820; letter-spacing: -0.5px; }
+            .logo-sub { font-size: 13px; font-weight: 700; color: #00843D; letter-spacing: 1px; }
+            .company-info { text-align: right; font-size: 12px; color: #59636e; line-height: 1.4; }
+            .badge-cert { background: #FFC72C; color: #101820; padding: 4px 10px; border-radius: 4px; font-weight: bold; font-size: 11px; display: inline-block; margin-top: 4px; }
+            h2 { font-size: 18px; color: #00843D; margin-top: 0; margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
+            table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 30px; }
+            th { background: #00843D; color: #ffffff; text-align: left; padding: 10px 12px; font-weight: 700; font-size: 12px; }
+            .footer-notes { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 16px; font-size: 11px; color: #475569; line-height: 1.5; }
+            @media print {
+              .no-print { display: none; }
+              body { margin: 15mm; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="no-print" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; background: #e8f5e9; padding: 12px 18px; border-radius: 8px;">
+            <span><strong>Catálogo Oficial RentaTools 2026</strong> listo para impresión o guardar como PDF.</span>
+            <button onclick="window.print()" style="background: #00843D; color: white; border: none; padding: 8px 18px; border-radius: 6px; font-weight: bold; cursor: pointer;">
+              Imprimir / Guardar en PDF
+            </button>
+          </div>
+          <div class="header">
+            <div>
+              <div class="logo-text">RENTATOOLS PRO</div>
+              <div class="logo-sub">ALQUILER DE MAQUINARIA PESADA & HERRAMIENTAS</div>
+              <span class="badge-cert">Catálogo Oficial 2026 &bull; Facturación DIAN</span>
+            </div>
+            <div class="company-info">
+              <strong>Sede Central & Patios Operativos:</strong><br>
+              Bogotá D.C. & Sabana (Chía, Cajicá, Mosquera, Tocancipá)<br>
+              Línea Obras: (601) 745-9000 &bull; WhatsApp: 310 999 8888<br>
+              Portal: www.rentatools.com &bull; Correo: operaciones@rentatools.com
+            </div>
+          </div>
+
+          <h2>Inventario Oficial de Maquinaria y Equipos Disponibles (${toolsList.length} Referencias)</h2>
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 32%;">Equipo / Maquinaria</th>
+                <th style="width: 18%;">Marca / Modelo</th>
+                <th style="width: 25%;">Especialidad / Categoría</th>
+                <th style="width: 13%;">Tarifa Día</th>
+                <th style="width: 12%;">Garantía</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+            </tbody>
+          </table>
+
+          <div class="footer-notes">
+            <strong>Condiciones de Alquiler y Despacho RentaTools PRO:</strong><br>
+            &bull; <strong>Despacho a Obra:</strong> Coordinación de transporte en cama baja para maquinaria pesada en menos de 4 horas en Bogotá y Sabana.<br>
+            &bull; <strong>Seguridad y Certificación:</strong> Maquinaria 100% inspeccionada, horómetros certificados y pólizas de protección todo riesgo vigentes.<br>
+            &bull; <strong>Facturación DIAN:</strong> Tarifas expresadas en COP sin IVA. IVA del 19% aplicable en facturación electrónica reglamentaria.<br>
+            &bull; <strong>Garantía:</strong> El depósito es 100% reembolsable al retorno del equipo tras inspección técnica de horómetro y fluidos.
+          </div>
+        </body>
+        </html>
+      `;
+
+      printWindow.document.open();
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      printWindow.focus();
+    });
+  }
+
+  function toggleMapSection() {
+    const mapContainer = document.getElementById('map-collapse-container');
+    if (mapContainer) {
+      const bsCollapse = bootstrap.Collapse.getInstance(mapContainer) || new bootstrap.Collapse(mapContainer);
+      bsCollapse.toggle();
+    }
+  }
+
+  function updateCartBadge() {
+    const hasQuote = Boolean(activeToolForBooking && activeToolForBooking.calculatedQuote);
+    const count = hasQuote ? 1 : 0;
+    const badgeEl = document.getElementById('sb-cart-count');
+    if (badgeEl) badgeEl.textContent = count;
+    const modalBadgeEl = document.getElementById('cart-modal-badge');
+    if (modalBadgeEl) modalBadgeEl.textContent = count;
+  }
+
+  function renderCartModal() {
+    const container = document.getElementById('cart-modal-body');
+    if (!container) return;
+
+    updateCartBadge();
+
+    if (!activeToolForBooking || !activeToolForBooking.calculatedQuote) {
+      // ESTADO DE CARRITO VACÍO (IDÉNTICO A SUNBELT RENTALS - CAPTURA 8)
+      container.innerHTML = `
+        <div class="text-center py-4">
+          <div class="sb-cart-empty-art mx-auto">
+            <i class="fa fa-shopping-basket fa-3x"></i>
+          </div>
+          <h4 class="fw-bold text-dark mb-2">Tu carrito está actualmente vacío</h4>
+          <p class="text-muted small mb-4 mx-auto" style="max-width: 360px;">
+            Explora nuestro catálogo de maquinaria pesada y herramientas de construcción para cotizar y reservar en línea con tarifas por día, semana o mes.
+          </p>
+          <div class="d-flex flex-column gap-2">
+            <button type="button" class="btn btn-sb-green w-100 py-2 fw-bold" data-bs-dismiss="modal" onclick="document.getElementById('section-catalog')?.scrollIntoView({ behavior: 'smooth' });">
+              <i class="fa fa-search me-1"></i> Explorar Catálogo de Maquinaria
+            </button>
+            <div class="p-2 rounded bg-light border text-muted small mt-2">
+              <i class="fa fa-phone-alt me-1 text-success"></i> ¿Necesitas asesoría para tu obra? Llámanos: <strong>(601) 745-9000</strong>
+            </div>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    // SI HAY UNA COTIZACIÓN ACTIVA EN CURSO: RESUMEN RÁPIDO CON OPCIÓN DE IR DIRECTO A PAGAR
+    const tool = activeToolForBooking;
+    const q = tool.calculatedQuote;
+    const details = tool.bookingDetails || {};
+    const deliveryAddress = details.deliveryAddress || document.getElementById('book-delivery-address')?.value || 'Bogotá D.C. & Sabana';
+    const camaBajaNotes = details.camaBajaNotes || document.getElementById('book-cama-baja-notes')?.value || '';
+
+    container.innerHTML = `
+      <div class="cart-active-quote-wrap">
+        <div class="d-flex align-items-center justify-content-between pb-3 border-bottom mb-3">
+          <div class="d-flex align-items-center gap-3">
+            <img src="${getToolImageUrl(tool)}" class="rounded border p-1" style="width: 72px; height: 72px; object-fit: contain; background: #f8fafc;" alt="${tool.name}" onerror="handleToolImageError(this);">
+            <div>
+              <span class="badge bg-success mb-1"><i class="fa fa-check-circle me-1"></i> Cotización en Curso</span>
+              <h6 class="fw-bold text-dark mb-0">${tool.name}</h6>
+              <div class="text-muted small">${tool.categoryName || tool.category || 'Maquinaria'} | CAT CLASS: RT-${String(tool.id).padStart(4, '0')}</div>
+            </div>
+          </div>
+          <button class="btn btn-sm btn-outline-danger" onclick="App.clearCart()" title="Vaciar Carrito">
+            <i class="fa fa-trash-alt"></i>
+          </button>
+        </div>
+
+        <div class="bg-light p-3 rounded-3 border mb-3">
+          <div class="d-flex justify-content-between small text-muted mb-2">
+            <span><i class="fa fa-calendar-alt text-success me-1"></i> Periodo de Reserva:</span>
+            <strong class="text-dark">${q.startDate} al ${q.endDate} (${q.days} días)</strong>
+          </div>
+          <div class="d-flex justify-content-between small text-muted mb-2">
+            <span><i class="fa fa-map-marker-alt text-danger me-1"></i> Frente de Obra:</span>
+            <strong class="text-dark text-truncate ms-2" style="max-width: 230px;" title="${deliveryAddress}">${deliveryAddress}</strong>
+          </div>
+          ${camaBajaNotes ? `
+          <div class="d-flex justify-content-between small text-muted mb-2">
+            <span><i class="fa fa-truck-pickup text-primary me-1"></i> Cama Baja:</span>
+            <span class="text-muted text-truncate ms-2" style="max-width: 230px;" title="${camaBajaNotes}">${camaBajaNotes}</span>
+          </div>` : ''}
+          <hr class="my-2">
+          <div class="d-flex justify-content-between small text-muted mb-1">
+            <span>Subtotal Alquiler (${q.days} días):</span>
+            <span class="text-dark fw-bold">${API.formatCurrency(q.subtotal)}</span>
+          </div>
+          <div class="d-flex justify-content-between small text-muted mb-1">
+            <span>IVA (19% Factura DIAN):</span>
+            <span class="text-dark fw-bold">${API.formatCurrency(q.iva)}</span>
+          </div>
+          <div class="d-flex justify-content-between small text-muted mb-1">
+            <span>Depósito Garantía (Retornable):</span>
+            <span class="text-primary fw-bold">${API.formatCurrency(q.deposit)}</span>
+          </div>
+          <hr class="my-2">
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="fw-bold text-dark">TOTAL ESTIMADO COP:</span>
+            <span class="h4 text-success fw-bold mb-0">${API.formatCurrency(q.total)}</span>
+          </div>
+        </div>
+
+        <div class="d-flex flex-column gap-2">
+          <button type="button" class="btn btn-sb-green w-100 py-2 fw-bold" onclick="App.proceedToPaymentFromCart()">
+            <i class="fa fa-credit-card me-2"></i> Ir Directo a Pagar (${API.formatCurrency(q.total)})
+          </button>
+          <div class="row g-2">
+            <div class="col-6">
+              <button type="button" class="btn btn-outline-secondary w-100 py-1 btn-sm" onclick="App.modifyBookingFromCart()">
+                <i class="fa fa-edit me-1"></i> Modificar Fechas
+              </button>
+            </div>
+            <div class="col-6">
+              <button type="button" class="btn btn-outline-danger w-100 py-1 btn-sm" onclick="App.clearCart()">
+                <i class="fa fa-trash-alt me-1"></i> Vaciar Carrito
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function openCartModal() {
+    renderCartModal();
+    const cartModalEl = document.getElementById('cartModal');
+    if (cartModalEl) {
+      const modal = bootstrap.Modal.getInstance(cartModalEl) || new bootstrap.Modal(cartModalEl);
+      modal.show();
+    }
+  }
+
+  function proceedToPaymentFromCart() {
+    if (!activeToolForBooking || !activeToolForBooking.calculatedQuote) return;
+    const cartModalEl = document.getElementById('cartModal');
+    const cartModal = bootstrap.Modal.getInstance(cartModalEl);
+    if (cartModal) cartModal.hide();
+
+    // Sincronizar dirección de obra si no está fijada aún
+    const addr = activeToolForBooking.bookingDetails?.deliveryAddress || document.getElementById('book-delivery-address')?.value || 'Bogotá D.C. & Sabana';
+    const notes = activeToolForBooking.bookingDetails?.camaBajaNotes || document.getElementById('book-cama-baja-notes')?.value || '';
+    activeToolForBooking.bookingDetails = { deliveryAddress: addr, camaBajaNotes: notes };
+
+    // Abrir Modal de Pago
+    const q = activeToolForBooking.calculatedQuote;
+    document.getElementById('pay-tool-title').textContent = activeToolForBooking.name;
+    document.getElementById('pay-summary-total').textContent = API.formatCurrency(q.total);
+    document.getElementById('pay-summary-breakdown').textContent = `${q.days} días de alquiler + IVA 19% (${API.formatCurrency(q.iva)}) + Garantía (${API.formatCurrency(q.deposit)})`;
+    const payDelivery = document.getElementById('pay-summary-delivery');
+    if (payDelivery) {
+      payDelivery.style.display = 'block';
+      payDelivery.innerHTML = `<i class="fa fa-map-marker-alt text-danger me-1"></i> Frente de obra: <strong>${addr}</strong>` +
+        (notes ? `<br><small class="text-muted"><i class="fa fa-truck-pickup me-1"></i> Cama baja: ${notes}</small>` : '');
+    }
+
+    const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
+    paymentModal.show();
+  }
+
+  function modifyBookingFromCart() {
+    if (!activeToolForBooking) return;
+    const cartModalEl = document.getElementById('cartModal');
+    const cartModal = bootstrap.Modal.getInstance(cartModalEl);
+    if (cartModal) cartModal.hide();
+
+    const bookingModalEl = document.getElementById('bookingModal');
+    const bookingModal = bootstrap.Modal.getInstance(bookingModalEl) || new bootstrap.Modal(bookingModalEl);
+    bookingModal.show();
+  }
+
+  function clearCart() {
+    activeToolForBooking = null;
+    updateCartBadge();
+    renderCartModal();
+  }
+
   function renderTools(tools) {
     const counterEl = document.getElementById('tools-counter-num');
     if (counterEl) {
@@ -300,53 +1124,78 @@ const App = (() => {
 
     if (tools.length === 0) {
       grid.innerHTML = `
-        <div class="col-12 text-center py-5">
+        <div class="col-12 text-center py-5 bg-white rounded-3 border">
           <i class="fa fa-search fa-3x text-secondary mb-3"></i>
-          <h5 class="text-light">No encontramos maquinaria con los filtros seleccionados</h5>
+          <h5 class="text-dark fw-bold">No encontramos maquinaria con los filtros seleccionados</h5>
           <p class="text-muted">Prueba ampliando el radio de búsqueda o cambiando de categoría.</p>
         </div>`;
       return;
     }
 
-    grid.innerHTML = tools.map(t => `
-      <div class="col-md-6 col-lg-4 mb-4">
-        <div class="card glass-card h-100 p-0 overflow-hidden">
-          <div class="position-relative">
-            <img src="${getToolImageUrl(t)}" class="card-img-top" style="height: 200px; object-fit: cover;" alt="${t.name}" onerror="handleToolImageError(this);">
-            <div class="position-absolute top-0 start-0 m-3">
-              <span class="badge ${t.status === 'DISPONIBLE' ? 'badge-available' : 'badge-rented'}">
-                <i class="fa ${t.status === 'DISPONIBLE' ? 'fa-check-circle' : 'fa-clock'} me-1"></i> ${t.status}
-              </span>
-            </div>
-            <div class="position-absolute top-0 end-0 m-3">
-              <span class="badge bg-dark bg-opacity-75 text-light px-2 py-1 rounded">
-                <i class="fa fa-map-marker-alt text-warning me-1"></i> ${t.locationName || 'Obra'}
-              </span>
+    grid.innerHTML = tools.map(t => {
+      const daily = t.dailyRate || 0;
+      const weekly = Math.round(daily * 3.5);
+      const monthly = Math.round(daily * 12);
+      const catClass = `RT-${String(t.id).padStart(4, '0')}`;
+      
+      let specsHtml = '';
+      if (t.specifications && Array.isArray(t.specifications) && t.specifications.length > 0) {
+        specsHtml = t.specifications.slice(0, 3).map(s => `<li><strong>${s.key || s.specName || 'Dato'}:</strong> ${s.value || s.specValue || ''}</li>`).join('');
+      } else {
+        specsHtml = `<li><strong>Marca:</strong> ${t.brand || 'Industrial'} ${t.model || ''}</li><li><strong>Potencia:</strong> Motor Industrial Certificado</li>`;
+      }
+
+      return `
+        <div class="sb-tool-card mb-3">
+          <!-- Columna 1: Imagen y Badge de Estado -->
+          <div class="sb-tool-img-wrap position-relative">
+            <img src="${getToolImageUrl(t)}" alt="${t.name}" onerror="handleToolImageError(this);">
+            <span class="badge ${t.status === 'DISPONIBLE' ? 'bg-success' : 'bg-secondary'} position-absolute top-0 start-0 m-2" style="font-size: 0.7rem;">
+              <i class="fa ${t.status === 'DISPONIBLE' ? 'fa-check-circle' : 'fa-clock'} me-1"></i> ${t.status}
+            </span>
+          </div>
+
+          <!-- Columna 2: Ficha Técnica e Inventario -->
+          <div class="sb-tool-info-col">
+            <div class="sb-tool-cat-class">CAT CLASS: ${catClass} | ${t.categoryName || t.category || 'Maquinaria'}</div>
+            <h4 class="sb-tool-name">${t.name}</h4>
+            <div class="sb-tool-specs-header">ESPECIFICACIONES TÉCNICAS</div>
+            <ul class="sb-tool-specs-list">
+              <li><strong>Marca / Modelo:</strong> ${t.brand || 'Industrial'} ${t.model || ''}</li>
+              ${specsHtml}
+              <li><strong>Garantía retornable:</strong> ${API.formatCurrency(t.depositAmount)}</li>
+            </ul>
+            <div class="sb-tool-location-badge">
+              <i class="fa fa-map-marker-alt"></i> <span>${t.locationName || 'Bogotá D.C. & Cobertura Sabana'}</span>
             </div>
           </div>
-          <div class="card-body p-4 d-flex flex-column">
-            <div class="small text-warning fw-bold mb-1">${t.category}</div>
-            <h5 class="card-title text-light fw-bold">${t.name}</h5>
-            <p class="card-text text-muted small flex-grow-1">${t.description}</p>
-            
-            <div class="p-3 my-3 rounded" style="background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.05);">
-              <div class="d-flex justify-content-between align-items-center mb-1">
-                <span class="text-muted small">Tarifa diaria:</span>
-                <span class="text-warning fw-bold">${API.formatCurrency(t.dailyRate)}</span>
+
+          <!-- Columna 3: Tarifas Tabulares y Botón -->
+          <div class="sb-tool-rate-box">
+            <div class="sb-rate-grid">
+              <div class="sb-rate-col">
+                <span class="sb-rate-value">${API.formatCurrency(daily)}</span>
+                <span class="sb-rate-label">1 Día</span>
               </div>
-              <div class="d-flex justify-content-between align-items-center">
-                <span class="text-muted small">Garantía retornable:</span>
-                <span class="text-light small">${API.formatCurrency(t.depositAmount)}</span>
+              <div class="sb-rate-col">
+                <span class="sb-rate-value">${API.formatCurrency(weekly)}</span>
+                <span class="sb-rate-label">1 Sem</span>
+              </div>
+              <div class="sb-rate-col">
+                <span class="sb-rate-value">${API.formatCurrency(monthly)}</span>
+                <span class="sb-rate-label">4 Sem</span>
               </div>
             </div>
-
-            <button class="btn btn-neu-amber w-100" onclick="App.openBookingModal('${t.id}')">
-              <i class="fa fa-calendar-check me-2"></i> Cotizar & Reservar
+            <button class="btn btn-sb-green w-100" onclick="App.openBookingModal('${t.id}')">
+              <i class="fa fa-calendar-check me-1"></i> Cotizar & Reservar
             </button>
+            <div class="sb-tool-availability-note">
+              <i class="fa fa-check-circle me-1"></i> Disponibilidad garantizada en Bogotá
+            </div>
           </div>
         </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
   }
 
   function openBookingModal(toolId) {
@@ -354,12 +1203,12 @@ const App = (() => {
     if (!user) {
       Swal.fire({
         icon: 'info',
-        title: 'Iniciar Sesión',
-        text: 'Debes iniciar sesión para realizar cotizaciones y reservas de maquinaria.',
-        confirmButtonColor: '#f59e0b',
+        title: 'Iniciar Sesión Requerido',
+        text: 'Debes iniciar sesión para realizar cotizaciones y reservas de maquinaria en línea.',
+        confirmButtonColor: '#00843D',
         confirmButtonText: 'Ir a Iniciar Sesión',
-        background: '#0f172a',
-        color: '#f8fafc'
+        background: '#ffffff',
+        color: '#101820'
       }).then(() => {
         openAuthModal('login');
       });
@@ -382,15 +1231,63 @@ const App = (() => {
       bookImg.onerror = function() { handleToolImageError(this); };
     }
 
-    // Fechas por defecto: Mañana y 4 días después
+    // Fechas: tomadas del Hero widget si están seleccionadas y válidas (mínimo mañana), o por defecto mañana y 3 días
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    const end = new Date(tomorrow);
-    end.setDate(end.getDate() + 3);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
 
-    document.getElementById('book-start-date').value = tomorrow.toISOString().split('T')[0];
-    document.getElementById('book-end-date').value = end.toISOString().split('T')[0];
+    const startDateInput = document.getElementById('book-start-date');
+    const endDateInput = document.getElementById('book-end-date');
+    if (startDateInput) startDateInput.min = tomorrowStr;
+
+    const heroStartVal = document.getElementById('hero-start-date')?.value;
+    const heroEndVal = document.getElementById('hero-end-date')?.value;
+
+    let startToUse = '';
+    let endToUse = '';
+
+    if (heroStartVal && heroEndVal && new Date(heroStartVal) < new Date(heroEndVal) && heroStartVal >= tomorrowStr) {
+      startToUse = heroStartVal;
+      endToUse = heroEndVal;
+    } else {
+      const end = new Date(tomorrow);
+      end.setDate(end.getDate() + 3);
+
+      startToUse = tomorrowStr;
+      endToUse = end.toISOString().split('T')[0];
+    }
+
+    if (startDateInput) startDateInput.value = startToUse;
+    if (endDateInput) {
+      endDateInput.value = endToUse;
+      const nextDay = new Date(startToUse);
+      nextDay.setDate(nextDay.getDate() + 1);
+      endDateInput.min = nextDay.toISOString().split('T')[0];
+    }
+
+    // Modalidad y Ubicación transferidas del Hero
+    const heroLoc = document.getElementById('hero-location-input')?.value || 'Bogotá D.C. & Sabana';
+    const modeText = heroDispatchMode === 'delivery' ? 'Despacho a Obra' : 'Retiro en Patio';
+    const dispatchNoteText = document.getElementById('book-dispatch-note-text');
+    if (dispatchNoteText) {
+      dispatchNoteText.innerHTML = `Modalidad: <strong>${modeText}</strong> &bull; Destino: <strong>${heroLoc}</strong>`;
+    }
+
+    // Dirección de obra y autocompletado de Bogotá y Cundinamarca
+    const addressInput = document.getElementById('book-delivery-address');
+    if (addressInput) {
+      if (!addressInput.value) {
+        if (heroLoc && heroLoc.trim() && heroLoc !== 'Bogotá D.C. & Sabana') {
+          addressInput.value = heroLoc;
+        } else if (user.address) {
+          addressInput.value = user.address;
+        } else {
+          addressInput.value = 'Bogotá D.C. - Usaquén (Cra 7 # 127, Obra Residencial)';
+        }
+      }
+      addressInput.classList.remove('is-invalid');
+    }
 
     recalculateBookingQuote();
 
@@ -401,12 +1298,27 @@ const App = (() => {
   function recalculateBookingQuote() {
     if (!activeToolForBooking) return;
 
-    const startVal = document.getElementById('book-start-date').value;
-    const endVal = document.getElementById('book-end-date').value;
+    const startInput = document.getElementById('book-start-date');
+    const endInput = document.getElementById('book-end-date');
+    if (!startInput || !endInput) return;
+
+    let startVal = startInput.value;
+    let endVal = endInput.value;
     if (!startVal || !endVal) return;
 
-    const startDate = new Date(startVal);
-    const endDate = new Date(endVal);
+    let startDate = new Date(startVal + 'T00:00:00');
+    let endDate = new Date(endVal + 'T00:00:00');
+
+    // Si fecha final es anterior o igual a la inicial, ajustar automáticamente a 1 día después
+    if (endDate <= startDate) {
+      const adjusted = new Date(startDate);
+      adjusted.setDate(adjusted.getDate() + 1);
+      endVal = adjusted.toISOString().split('T')[0];
+      endInput.value = endVal;
+      endDate = new Date(endVal + 'T00:00:00');
+    }
+    endInput.min = startVal;
+
     let diffDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
     if (diffDays <= 0) diffDays = 1;
 
@@ -414,16 +1326,16 @@ const App = (() => {
     const deposit = activeToolForBooking.depositAmount || 0;
 
     const subtotal = dailyRate * diffDays;
-    const iva = subtotal * 0.19; // IVA 19%
+    const iva = Math.round(subtotal * 0.19); // IVA 19% Factura DIAN
     const total = subtotal + iva + deposit;
 
     document.getElementById('quote-days').textContent = `${diffDays} día(s)`;
     document.getElementById('quote-subtotal').textContent = API.formatCurrency(subtotal);
-    document.getElementById('quote-deposit').textContent = API.formatCurrency(deposit);
     document.getElementById('quote-iva').textContent = API.formatCurrency(iva);
+    document.getElementById('quote-deposit').textContent = API.formatCurrency(deposit);
     document.getElementById('quote-total').textContent = API.formatCurrency(total);
 
-    // Guardar cálculo para proceso de pago
+    // Guardar cálculo para proceso de pago y carrito
     activeToolForBooking.calculatedQuote = {
       days: diffDays,
       subtotal,
@@ -433,20 +1345,50 @@ const App = (() => {
       startDate: startVal,
       endDate: endVal
     };
+
+    updateCartBadge();
   }
 
   async function proceedToPaymentFromBooking() {
     if (!activeToolForBooking || !activeToolForBooking.calculatedQuote) return;
 
+    const addressInput = document.getElementById('book-delivery-address');
+    const deliveryAddress = (addressInput?.value || '').trim();
+    if (!deliveryAddress) {
+      addressInput?.classList.add('is-invalid');
+      Swal.fire({
+        icon: 'warning',
+        title: 'Dirección de Obra Requerida',
+        text: 'Por favor indica la dirección o frente de obra en Bogotá o Cundinamarca para el despacho de la maquinaria.',
+        confirmButtonColor: '#00843D',
+        background: '#ffffff',
+        color: '#101820'
+      });
+      return;
+    }
+    addressInput?.classList.remove('is-invalid');
+
+    const camaBajaNotes = (document.getElementById('book-cama-baja-notes')?.value || '').trim();
+    activeToolForBooking.bookingDetails = {
+      deliveryAddress,
+      camaBajaNotes
+    };
+
     const bookingModalEl = document.getElementById('bookingModal');
     const bookingModal = bootstrap.Modal.getInstance(bookingModalEl);
     if (bookingModal) bookingModal.hide();
 
-    // Abrir Modal de Pago
+    // Abrir Modal de Pago con desglose completo
     const q = activeToolForBooking.calculatedQuote;
     document.getElementById('pay-tool-title').textContent = activeToolForBooking.name;
     document.getElementById('pay-summary-total').textContent = API.formatCurrency(q.total);
-    document.getElementById('pay-summary-breakdown').textContent = `${q.days} días de renta + Garantía (${API.formatCurrency(q.deposit)}) + IVA 19%`;
+    document.getElementById('pay-summary-breakdown').textContent = `${q.days} días de renta + IVA 19% (${API.formatCurrency(q.iva)}) + Garantía (${API.formatCurrency(q.deposit)})`;
+    const payDelivery = document.getElementById('pay-summary-delivery');
+    if (payDelivery) {
+      payDelivery.style.display = 'block';
+      payDelivery.innerHTML = `<i class="fa fa-map-marker-alt text-danger me-1"></i> Despacho: <strong>${deliveryAddress}</strong>` +
+        (camaBajaNotes ? `<br><small class="text-muted"><i class="fa fa-truck-pickup me-1"></i> Cama baja: ${camaBajaNotes}</small>` : '');
+    }
 
     const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
     paymentModal.show();
@@ -457,6 +1399,9 @@ const App = (() => {
     if (!user || !activeToolForBooking) return;
 
     const q = activeToolForBooking.calculatedQuote;
+    const details = activeToolForBooking.bookingDetails || {};
+    const deliveryAddress = details.deliveryAddress || document.getElementById('book-delivery-address')?.value || user.address || 'Bogotá D.C. & Sabana';
+    const camaBajaNotes = details.camaBajaNotes || document.getElementById('book-cama-baja-notes')?.value || '';
     const selectedMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value || 'PSE';
 
     // VALIDACIÓN ESTRICTA DE CAMPOS OBLIGATORIOS SEGÚN MÉTODO DE PAGO
@@ -477,7 +1422,7 @@ const App = (() => {
       if (!holder || holder.length < 3) {
         holderInput?.classList.add('is-invalid');
         hasError = true;
-        errorMsg = 'Ingresa el nombre del titular tal como aparece en la tarjeta.';
+        errorMsg = 'Ingresa el nombre del titular tal como figura en la tarjeta.';
       } else {
         holderInput?.classList.remove('is-invalid');
       }
@@ -524,9 +1469,9 @@ const App = (() => {
           icon: 'warning',
           title: 'Datos de Tarjeta Incompletos',
           text: errorMsg,
-          confirmButtonColor: '#f59e0b',
-          background: '#0f172a',
-          color: '#f8fafc'
+          confirmButtonColor: '#00843D',
+          background: '#ffffff',
+          color: '#101820'
         });
         return;
       }
@@ -562,36 +1507,49 @@ const App = (() => {
           icon: 'warning',
           title: 'Datos de PSE Incompletos',
           text: errorMsg,
-          confirmButtonColor: '#f59e0b',
-          background: '#0f172a',
-          color: '#f8fafc'
+          confirmButtonColor: '#00843D',
+          background: '#ffffff',
+          color: '#101820'
         });
         return;
       }
     }
 
+    // ESTADO DE CARGA EN EL BOTÓN DE CONFIRMACIÓN
+    const btnSubmit = document.getElementById('btn-submit-payment');
+    const originalBtnHtml = btnSubmit ? btnSubmit.innerHTML : '';
+    if (btnSubmit) {
+      btnSubmit.disabled = true;
+      btnSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Procesando Pago Seguro...';
+    }
+
     Swal.fire({
-      title: 'Procesando Transacción...',
-      text: 'Conectando con la pasarela de pagos segura y emitiendo factura electrónica...',
+      title: 'Procesando Pago Seguro...',
+      text: 'Conectando con la pasarela de pagos, validando fondos y emitiendo factura electrónica con la DIAN...',
       allowOutsideClick: false,
       didOpen: () => {
         Swal.showLoading();
       },
-      background: '#0f172a',
-      color: '#f8fafc'
+      background: '#ffffff',
+      color: '#101820'
     });
 
     try {
       const effectiveClientId = user.clientId || user.id;
 
-      // 1. Crear Reserva
+      // 1. Crear Reserva con dirección de obra y notas para operador de cama baja
+      const rentalNotes = [
+        `Reserva para ${activeToolForBooking.name}`,
+        camaBajaNotes ? `Instrucciones cama baja: ${camaBajaNotes}` : ''
+      ].filter(Boolean).join(' | ');
+
       const rental = await API.rentals.create({
         toolId: activeToolForBooking.id,
         clientId: effectiveClientId,
         startDate: q.startDate,
         endDate: q.endDate,
-        deliveryAddress: user.address || 'Obra Principal',
-        notes: `Reserva para ${activeToolForBooking.name}`
+        deliveryAddress: deliveryAddress,
+        notes: rentalNotes
       });
 
       // 2. Generar Factura con desglose fiscal
@@ -623,6 +1581,10 @@ const App = (() => {
       // 4. Confirmar automáticamente el estado de la reserva al estar pagada
       await API.rentals.updateStatus(rental.id, 'CONFIRMADA');
 
+      // Limpiar cotización activa del carrito
+      activeToolForBooking = null;
+      updateCartBadge();
+
       // Actualizar datos en memoria y vistas
       await loadTools();
       loadClientRentals();
@@ -632,46 +1594,95 @@ const App = (() => {
       const payModal = bootstrap.Modal.getInstance(document.getElementById('paymentModal'));
       if (payModal) payModal.hide();
 
+      // Restaurar estado del botón
+      if (btnSubmit) {
+        btnSubmit.disabled = false;
+        btnSubmit.innerHTML = originalBtnHtml;
+      }
+
+      // SWEETALERT DE ÉXITO CON NÚMERO DE FACTURA Y BOTÓN DIRECTO PARA DESCARGAR EL PDF
+      const pdfUrl = API.invoices.downloadPdfUrl(invoice.id);
       Swal.fire({
         icon: 'success',
         title: '¡Pago y Reserva Confirmados!',
         html: `
-          <p class="text-light">Tu transacción <strong>${payment.transactionReference}</strong> fue aprobada exitosamente.</p>
-          <div class="mb-2"><span class="badge bg-success px-3 py-2 fs-6"><i class="fa fa-check-circle me-1"></i> Estado: CONFIRMADA</span></div>
-          <p class="text-muted small mt-2">Se ha emitido la factura oficial <strong>${invoice.invoiceNumber}</strong> con firma digital.</p>
-          <div class="mt-3">
-            <a href="${API.invoices.downloadPdfUrl(invoice.id)}" target="_blank" class="btn btn-neu-amber py-2 px-4">
-              <i class="fa fa-file-pdf me-2"></i> Descargar Factura Oficial PDF
-            </a>
+          <div class="text-start p-2">
+            <p class="text-dark mb-2">Tu transacción <strong>${payment.transactionReference}</strong> ha sido aprobada exitosamente a través de <strong>${selectedMethod}</strong>.</p>
+            <div class="d-flex align-items-center gap-2 mb-3">
+              <span class="badge bg-success px-3 py-2 fs-6"><i class="fa fa-check-circle me-1"></i> Estado: CONFIRMADA</span>
+              <span class="badge bg-dark px-3 py-2 fs-6"><i class="fa fa-file-invoice me-1"></i> Factura Nº: ${invoice.invoiceNumber || 'FAC-' + invoice.id}</span>
+            </div>
+            
+            <div class="bg-light p-3 rounded border mb-3 small">
+              <div class="d-flex justify-content-between mb-1">
+                <span>Maquinaria:</span>
+                <strong class="text-dark">${rental.toolName || activeToolForBooking?.name || 'Equipo Industrial'}</strong>
+              </div>
+              <div class="d-flex justify-content-between mb-1">
+                <span>Frente de Obra:</span>
+                <strong class="text-dark text-truncate ms-2" style="max-width: 250px;">${deliveryAddress}</strong>
+              </div>
+              <div class="d-flex justify-content-between mb-1">
+                <span>Total Pagado:</span>
+                <strong class="text-success">${API.formatCurrency(q.total)}</strong>
+              </div>
+            </div>
+
+            <div class="text-center mt-3">
+              <a href="${pdfUrl}" target="_blank" class="btn btn-sb-green w-100 py-2 fw-bold shadow-sm" id="btn-download-pdf">
+                <i class="fa fa-file-pdf me-2"></i> Descargar Factura Oficial PDF
+              </a>
+              <div class="text-muted small mt-1">Generada en vivo por el backend (${pdfUrl})</div>
+            </div>
           </div>
         `,
-        confirmButtonColor: '#06b6d4',
+        confirmButtonColor: '#00843D',
         confirmButtonText: (user.role === 'ROLE_ADMIN') ? 'Ver Alquileres Activos' : 'Ver mis Alquileres',
-        background: '#0f172a',
-        color: '#f8fafc'
+        background: '#ffffff',
+        color: '#101820'
       }).then(() => {
         switchView('client-dashboard');
       });
 
     } catch (err) {
+      if (btnSubmit) {
+        btnSubmit.disabled = false;
+        btnSubmit.innerHTML = originalBtnHtml;
+      }
       Swal.fire({
         icon: 'error',
         title: 'Error en la transacción',
         text: err.message || 'No se pudo procesar el pago.',
-        confirmButtonColor: '#f59e0b',
-        background: '#0f172a',
-        color: '#f8fafc'
+        confirmButtonColor: '#00843D',
+        background: '#ffffff',
+        color: '#101820'
       });
     }
   }
 
   function togglePaymentFields(method) {
-    document.getElementById('card-fields').style.display = (method === 'CREDIT_CARD' || method === 'DEBIT_CARD') ? 'block' : 'none';
-    document.getElementById('pse-fields').style.display = (method === 'PSE') ? 'block' : 'none';
-    document.getElementById('transfer-fields').style.display = (method === 'BANK_TRANSFER') ? 'block' : 'none';
+    const cardFields = document.getElementById('card-fields');
+    const pseFields = document.getElementById('pse-fields');
+    const transferFields = document.getElementById('transfer-fields') || document.getElementById('trans-fields');
+    if (cardFields) cardFields.style.display = (method === 'CREDIT_CARD' || method === 'DEBIT_CARD') ? 'block' : 'none';
+    if (pseFields) pseFields.style.display = (method === 'PSE') ? 'block' : 'none';
+    if (transferFields) transferFields.style.display = (method === 'BANK_TRANSFER') ? 'block' : 'none';
   }
 
   // --- DASHBOARDS POR ROL ---
+
+  async function downloadInvoicePdfForRental(rentalId) {
+    try {
+      const inv = await API.invoices.getByRental(rentalId);
+      if (inv && inv.id) {
+        window.open(API.invoices.downloadPdfUrl(inv.id), '_blank');
+      } else {
+        window.open(API.invoices.downloadPdfUrl(rentalId), '_blank');
+      }
+    } catch (e) {
+      window.open(API.invoices.downloadPdfUrl(rentalId), '_blank');
+    }
+  }
 
   async function loadClientRentals() {
     const container = document.getElementById('client-rentals-list');
@@ -679,6 +1690,7 @@ const App = (() => {
 
     try {
       const rentals = await API.rentals.getAll();
+      cachedRentals = rentals || [];
       if (rentals.length === 0) {
         container.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">No tienes alquileres registrados todavía</td></tr>`;
         return;
@@ -699,9 +1711,9 @@ const App = (() => {
             </span>
           </td>
           <td>
-            <a href="${API.invoices.downloadPdfUrl(r.id)}" target="_blank" class="btn btn-sm btn-neu py-1 px-3" title="Descargar comprobante en PDF">
+            <button onclick="App.downloadInvoicePdfForRental('${r.id}')" class="btn btn-sm btn-neu py-1 px-3" title="Descargar comprobante en PDF">
               <i class="fa fa-file-pdf text-danger me-1"></i> PDF
-            </a>
+            </button>
           </td>
         </tr>
       `;
@@ -717,6 +1729,7 @@ const App = (() => {
 
     try {
       const rentals = await API.rentals.getAll();
+      cachedRentals = rentals || [];
       if (!rentals || rentals.length === 0) {
         container.innerHTML = `<tr><td colspan="7" class="text-center text-slate-300 py-4"><i class="fa fa-inbox me-2 text-warning"></i>No hay solicitudes de alquiler registradas actualmente</td></tr>`;
         return;
@@ -775,32 +1788,163 @@ const App = (() => {
 
   function openReturnModal(rentalId) {
     document.getElementById('return-rental-id').value = rentalId;
+
+    // Buscar detalles de la reserva para poblar la ficha técnica de devolución
+    const rentalBadge = document.getElementById('return-badge-id');
+    const toolNameEl = document.getElementById('return-tool-name');
+    const clientInfoEl = document.getElementById('return-client-info');
+    const depositValEl = document.getElementById('return-deposit-val');
+
+    if (rentalBadge) rentalBadge.textContent = `Reserva #${rentalId}`;
+
+    const r = cachedRentals.find(x => String(x.id) === String(rentalId));
+    if (r) {
+      const tool = allTools.find(t => String(t.id) === String(r.toolId));
+      const toolName = tool ? tool.name : (r.toolName || 'Maquinaria Pesada');
+      if (toolNameEl) toolNameEl.textContent = toolName;
+      if (clientInfoEl) clientInfoEl.textContent = `Cliente: ${r.clientName || 'Cliente Constructora'} | Duración: ${r.days || 3} días (${r.startDate} al ${r.endDate})`;
+      if (depositValEl) depositValEl.textContent = API.formatCurrency(r.depositAmount || (tool?.depositAmount) || 0);
+    } else {
+      if (toolNameEl) toolNameEl.textContent = 'Maquinaria Pesada en Devolución';
+      if (clientInfoEl) clientInfoEl.textContent = 'Frente de Obra / Bogotá & Sabana';
+      if (depositValEl) depositValEl.textContent = '$ 0';
+    }
+
+    // Resetear campos del formulario de inspección técnica
+    const horometroInput = document.getElementById('return-horometro');
+    if (horometroInput) {
+      horometroInput.value = '';
+      horometroInput.classList.remove('is-invalid');
+    }
+    const fuel100 = document.getElementById('fuel-100');
+    if (fuel100) fuel100.checked = true;
+
+    const hydraulicSelect = document.getElementById('return-hydraulic-status');
+    if (hydraulicSelect) hydraulicSelect.selectedIndex = 0;
+
+    const damageCheck = document.getElementById('damage-check');
+    if (damageCheck) {
+      damageCheck.checked = false;
+      const damageContainer = document.getElementById('damage-cost-container');
+      if (damageContainer) damageContainer.style.display = 'none';
+    }
+    const damageCost = document.getElementById('damage-cost');
+    if (damageCost) {
+      damageCost.value = '';
+      damageCost.classList.remove('is-invalid');
+    }
+
+    const notesInput = document.getElementById('return-notes');
+    if (notesInput) notesInput.value = '';
+
+    const user = API.getUser();
+    const inspectorInput = document.getElementById('return-inspector-name');
+    if (inspectorInput) {
+      inspectorInput.value = user?.fullName || user?.username || 'Ing. Carlos Mendoza - Jefe de Patio';
+    }
+
     const modal = new bootstrap.Modal(document.getElementById('returnInspectionModal'));
     modal.show();
   }
 
   async function submitReturnInspection() {
     const rentalId = document.getElementById('return-rental-id').value;
-    const notes = document.getElementById('return-notes').value;
+    const horometroInput = document.getElementById('return-horometro');
+    const horometroVal = (horometroInput?.value || '').trim();
+
+    if (!horometroVal || isNaN(parseFloat(horometroVal)) || parseFloat(horometroVal) < 0) {
+      horometroInput?.classList.add('is-invalid');
+      Swal.fire({
+        icon: 'warning',
+        title: 'Horómetro Requerido',
+        text: 'Por favor ingresa la lectura del horómetro de motor al momento de la entrega técnica.',
+        confirmButtonColor: '#00843D',
+        background: '#ffffff',
+        color: '#101820'
+      });
+      return;
+    }
+    horometroInput?.classList.remove('is-invalid');
+
+    const fuelLevel = document.querySelector('input[name="returnFuelLevel"]:checked')?.value || '100% (Lleno)';
+    const hydraulicStatus = document.getElementById('return-hydraulic-status')?.value || 'Óptimo';
+    const inspectorName = (document.getElementById('return-inspector-name')?.value || '').trim() || 'Inspector Técnico';
+    const rawNotes = (document.getElementById('return-notes')?.value || '').trim();
+
     const damageDetected = document.getElementById('damage-check').checked;
-    const damageCost = damageDetected ? parseFloat(document.getElementById('damage-cost').value || 0) : 0;
+    const damageType = damageDetected ? document.getElementById('return-damage-type')?.value : 'Ninguno';
+    const damageCostInput = document.getElementById('damage-cost');
+    const damageCost = damageDetected ? parseFloat(damageCostInput?.value || 0) : 0;
+
+    if (damageDetected && (!damageCost || damageCost <= 0)) {
+      damageCostInput?.classList.add('is-invalid');
+      Swal.fire({
+        icon: 'warning',
+        title: 'Costo de Reparación Requerido',
+        text: 'Al reportar averías fuera del desgaste normal, debes indicar el valor estimado a deducir de la garantía.',
+        confirmButtonColor: '#00843D',
+        background: '#ffffff',
+        color: '#101820'
+      });
+      return;
+    }
+    damageCostInput?.classList.remove('is-invalid');
+
+    // Compilación estructurada de la Ficha Técnica de Inspección
+    const compiledInspectionReport = [
+      `[ACTA TÉCNICA DE DEVOLUCIÓN]`,
+      `Horómetro Final: ${horometroVal} hrs`,
+      `Combustible: ${fuelLevel}`,
+      `Sistema Hidráulico: ${hydraulicStatus}`,
+      `Inspector: ${inspectorName}`,
+      damageDetected ? `Daño Reportado: ${damageType} (Cargo garantía: ${API.formatCurrency(damageCost)})` : `Condición Mecánica: Desgaste normal (Sin averías)`,
+      rawNotes ? `Observaciones: ${rawNotes}` : ''
+    ].filter(Boolean).join(' | ');
 
     try {
-      await API.rentals.return(rentalId, notes, damageDetected, damageCost);
-      bootstrap.Modal.getInstance(document.getElementById('returnInspectionModal')).hide();
+      await API.rentals.return(rentalId, compiledInspectionReport, damageDetected, damageCost);
+      const inspectionModalEl = document.getElementById('returnInspectionModal');
+      const inspectionModal = bootstrap.Modal.getInstance(inspectionModalEl);
+      if (inspectionModal) inspectionModal.hide();
 
       Swal.fire({
         icon: 'success',
-        title: 'Devolución Registrada',
-        text: damageDetected ? `Se reportaron daños por ${API.formatCurrency(damageCost)}. Se descontará de la garantía.` : 'Equipo recibido en óptimas condiciones. Garantía liberada.',
-        background: '#0f172a',
-        color: '#f8fafc'
+        title: 'Acta de Devolución & Inspección Registrada',
+        html: `
+          <div class="text-start p-2">
+            <p class="text-dark mb-2">La maquinaria de la reserva <strong>#${rentalId}</strong> ha sido inspeccionada e ingresada a patio satisfactoriamente.</p>
+            <div class="bg-light p-3 rounded border mb-2 small">
+              <div><strong>Horómetro registrado:</strong> ${horometroVal} horas</div>
+              <div><strong>Nivel de Combustible:</strong> ${fuelLevel}</div>
+              <div><strong>Sistema Hidráulico:</strong> ${hydraulicStatus}</div>
+              <div><strong>Inspector a cargo:</strong> ${inspectorName}</div>
+              <hr class="my-2">
+              ${damageDetected ? `
+                <div class="text-danger fw-bold"><i class="fa fa-exclamation-triangle me-1"></i> Daño extraordinario: ${damageType}</div>
+                <div class="text-danger">Deducción de garantía: <strong>${API.formatCurrency(damageCost)}</strong></div>
+              ` : `
+                <div class="text-success fw-bold"><i class="fa fa-check-circle me-1"></i> Sin averías extraordinarias. Depósito de garantía liberado 100% para desembolso al cliente.</div>
+              `}
+            </div>
+          </div>
+        `,
+        confirmButtonColor: '#00843D',
+        background: '#ffffff',
+        color: '#101820'
       });
+
       await loadTools();
       loadClientRentals();
       loadProviderRequests();
     } catch (e) {
-      Swal.fire('Error', e.message, 'error');
+      Swal.fire({
+        icon: 'error',
+        title: 'Error al registrar acta',
+        text: e.message || 'No se pudo registrar la devolución técnica.',
+        confirmButtonColor: '#00843D',
+        background: '#ffffff',
+        color: '#101820'
+      });
     }
   }
 
@@ -877,6 +2021,7 @@ const App = (() => {
     const roleBadge = document.getElementById('nav-user-role-badge');
     const clientDropdownItem = document.getElementById('dropdown-client-item');
     const providerDropdownItem = document.getElementById('dropdown-provider-item');
+    const dropdownAddToolItem = document.getElementById('dropdown-add-tool-item');
     const adminDropdownItem = document.getElementById('dropdown-admin-item');
 
     if (user) {
@@ -905,9 +2050,29 @@ const App = (() => {
       if (dropdownEmailEl) {
         dropdownEmailEl.textContent = user.email || `${user.username.toLowerCase()}@rentatools.com`;
       }
+      const cleanRole = user.role ? user.role.replace('ROLE_', '') : 'CLIENTE';
+      const rolePill = document.getElementById('nav-user-role-badge-pill');
+
       if (roleBadge) {
-        roleBadge.textContent = user.role.replace('ROLE_', '');
-        roleBadge.className = 'badge badge-role';
+        roleBadge.textContent = cleanRole;
+        if (cleanRole === 'PROVEEDOR') {
+          roleBadge.className = 'badge bg-warning text-dark fw-bold px-2 py-1';
+        } else if (cleanRole === 'ADMIN') {
+          roleBadge.className = 'badge bg-primary text-white fw-bold px-2 py-1';
+        } else {
+          roleBadge.className = 'badge bg-success text-white fw-bold px-2 py-1';
+        }
+      }
+
+      if (rolePill) {
+        rolePill.textContent = cleanRole;
+        if (cleanRole === 'PROVEEDOR') {
+          rolePill.className = 'badge rounded-pill bg-warning text-dark border ms-1';
+        } else if (cleanRole === 'ADMIN') {
+          rolePill.className = 'badge rounded-pill bg-primary text-white border ms-1';
+        } else {
+          rolePill.className = 'badge rounded-pill bg-success text-white border ms-1';
+        }
       }
 
       // Habilitar pestañas contextuales según el rol
@@ -926,7 +2091,7 @@ const App = (() => {
 
       if (user.role === 'ROLE_ADMIN') {
         if (clientNavLabel) clientNavLabel.textContent = 'Alquileres Activos';
-        if (clientDropdownLabel) clientDropdownLabel.textContent = 'Alquileres Activos';
+        if (clientDropdownLabel) clientDropdownLabel.textContent = 'Alquileres Activos & Facturas';
         if (clientHeaderTitle) clientHeaderTitle.textContent = 'Alquileres Activos & Facturación';
       } else {
         if (clientNavLabel) clientNavLabel.textContent = 'Mis Alquileres';
@@ -934,17 +2099,16 @@ const App = (() => {
         if (clientHeaderTitle) clientHeaderTitle.textContent = 'Mis Alquileres & Facturación';
       }
 
-      // Enlaces contextuales en el menú desplegable del avatar (Cliente, Proveedor, Admin)
-      if (clientDropdownItem) clientDropdownItem.style.display = (user.role === 'ROLE_CLIENTE' || user.role === 'ROLE_ADMIN') ? 'block' : 'none';
-      if (providerDropdownItem) providerDropdownItem.style.display = (user.role === 'ROLE_PROVEEDOR' || user.role === 'ROLE_ADMIN') ? 'block' : 'none';
+      // Enlaces del menú desplegable del usuario: Mis Alquileres & Facturas, Gestión Proveedor, Añadir Maquinaria
+      if (clientDropdownItem) clientDropdownItem.style.display = 'block';
+      if (providerDropdownItem) providerDropdownItem.style.display = 'block';
+      if (dropdownAddToolItem) dropdownAddToolItem.style.display = 'block';
       if (adminDropdownItem) adminDropdownItem.style.display = (user.role === 'ROLE_ADMIN') ? 'block' : 'none';
 
-      // Botón rápido y menú para añadir maquinaria (Solo PROVEEDOR o ADMIN)
+      // Botón rápido en la barra superior para añadir maquinaria (Solo PROVEEDOR o ADMIN)
       const isProvider = (user.role === 'ROLE_PROVEEDOR' || user.role === 'ROLE_ADMIN');
       const navAddToolBtn = document.getElementById('nav-add-tool-btn');
-      const dropdownAddToolItem = document.getElementById('dropdown-add-tool-item');
       if (navAddToolBtn) navAddToolBtn.style.display = isProvider ? 'inline-flex' : 'none';
-      if (dropdownAddToolItem) dropdownAddToolItem.style.display = isProvider ? 'block' : 'none';
     } else {
       if (guestNav) {
         guestNav.style.setProperty('display', 'flex', 'important');
@@ -967,7 +2131,6 @@ const App = (() => {
       if (adminDropdownItem) adminDropdownItem.style.display = 'none';
 
       const navAddToolBtn = document.getElementById('nav-add-tool-btn');
-      const dropdownAddToolItem = document.getElementById('dropdown-add-tool-item');
       if (navAddToolBtn) navAddToolBtn.style.display = 'none';
       if (dropdownAddToolItem) dropdownAddToolItem.style.display = 'none';
 
@@ -1013,12 +2176,18 @@ const App = (() => {
 
   function openAuthModal(mode = 'login') {
     const isLogin = mode === 'login';
-    document.getElementById('auth-modal-title').textContent = isLogin ? 'Iniciar Sesión en RentaTools' : 'Crear Cuenta Profesional';
-    document.getElementById('login-fields').style.display = isLogin ? 'block' : 'none';
-    document.getElementById('register-fields').style.display = isLogin ? 'none' : 'block';
-    document.getElementById('btn-auth-submit').textContent = isLogin ? 'Entrar al Sistema' : 'Completar Registro';
-    document.getElementById('auth-mode-toggle').textContent = isLogin ? '¿No tienes cuenta? Regístrate aquí' : '¿Ya tienes cuenta? Inicia sesión aquí';
-    document.getElementById('authModal').dataset.mode = isLogin ? 'login' : 'register';
+    const titleEl = document.getElementById('auth-modal-title') || document.getElementById('authModalLabel');
+    if (titleEl) titleEl.textContent = isLogin ? 'Iniciar Sesión en RentaTools' : 'Crear Cuenta Profesional';
+    const loginFields = document.getElementById('login-fields');
+    if (loginFields) loginFields.style.display = isLogin ? 'block' : 'none';
+    const registerFields = document.getElementById('register-fields');
+    if (registerFields) registerFields.style.display = isLogin ? 'none' : 'block';
+    const submitBtn = document.getElementById('btn-auth-submit');
+    if (submitBtn) submitBtn.textContent = isLogin ? 'Entrar al Sistema' : 'Completar Registro';
+    const toggleBtn = document.getElementById('auth-mode-toggle');
+    if (toggleBtn) toggleBtn.textContent = isLogin ? '¿No tienes cuenta? Regístrate aquí' : '¿Ya tienes cuenta? Inicia sesión aquí';
+    const authModalEl = document.getElementById('authModal');
+    if (authModalEl) authModalEl.dataset.mode = isLogin ? 'login' : 'register';
 
     if (!isLogin) {
       handleRoleChange();
@@ -1276,8 +2445,8 @@ const App = (() => {
 
       // Recargar catálogo y mapa
       await loadTools();
-      if (typeof MapModule !== 'undefined' && MapModule.renderToolMarkers) {
-        MapModule.renderToolMarkers(allTools);
+      if (typeof MapManager !== 'undefined' && MapManager.updateToolsOnMap) {
+        MapManager.updateToolsOnMap(filteredTools);
       }
 
       Swal.fire({
@@ -1313,8 +2482,39 @@ const App = (() => {
       title: 'Sesión Cerrada',
       timer: 1500,
       showConfirmButton: false,
-      background: '#0f172a',
-      color: '#f8fafc'
+      background: '#ffffff',
+      color: '#101820'
+    });
+  }
+
+  function openChatSupport() {
+    Swal.fire({
+      title: 'Atención al Cliente Sunbelt / RentaTools',
+      html: `
+        <div class="text-start">
+          <p class="mb-3 text-dark">Nuestro equipo de soporte técnico y logística para obras está activo 24/7 en Bogotá D.C. y Sabana.</p>
+          <div class="p-3 bg-light rounded-3 border mb-3">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <i class="fa fa-phone-alt text-success fa-lg"></i>
+              <div><strong>Línea de Obras:</strong> (601) 745-9000</div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <i class="fab fa-whatsapp text-success fa-lg"></i>
+              <div><strong>WhatsApp Inmediato:</strong> +57 310 999 8888</div>
+            </div>
+          </div>
+          <p class="small text-muted mb-0">¿Necesitas despacho prioritario en cama baja o asesoría técnica para tu obra? Chatea con nosotros.</p>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: '<i class="fab fa-whatsapp me-1"></i> Abrir WhatsApp',
+      confirmButtonColor: '#00843D',
+      cancelButtonText: 'Cerrar',
+      cancelButtonColor: '#59636E'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        window.open('https://wa.me/573109998888?text=Hola,%20necesito%20cotizar%20maquinaria%20en%20RentaTools', '_blank');
+      }
     });
   }
 
@@ -1335,7 +2535,25 @@ const App = (() => {
     logout,
     updateRentalStatus,
     openReturnModal,
-    submitReturnInspection
+    submitReturnInspection,
+    setHeroDispatchMode,
+    applyHeroBookingFilter,
+    selectHeroLocation,
+    showCoverageModal,
+    handleContractorQuickAccess,
+    handleProviderDashboardAccess,
+    handleAddToolAccess,
+    filterByIndustry,
+    clearIndustryFilter,
+    downloadCatalogPdf,
+    filterByCategory,
+    toggleMapSection,
+    openCartModal,
+    proceedToPaymentFromCart,
+    modifyBookingFromCart,
+    clearCart,
+    downloadInvoicePdfForRental,
+    openChatSupport
   };
 })();
 

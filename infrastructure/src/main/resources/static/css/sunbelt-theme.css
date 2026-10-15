@@ -1,0 +1,1558 @@
+/* ==========================================================================
+   RENTATOOLS PRO - SUNBELT RENTALS DESIGN SYSTEM (THEME CSS)
+   Tokens Oficiales:
+   - Primario Sunbelt Green: #00843D
+   - Acento Sunbelt Gold / Yellow: #FFC72C
+   - Dark Slate / Charcoal: #101820
+   - Background Slate: #F7F8F9
+   - Tipografía: Inter / Segoe UI limpia y profesional
+   ========================================================================== */
+
+:root {
+  /* Paleta Oficial Sunbelt Rentals */
+  --sb-green: #00843D;
+  --sb-green-dark: #006830;
+  --sb-green-darker: #004d23;
+  --sb-green-light: #e8f5e9;
+  --sb-green-subtle: #f0fdf4;
+  --sb-yellow: #FFC72C;
+  --sb-yellow-dark: #d99b00;
+  --sb-yellow-light: #fffbeb;
+  --sb-dark: #101820;
+  --sb-dark-slate: #1e293b;
+  
+  /* Superficies y Bordes */
+  --sb-gray-bg: #F7F8F9;
+  --sb-gray-surface: #FFFFFF;
+  --sb-gray-border: #E5E7EB;
+  --sb-gray-border-strong: #CBD5E1;
+  --sb-gray-text: #59636E;
+  --sb-gray-muted: #64748B;
+  
+  /* Radios */
+  --sb-radius-sm: 4px;
+  --sb-radius-md: 8px;
+  --sb-radius-lg: 12px;
+  --sb-radius-pill: 50px;
+  
+  /* Sombras */
+  --sb-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --sb-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.06);
+  --sb-shadow-md: 0 4px 14px rgba(0, 0, 0, 0.08);
+  --sb-shadow-lg: 0 12px 30px rgba(0, 0, 0, 0.12);
+  
+  /* Tipografía */
+  --sb-font-main: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* ==========================================================================
+   RESET & OVERRIDES GLOBALES DE ALTA PRIORIDAD
+   (Elimina cualquier rezago del tema oscuro previo)
+   ========================================================================== */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--sb-font-main) !important;
+  background-color: var(--sb-gray-bg) !important;
+  background-image: none !important;
+  color: var(--sb-dark) !important;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Textos de alto contraste y legibilidad */
+.text-muted,
+p.text-muted,
+span.text-muted,
+small.text-muted,
+div.text-muted,
+label.text-muted {
+  color: var(--sb-gray-text) !important;
+}
+
+.text-secondary {
+  color: var(--sb-gray-muted) !important;
+}
+
+.text-dark {
+  color: var(--sb-dark) !important;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--sb-dark);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+/* ==========================================================================
+   1. BARRA SUPERIOR DE UTILIDADES (TOP UTILITY BAR)
+   ========================================================================== */
+.sb-utility-bar {
+  background-color: var(--sb-green-darker);
+  color: #ffffff;
+  font-size: 0.8125rem;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  font-weight: 500;
+}
+.sb-utility-bar a {
+  color: #ffffff;
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+}
+.sb-utility-bar a:hover {
+  opacity: 0.85;
+  color: #ffffff;
+}
+.sb-utility-badge {
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  padding: 3px 10px;
+  border-radius: var(--sb-radius-pill);
+  font-weight: 700;
+  font-size: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+}
+.sb-utility-badge:hover {
+  background: var(--sb-yellow);
+  color: var(--sb-dark) !important;
+  border-color: var(--sb-yellow);
+}
+
+/* ==========================================================================
+   2. NAVBAR PRINCIPAL & BUSCADOR CENTRAL TIPO PÍLDORA
+   ========================================================================== */
+.sb-main-nav {
+  background: #ffffff;
+  border-bottom: 1px solid var(--sb-gray-border);
+  position: sticky;
+  top: 0;
+  z-index: 1030;
+  box-shadow: var(--sb-shadow-xs);
+}
+
+.sb-logo-container {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  gap: 10px;
+}
+.sb-logo-icon {
+  width: 40px;
+  height: 40px;
+  background: var(--sb-yellow);
+  color: var(--sb-dark);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  font-weight: 900;
+  box-shadow: 0 2px 6px rgba(255, 199, 44, 0.45);
+  flex-shrink: 0;
+}
+.sb-logo-text {
+  font-weight: 900;
+  font-size: 1.4rem;
+  letter-spacing: -0.5px;
+  color: var(--sb-dark);
+  line-height: 1;
+}
+.sb-logo-text span {
+  color: var(--sb-green);
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 1.5px;
+  display: block;
+  margin-top: 2px;
+}
+
+/* Buscador Central en Píldora con Botón Amarillo con Lupa */
+.sb-search-form {
+  position: relative;
+  width: 100%;
+  max-width: 540px;
+}
+.sb-search-input {
+  width: 100%;
+  padding: 10px 54px 10px 20px;
+  border-radius: var(--sb-radius-pill);
+  border: 1.5px solid var(--sb-gray-border-strong);
+  background-color: #ffffff;
+  font-size: 0.9375rem;
+  color: var(--sb-dark);
+  transition: all 0.2s ease;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+.sb-search-input:focus {
+  outline: none;
+  border-color: var(--sb-green);
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(0, 132, 61, 0.18);
+}
+.sb-search-input::placeholder {
+  color: #94a3b8;
+  font-size: 0.875rem;
+}
+
+/* Botón Amarillo con Lupa (Exacto Sunbelt Rentals) */
+.sb-search-btn {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--sb-yellow);
+  border: none;
+  color: var(--sb-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 5px rgba(255, 199, 44, 0.4);
+}
+.sb-search-btn:hover {
+  background: #e6b122;
+  color: var(--sb-dark);
+  transform: translateY(-50%) scale(1.06);
+}
+
+/* Botones y Acciones en Navbar */
+.btn-sb-pill-outline {
+  border: 2px solid var(--sb-green) !important;
+  color: var(--sb-green) !important;
+  background: #ffffff !important;
+  border-radius: var(--sb-radius-pill) !important;
+  padding: 7px 18px !important;
+  font-weight: 700 !important;
+  font-size: 0.875rem !important;
+  transition: all 0.2s ease !important;
+  text-decoration: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+.btn-sb-pill-outline:hover {
+  background: var(--sb-green) !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(0, 132, 61, 0.25) !important;
+}
+
+.btn-sb-green {
+  background: var(--sb-green) !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: var(--sb-radius-sm) !important;
+  padding: 10px 22px !important;
+  font-weight: 700 !important;
+  font-size: 0.9375rem !important;
+  transition: all 0.2s ease !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+}
+.btn-sb-green:hover {
+  background: var(--sb-green-dark) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(0, 132, 61, 0.3) !important;
+}
+
+.sb-cart-btn {
+  position: relative;
+  color: var(--sb-dark);
+  font-size: 1.35rem;
+  padding: 8px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  transition: transform 0.2s ease;
+}
+.sb-cart-btn:hover {
+  transform: scale(1.08);
+  color: var(--sb-green);
+}
+.sb-cart-badge {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  background: var(--sb-yellow);
+  color: var(--sb-dark);
+  font-size: 0.7rem;
+  font-weight: 900;
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+/* ==========================================================================
+   3. SUBNAV / MENÚ RÁPIDO
+   ========================================================================== */
+.sb-subnav {
+  background: #ffffff;
+  border-bottom: 1px solid var(--sb-gray-border);
+  padding: 0;
+}
+.sb-subnav-list {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+  white-space: nowrap;
+  gap: 4px;
+}
+.sb-subnav-link {
+  display: inline-block;
+  padding: 12px 18px;
+  color: var(--sb-dark);
+  font-weight: 700;
+  font-size: 0.9375rem;
+  text-decoration: none;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s ease;
+}
+.sb-subnav-link:hover,
+.sb-subnav-link.active {
+  color: var(--sb-green);
+  border-bottom-color: var(--sb-green);
+}
+
+/* ==========================================================================
+   4. HERO SECTION CON WIDGET DE RESERVA INTEGRADO (SUNBELT HERO)
+   ========================================================================== */
+.sb-hero {
+  position: relative;
+  background: linear-gradient(180deg, rgba(16, 24, 32, 0.70) 0%, rgba(16, 24, 32, 0.88) 100%),
+              url('../assets/img/machinery/Retroexcavadora-Oruga-CAT-320D.png') center/cover no-repeat;
+  padding: 70px 0 90px;
+  color: #ffffff;
+}
+.sb-hero-title {
+  font-size: 3rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin-bottom: 16px;
+  color: #ffffff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+.sb-hero-lead {
+  font-size: 1.15rem;
+  color: #E2E8F0;
+  max-width: 680px;
+  margin-bottom: 32px;
+  line-height: 1.5;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+/* Widget Flotante de Reserva (Estilo Exacto Sunbelt Rentals) */
+.sb-booking-widget {
+  background: #ffffff;
+  border-radius: var(--sb-radius-md);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+  padding: 10px 14px;
+  color: var(--sb-dark);
+}
+.sb-widget-segment {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 14px;
+  border-right: 1px solid var(--sb-gray-border);
+  height: 100%;
+  justify-content: center;
+}
+.sb-widget-segment:last-child {
+  border-right: none;
+}
+@media (max-width: 991px) {
+  .sb-widget-segment {
+    border-right: none;
+    border-bottom: 1px solid var(--sb-gray-border);
+    padding: 10px 4px;
+  }
+}
+.sb-widget-label {
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--sb-gray-muted);
+  margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sb-widget-label i {
+  color: var(--sb-green);
+}
+.sb-widget-input {
+  border: none;
+  background: transparent;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--sb-dark);
+  padding: 4px 0;
+  width: 100%;
+}
+.sb-widget-input:focus {
+  outline: none;
+}
+
+/* Conmutador Segmentado Despacho vs Retiro (Estilo Sunbelt) */
+.sb-dispatch-toggle {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+}
+.sb-dispatch-btn {
+  flex: 1;
+  border: 1px solid var(--sb-gray-border);
+  background: #f8fafc;
+  border-radius: var(--sb-radius-sm);
+  padding: 8px 10px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--sb-gray-text);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.sb-dispatch-btn.active {
+  border: 2px solid var(--sb-green);
+  background: #ffffff;
+  color: var(--sb-green);
+  box-shadow: 0 1px 4px rgba(0, 132, 61, 0.15);
+}
+.sb-dispatch-btn i {
+  font-size: 0.85rem;
+}
+
+/* Botón CTA Comenzar Alquiler */
+.sb-widget-submit-btn {
+  background: var(--sb-green);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--sb-radius-sm);
+  font-weight: 800;
+  font-size: 1rem;
+  padding: 12px 20px;
+  width: 100%;
+  height: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 132, 61, 0.2);
+}
+.sb-widget-submit-btn:hover {
+  background: var(--sb-green-dark);
+  box-shadow: 0 4px 14px rgba(0, 132, 61, 0.35);
+}
+
+/* Badge inferior para obras guardadas (alineado a la izquierda como Sunbelt) */
+.sb-widget-footer {
+  margin-top: 14px;
+  font-size: 0.8125rem;
+  text-align: left;
+}
+.sb-widget-footer a {
+  color: #ffffff;
+  text-decoration: none;
+  background: rgba(16, 24, 32, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 6px 14px;
+  border-radius: var(--sb-radius-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+.sb-widget-footer a:hover {
+  background: rgba(16, 24, 32, 0.95);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   5. BANNER DE AVISO / ALERTA DE SERVICIO (SUNBELT YELLOW BANNER)
+   ========================================================================== */
+.sb-alert-banner {
+  background-color: var(--sb-yellow);
+  color: var(--sb-dark);
+  padding: 13px 0;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  border-bottom: 1px solid var(--sb-yellow-dark);
+}
+.sb-alert-banner a {
+  color: var(--sb-dark);
+  text-decoration: underline;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  margin-left: 8px;
+  transition: opacity 0.2s ease;
+}
+.sb-alert-banner a:hover {
+  opacity: 0.8;
+}
+
+/* ==========================================================================
+   6. SECCIÓN "THE RENTATOOLS EXPERIENCE" (TARJETAS DE VALOR)
+   ========================================================================== */
+.sb-section-eyebrow {
+  font-size: 0.8125rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--sb-green);
+  margin-bottom: 6px;
+  display: block;
+}
+.sb-section-title {
+  font-size: 2.15rem;
+  font-weight: 800;
+  color: var(--sb-dark);
+  letter-spacing: -0.02em;
+  margin-bottom: 25px;
+}
+
+.sb-value-cards-container {
+  margin-top: 35px;
+}
+.sb-value-card {
+  background: #ffffff;
+  border: 1px solid var(--sb-gray-border);
+  border-radius: var(--sb-radius-md);
+  padding: 38px 24px 26px;
+  height: 100%;
+  position: relative;
+  text-align: center;
+  box-shadow: var(--sb-shadow-xs);
+  transition: all 0.2s ease;
+}
+.sb-value-card:hover {
+  border-color: var(--sb-green);
+  box-shadow: var(--sb-shadow-md);
+  transform: translateY(-3px);
+}
+
+/* Icono Circular Protrudente en el Borde Superior (Exacto Sunbelt) */
+.sb-value-icon-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid var(--sb-green);
+  color: var(--sb-green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  position: absolute;
+  top: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+.sb-value-card-text {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--sb-dark);
+  margin: 0;
+  line-height: 1.45;
+}
+
+/* Split Banner Destacado */
+.sb-split-banner {
+  background: #ffffff;
+  border: 1px solid var(--sb-gray-border);
+  border-radius: var(--sb-radius-md);
+  overflow: hidden;
+  margin-top: 40px;
+  box-shadow: var(--sb-shadow-xs);
+}
+.sb-split-banner-content {
+  padding: 44px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.sb-split-banner-img {
+  width: 100%;
+  height: 100%;
+  min-height: 320px;
+  object-fit: cover;
+}
+
+/* ==========================================================================
+   7. SECCIÓN "JUST RESERVE, RENT AND RETURN" (3 PASOS SUNBELT)
+   ========================================================================== */
+.sb-steps-section {
+  background: #ffffff;
+  border: 1px solid var(--sb-gray-border);
+  border-radius: var(--sb-radius-md);
+  padding: 48px 32px;
+  margin-bottom: 48px;
+  box-shadow: var(--sb-shadow-xs);
+}
+.sb-step-card {
+  background: #ffffff;
+  border: 1px solid var(--sb-gray-border);
+  border-radius: var(--sb-radius-md);
+  padding: 38px 24px 26px;
+  text-align: center;
+  height: 100%;
+  position: relative;
+  transition: all 0.2s ease;
+}
+.sb-step-card:hover {
+  border-color: var(--sb-green);
+  box-shadow: var(--sb-shadow-md);
+  transform: translateY(-2px);
+}
+
+/* Badge Verde Circular con Número Protrudente en Borde Superior */
+.sb-step-badge {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--sb-green);
+  color: #ffffff;
+  font-weight: 900;
+  font-size: 1.15rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: -19px;
+  left: 50%;
+  transform: translateX(-50%);
+  box-shadow: 0 2px 6px rgba(0, 132, 61, 0.35);
+}
+.sb-step-title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--sb-dark);
+  margin-bottom: 10px;
+}
+.sb-step-desc {
+  font-size: 0.9375rem;
+  color: var(--sb-gray-text);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ==========================================================================
+   8. SOLUCIONES POR INDUSTRIA (INDUSTRY CARDS)
+   ========================================================================== */
+.sb-industry-card {
+  background: #ffffff;
+  border: 1px solid var(--sb-gray-border);
+  border-radius: var(--sb-radius-md);
+  overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  box-shadow: var(--sb-shadow-xs);
+}
+.sb-industry-card:hover {
+  border-color: var(--sb-green);
+  box-shadow: var(--sb-shadow-md);
+  transform: translateY(-3px);
+}
+.sb-industry-img {
+  width: 100%;
+  height: 145px;
+  object-fit: cover;
+  border-bottom: 1px solid var(--sb-gray-border);
+}
+.sb-industry-title {
+  padding: 16px 14px;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--sb-dark);
+  margin: 0;
+  line-height: 1.35;
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+}
+
+/* ==========================================================================
+   9. DIRECTORIO VISUAL DE 20 CATEGORÍAS (GRID ESTILO SUNBELT)
+   ========================================================================== */
+.sb-category-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-top: 24px;
+}
+@media (max-width: 991px) {
+  .sb-category-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 575px) {
+  .sb-category-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sb-category-card {
+  background: #ffffff;
+  border: 1px solid var(--sb-gray-border);
+  border-radius: var(--sb-radius-md);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: var(--sb-shadow-xs);
+}
+.sb-category-card:hover,
+.sb-category-card.active {
+  border-color: var(--sb-green);
+  box-shadow: 0 4px 12px rgba(0, 132, 61, 0.12);
+  background-color: var(--sb-green-subtle);
+}
+.sb-category-thumb {
+  width: 58px;
+  height: 50px;
+  object-fit: contain;
+  background: #f8fafc;
+  border-radius: var(--sb-radius-sm);
+  padding: 4px;
+  flex-shrink: 0;
+  border: 1px solid rgba(0,0,0,0.04);
+}
+.sb-category-name {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--sb-green);
+  line-height: 1.25;
+  margin: 0;
+}
+.sb-category-card:hover .sb-category-name {
+  color: var(--sb-green-dark);
+}
+
+/* ==========================================================================
+   10. PÍLDORAS DE FILTRADO & CONTROL DE COBERTURA
+   ========================================================================== */
+.category-pills {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 4px 2px 8px;
+  scrollbar-width: thin;
+}
+.category-pills::-webkit-scrollbar {
+  height: 4px;
+}
+.category-pills::-webkit-scrollbar-thumb {
+  background: var(--sb-gray-border-strong);
+  border-radius: 4px;
+}
+
+.category-pill {
+  flex-shrink: 0;
+  white-space: nowrap;
+  cursor: pointer;
+  background: #f1f5f9;
+  color: var(--sb-gray-text);
+  border: 1px solid var(--sb-gray-border);
+  border-radius: var(--sb-radius-pill);
+  padding: 7px 18px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+.category-pill:hover {
+  background: #e2e8f0;
+  color: var(--sb-dark);
+  border-color: var(--sb-gray-border-strong);
+}
+.category-pill.active {
+  background: var(--sb-green) !important;
+  color: #ffffff !important;
+  border-color: var(--sb-green) !important;
+  box-shadow: 0 2px 8px rgba(0, 132, 61, 0.25) !important;
+}
+
+/* Slider de Cobertura */
+.form-range::-webkit-slider-thumb {
+  background-color: var(--sb-green) !important;
+}
+.form-range::-moz-range-thumb {
+  background-color: var(--sb-green) !important;
+}
+
+/* ==========================================================================
+   11. TARJETAS DE CATÁLOGO HORIZONTALES ESTILO SUNBELT
+   ========================================================================== */
+.sb-tools-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.sb-tool-card {
+  background: #ffffff;
+  border: 1px solid var(--sb-gray-border);
+  border-radius: var(--sb-radius-md);
+  padding: 20px;
+  display: grid;
+  grid-template-columns: 200px 1fr 270px;
+  gap: 24px;
+  align-items: center;
+  transition: all 0.2s ease;
+  box-shadow: var(--sb-shadow-xs);
+}
+.sb-tool-card:hover {
+  border-color: var(--sb-green);
+  box-shadow: var(--sb-shadow-md);
+}
+
+@media (max-width: 991px) {
+  .sb-tool-card {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+}
+
+/* Columna 1: Imagen y Badge de Disponibilidad */
+.sb-tool-img-wrap {
+  width: 100%;
+  height: 160px;
+  background: #f1f3f5;
+  border-radius: var(--sb-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  overflow: hidden;
+  position: relative;
+}
+.sb-tool-img-wrap img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  transition: transform 0.2s ease;
+}
+.sb-tool-card:hover .sb-tool-img-wrap img {
+  transform: scale(1.04);
+}
+
+/* Columna 2: Ficha Técnica e Inventario */
+.sb-tool-cat-class {
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--sb-gray-muted);
+  margin-bottom: 4px;
+}
+.sb-tool-name {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--sb-dark);
+  margin-bottom: 8px;
+  line-height: 1.25;
+}
+.sb-tool-specs-header {
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #475569;
+  margin-bottom: 4px;
+}
+.sb-tool-specs-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 10px 0;
+  font-size: 0.8125rem;
+  color: var(--sb-gray-text);
+}
+.sb-tool-specs-list li {
+  position: relative;
+  padding-left: 14px;
+  margin-bottom: 3px;
+  line-height: 1.45;
+}
+.sb-tool-specs-list li::before {
+  content: "•";
+  color: var(--sb-green);
+  position: absolute;
+  left: 0;
+  font-weight: 900;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+.sb-tool-location-badge {
+  font-size: 0.75rem;
+  color: var(--sb-gray-text);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+}
+.sb-tool-location-badge i {
+  color: var(--sb-green);
+}
+
+/* Columna 3: Caja de Tarifas (3 Columnas) & CTA */
+.sb-tool-rate-box {
+  background: #f8fafc;
+  border: 1px solid var(--sb-gray-border);
+  border-radius: var(--sb-radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.sb-rate-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  text-align: center;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--sb-gray-border);
+}
+.sb-rate-col {
+  display: flex;
+  flex-direction: column;
+}
+.sb-rate-value {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--sb-dark);
+}
+.sb-rate-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--sb-gray-muted);
+  letter-spacing: 0.05em;
+  margin-top: 2px;
+}
+.sb-tool-availability-note {
+  font-size: 0.75rem;
+  color: var(--sb-green);
+  font-weight: 700;
+  text-align: center;
+}
+
+/* ==========================================================================
+   12. BANNER DE FIDELIZACIÓN ("RENT, MANAGE, PAY")
+   ========================================================================== */
+.sb-account-banner {
+  background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+  border: 1px solid var(--sb-gray-border);
+  border-radius: var(--sb-radius-md);
+  padding: 44px 40px;
+  margin: 50px 0;
+  box-shadow: var(--sb-shadow-xs);
+}
+.sb-account-title {
+  font-size: 2.35rem;
+  font-weight: 900;
+  color: var(--sb-dark);
+  line-height: 1.15;
+}
+.sb-account-title span {
+  color: var(--sb-green);
+  display: block;
+}
+.sb-benefit-item {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--sb-dark);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.sb-benefit-item i {
+  color: var(--sb-green);
+  font-size: 1rem;
+}
+
+/* ==========================================================================
+   13. FOOTER CORPORATIVO
+   ========================================================================== */
+.sb-footer {
+  background: #ffffff;
+  border-top: 1px solid var(--sb-gray-border);
+  padding: 60px 0 25px;
+  color: var(--sb-gray-text);
+  font-size: 0.875rem;
+}
+.sb-footer-heading {
+  font-size: 0.9375rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--sb-dark);
+  margin-bottom: 16px;
+}
+.sb-footer-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.sb-footer-links li {
+  margin-bottom: 8px;
+}
+.sb-footer-links a {
+  color: var(--sb-gray-text);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+.sb-footer-links a:hover {
+  color: var(--sb-green);
+}
+.sb-footer-bottom {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid var(--sb-gray-border);
+  font-size: 0.8125rem;
+  color: var(--sb-gray-muted);
+}
+
+/* ==========================================================================
+   14. ESTILIZACIÓN DE MODALES (SUNBELT STYLE)
+   ========================================================================== */
+.modal-content.sb-modal {
+  background: #ffffff !important;
+  border: 1px solid var(--sb-gray-border) !important;
+  border-radius: var(--sb-radius-md) !important;
+  box-shadow: var(--sb-shadow-lg) !important;
+  color: var(--sb-dark) !important;
+}
+.modal-content.sb-modal .modal-header {
+  border-bottom: 1px solid var(--sb-gray-border) !important;
+  padding: 18px 24px !important;
+}
+.modal-content.sb-modal .modal-title {
+  font-weight: 800 !important;
+  font-size: 1.25rem !important;
+  color: var(--sb-dark) !important;
+}
+.modal-content.sb-modal .modal-body {
+  padding: 24px !important;
+}
+.modal-content.sb-modal .modal-footer {
+  border-top: 1px solid var(--sb-gray-border) !important;
+  padding: 16px 24px !important;
+}
+
+/* Form Controls en Modales */
+.sb-form-label {
+  font-weight: 700 !important;
+  font-size: 0.8125rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  color: var(--sb-dark) !important;
+  margin-bottom: 5px !important;
+}
+.sb-form-control {
+  border: 1.5px solid var(--sb-gray-border-strong) !important;
+  border-radius: var(--sb-radius-sm) !important;
+  padding: 9px 13px !important;
+  font-size: 0.9375rem !important;
+  color: var(--sb-dark) !important;
+  background: #ffffff !important;
+  width: 100% !important;
+  transition: all 0.2s ease !important;
+}
+.sb-form-control:focus {
+  outline: none !important;
+  border-color: var(--sb-green) !important;
+  box-shadow: 0 0 0 3px rgba(0, 132, 61, 0.18) !important;
+}
+
+/* Overrides de Botones de Opciones de Pago */
+.btn-outline-success {
+  color: var(--sb-green) !important;
+  border-color: var(--sb-green) !important;
+  font-weight: 700 !important;
+}
+.btn-outline-success:hover,
+.btn-check:checked + .btn-outline-success {
+  background-color: var(--sb-green) !important;
+  border-color: var(--sb-green) !important;
+  color: #ffffff !important;
+}
+
+/* Dropdowns Generales */
+.dropdown-menu {
+  background: #ffffff !important;
+  border: 1px solid var(--sb-gray-border) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12) !important;
+  color: var(--sb-dark) !important;
+  border-radius: var(--sb-radius-md) !important;
+}
+.dropdown-item {
+  color: var(--sb-dark) !important;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 8px 16px;
+  transition: all 0.15s ease;
+}
+.dropdown-item:hover,
+.dropdown-item:focus {
+  background-color: var(--sb-green-subtle) !important;
+  color: var(--sb-green) !important;
+}
+
+/* ==========================================================================
+   15. CARRITO MODAL ESTILO SUNBELT RENTALS
+   ========================================================================== */
+.sb-cart-strip {
+  background: #f8fafc;
+  border: 1px solid var(--sb-gray-border);
+  border-radius: var(--sb-radius-sm);
+  padding: 10px 14px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--sb-dark);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.sb-cart-strip-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sb-cart-strip-item i {
+  color: var(--sb-green);
+}
+.sb-empty-cart-icon {
+  font-size: 4rem;
+  color: #cbd5e1;
+  margin-bottom: 16px;
+}
+
+/* ==========================================================================
+   16. BOTÓN FLOTANTE AMARILLO DE ATENCIÓN AL CLIENTE (SUNBELT CHAT BUTTON)
+   (Presente en todas las pantallas oficiales de Sunbelt Rentals)
+   ========================================================================== */
+.sb-floating-chat-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1040;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background-color: var(--sb-yellow);
+  color: var(--sb-dark);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+.sb-floating-chat-btn:hover {
+  background-color: #e5b320;
+  transform: scale(1.08);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+  color: var(--sb-dark);
+}
+.sb-floating-chat-btn:focus {
+  outline: none;
+}
+
+/* ==========================================================================
+   17. POPUPS LEAFLET & SWEETALERT2 EN ESTILO SUNBELT
+   ========================================================================== */
+.leaflet-popup-content-wrapper {
+  background: #ffffff !important;
+  color: var(--sb-dark) !important;
+  border: 1px solid var(--sb-gray-border) !important;
+  border-radius: var(--sb-radius-md) !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
+}
+.leaflet-popup-tip {
+  background: #ffffff !important;
+}
+.leaflet-popup-content {
+  color: var(--sb-dark) !important;
+  font-family: var(--sb-font-main) !important;
+}
+
+.swal2-popup {
+  background: #ffffff !important;
+  color: var(--sb-dark) !important;
+  border-radius: var(--sb-radius-md) !important;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.2) !important;
+  border: 1px solid var(--sb-gray-border) !important;
+  font-family: var(--sb-font-main) !important;
+}
+.swal2-title {
+  color: var(--sb-dark) !important;
+  font-weight: 800 !important;
+}
+.swal2-html-container {
+  color: var(--sb-gray-text) !important;
+}
+.swal2-confirm {
+  background-color: var(--sb-green) !important;
+  border-radius: var(--sb-radius-sm) !important;
+  box-shadow: 0 3px 10px rgba(0, 132, 61, 0.25) !important;
+  font-weight: 700 !important;
+}
+
+/* Tablas Dashboard */
+.table {
+  color: var(--sb-dark) !important;
+}
+.table thead th {
+  background-color: #f8fafc !important;
+  color: var(--sb-gray-muted) !important;
+  font-size: 0.75rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  border-bottom: 2px solid var(--sb-gray-border) !important;
+}
+.table tbody td {
+  border-bottom: 1px solid var(--sb-gray-border) !important;
+  font-size: 0.875rem !important;
+}
+.table-hover tbody tr:hover {
+  background-color: var(--sb-green-subtle) !important;
+}
+
+/* ==========================================================================
+   18. RESPONSIVIDAD PARA DISPOSITIVOS MÓVILES Y TABLETS
+   ========================================================================= */
+@media (max-width: 767px) {
+  .sb-hero-title {
+    font-size: 2.1rem;
+  }
+  .sb-hero-lead {
+    font-size: 1rem;
+  }
+  .sb-section-title {
+    font-size: 1.65rem;
+  }
+  .sb-account-title {
+    font-size: 1.75rem;
+  }
+  .sb-split-banner-content {
+    padding: 24px;
+  }
+  .sb-floating-chat-btn {
+    bottom: 16px;
+    right: 16px;
+    width: 48px;
+    height: 48px;
+    font-size: 1.2rem;
+  }
+  .sb-utility-bar {
+    font-size: 0.75rem;
+  }
+}
+
+/* ==========================================================================
+   19. ESTILOS PASARELA DE PAGO, INSPECCIÓN Y CARRITO (CHECKOUT & FACTURACIÓN)
+   ========================================================================== */
+.sb-pay-tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  font-weight: 700;
+  font-size: 0.875rem;
+  border: 1.5px solid var(--sb-gray-border);
+  border-radius: var(--sb-radius-md);
+  background: #f8fafc;
+  color: var(--sb-gray-text);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.sb-pay-tab:hover {
+  background: #f1f5f9;
+  border-color: var(--sb-gray-border-strong);
+  color: var(--sb-dark);
+}
+.btn-check:checked + .sb-pay-tab {
+  background-color: var(--sb-green-light) !important;
+  border-color: var(--sb-green) !important;
+  color: var(--sb-green-dark) !important;
+  box-shadow: 0 0 0 1px var(--sb-green);
+}
+
+.sb-card-input-wrap {
+  position: relative;
+}
+.sb-card-brand-icon {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.35rem;
+  color: var(--sb-gray-muted);
+  pointer-events: none;
+  transition: color 0.2s ease;
+}
+
+.sb-fuel-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+.sb-fuel-chip {
+  text-align: center;
+  padding: 8px 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 1.5px solid var(--sb-gray-border);
+  border-radius: var(--sb-radius-sm);
+  background: #f8fafc;
+  color: var(--sb-gray-text);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+.sb-fuel-chip:hover {
+  background: #f1f5f9;
+}
+.btn-check:checked + .sb-fuel-chip {
+  background: var(--sb-green) !important;
+  border-color: var(--sb-green) !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 6px rgba(0, 132, 61, 0.3);
+}
+
+.sb-cart-empty-art {
+  width: 96px;
+  height: 96px;
+  background: var(--sb-green-light);
+  color: var(--sb-green);
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+/* ==========================================================================
+   19. UTILITY BAR, HERO BOOKING CHIPS & INDUSTRY HIGHLIGHTS
+   ========================================================================== */
+.sb-utility-hover {
+  transition: color 0.15s ease, opacity 0.15s ease;
+}
+.sb-utility-hover:hover {
+  color: var(--sb-yellow) !important;
+  opacity: 0.95;
+}
+.sb-whatsapp-btn {
+  background-color: #25D366;
+  color: #ffffff !important;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  text-decoration: none;
+  align-items: center;
+  gap: 5px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.sb-whatsapp-btn:hover {
+  transform: scale(1.04);
+  box-shadow: 0 2px 8px rgba(37, 211, 102, 0.4);
+  color: #ffffff !important;
+}
+
+/* Hero Quick Location Chips */
+.hero-quick-locations {
+  background: rgba(248, 250, 252, 0.9);
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 6px 12px;
+}
+.location-chip {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 10px;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+.location-chip:hover {
+  background: var(--sb-green-light);
+  border-color: var(--sb-green);
+  color: var(--sb-green-dark);
+  transform: translateY(-1px);
+}
+.location-chip:active {
+  background: var(--sb-green);
+  color: #ffffff;
+  border-color: var(--sb-green);
+}
+
+/* Active Industry Card Selection */
+.sb-industry-card {
+  position: relative;
+}
+.sb-industry-card.active-industry-card {
+  border-color: var(--sb-green) !important;
+  box-shadow: 0 0 0 3px rgba(0, 132, 61, 0.25), 0 8px 16px rgba(0, 0, 0, 0.1) !important;
+  transform: translateY(-4px);
+  background: #f0fdf4;
+}
+.sb-industry-card.active-industry-card::after {
+  content: '\f058  FILTRADO';
+  font-family: 'Font Awesome 6 Free', Inter, sans-serif;
+  font-weight: 900;
+  font-size: 0.7rem;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: var(--sb-green);
+  color: #ffffff;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Value Experience Cards */
+.sb-value-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px;
+  background: #ffffff;
+  transition: all 0.25s ease;
+  height: 100%;
+}
+.sb-value-card:hover {
+  border-color: var(--sb-green);
+  box-shadow: 0 10px 20px rgba(0, 132, 61, 0.08);
+  transform: translateY(-3px);
+}
+.sb-value-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--sb-dark);
+  margin-bottom: 12px;
+}
+.sb-value-tag {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  background: var(--sb-green-light);
+  color: var(--sb-green-dark);
+  margin-bottom: 12px;
+}
+.btn-sb-yellow {
+  background-color: var(--sb-yellow);
+  color: #101820;
+  font-weight: 700;
+  border: none;
+  transition: all 0.2s ease;
+}
+.btn-sb-yellow:hover {
+  background-color: var(--sb-yellow-dark);
+  color: #ffffff;
+}
+
+/* 3-Step Timeline */
+.sb-steps-timeline {
+  position: relative;
+}
+@media (min-width: 992px) {
+  .sb-steps-timeline::before {
+    content: '';
+    position: absolute;
+    top: 48px;
+    left: 15%;
+    right: 15%;
+    height: 3px;
+    background: repeating-linear-gradient(90deg, var(--sb-green) 0, var(--sb-green) 12px, transparent 12px, transparent 20px);
+    z-index: 1;
+  }
+}
+.sb-step-card {
+  position: relative;
+  z-index: 2;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  height: 100%;
+  transition: all 0.2s ease;
+}
+.sb-step-card:hover {
+  border-color: var(--sb-green);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.06);
+}
+.sb-step-badge {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--sb-green);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 10px rgba(0, 132, 61, 0.25);
+}
+
+/* Active Industry Filter Banner */
+#industry-active-banner {
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 132, 61, 0.08);
+}
+
+
