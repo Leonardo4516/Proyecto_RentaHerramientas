@@ -943,6 +943,9 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-outline-success" onclick="App.addActiveBookingToCart()">
+            <i class="fa fa-cart-plus me-1"></i> Guardar en Carrito
+          </button>
           <button type="button" class="btn btn-sb-green px-4" onclick="App.proceedToPaymentFromBooking()">
             <i class="fa fa-credit-card me-2"></i> Confirmar y Proceder al Pago
           </button>
@@ -1033,25 +1036,31 @@
 
           <!-- Campos Tarjeta -->
           <div id="card-fields" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="small text-muted"><i class="fa fa-credit-card me-1 text-success"></i> Datos de Tarjeta</span>
+              <button type="button" class="btn btn-sm btn-outline-success py-0 px-2" style="font-size: 0.75rem;" onclick="App.fillTestCard()">
+                <i class="fa fa-magic me-1"></i> Rellenar con Tarjeta de Prueba
+              </button>
+            </div>
             <div class="mb-2">
               <label class="sb-form-label" for="card-holder-name">Titular de la Tarjeta <span class="text-danger">*</span>:</label>
-              <input type="text" id="card-holder-name" class="sb-form-control" placeholder="Nombre tal como figura en la tarjeta" value="Juan Pérez">
+              <input type="text" id="card-holder-name" class="sb-form-control" placeholder="Nombre tal como figura en la tarjeta" autocomplete="cc-name">
             </div>
             <div class="mb-2">
               <label class="sb-form-label" for="card-number">Número de Tarjeta <span class="text-danger">*</span>:</label>
-              <div class="sb-card-input-wrap">
-                <input type="text" id="card-number" class="sb-form-control pe-5" placeholder="4532 0000 0000 0000" maxlength="19" value="4532 0000 0000 0000">
-                <i id="card-brand-icon" class="fa fa-cc-visa sb-card-brand-icon text-primary"></i>
+              <div class="sb-card-input-wrap position-relative">
+                <input type="text" id="card-number" class="sb-form-control pe-5" placeholder="4532 0000 0000 0000" maxlength="19" autocomplete="cc-number" inputmode="numeric">
+                <i id="card-brand-icon" class="fa fa-credit-card sb-card-brand-icon text-muted"></i>
               </div>
             </div>
             <div class="row g-2 mb-2">
               <div class="col-6">
                 <label class="sb-form-label" for="card-expiry">Expiración (MM/AA) <span class="text-danger">*</span>:</label>
-                <input type="text" id="card-expiry" class="sb-form-control" placeholder="12/28" maxlength="5" value="12/28">
+                <input type="text" id="card-expiry" class="sb-form-control" placeholder="MM/AA" maxlength="5" autocomplete="cc-exp" inputmode="numeric">
               </div>
               <div class="col-6">
                 <label class="sb-form-label" for="card-cvc">CVC / CVV <span class="text-danger">*</span>:</label>
-                <input type="password" id="card-cvc" class="sb-form-control" placeholder="123" maxlength="4" value="123">
+                <input type="password" id="card-cvc" class="sb-form-control" placeholder="123" maxlength="4" autocomplete="cc-csc" inputmode="numeric">
               </div>
             </div>
             <div class="p-2 rounded bg-light border small text-muted">
@@ -1486,9 +1495,9 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <!-- Módulos de la Aplicación -->
-  <script src="js/api.js?v=4"></script>
-  <script src="js/websocket.js?v=4"></script>
-  <script src="js/map.js?v=4"></script>
-  <script src="js/app.js?v=4"></script>
+  <script src="js/api.js?v=5"></script>
+  <script src="js/websocket.js?v=5"></script>
+  <script src="js/map.js?v=5"></script>
+  <script src="js/app.js?v=5"></script>
 </body>
 </html>

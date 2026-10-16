@@ -49,6 +49,7 @@ const App = (() => {
   let categories = [];
   let selectedCategory = 'TODAS';
   let activeToolForBooking = null;
+  let cart = [];
   let cachedRentals = [];
   let currentView = 'catalog';
 
@@ -56,6 +57,7 @@ const App = (() => {
     setupEventListeners();
     checkAuthStatus();
     RealtimeManager.init();
+    loadCartFromStorage();
 
     // Fechas por defecto para el widget Hero (mínimo mañana y +6 días)
     initHeroWidgetDates();
@@ -165,7 +167,7 @@ const App = (() => {
       });
     });
 
-    // Formateo dinámico y detección de marca de tarjeta de crédito/débito
+    // Formateo dinámico, cursor inteligente y detección de marca de tarjeta de crédito/débito
     const cardNumberInput = document.getElementById('card-number');
     const cardExpiryInput = document.getElementById('card-expiry');
     const cardCvcInput = document.getElementById('card-cvc');
@@ -173,19 +175,59 @@ const App = (() => {
     const cardBrandIcon = document.getElementById('card-brand-icon');
 
     if (cardNumberInput) {
+      cardNumberInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace' && e.target.selectionStart === e.target.selectionEnd) {
+          const pos = e.target.selectionStart;
+          if (pos > 0 && e.target.value[pos - 1] === ' ') {
+            e.preventDefault();
+            const val = e.target.value;
+            const newVal = val.slice(0, pos - 2) + val.slice(pos);
+            e.target.value = newVal;
+            e.target.setSelectionRange(pos - 2, pos - 2);
+            e.target.dispatchEvent(new Event('input'));
+          }
+        }
+      });
+
       cardNumberInput.addEventListener('input', (e) => {
-        let val = e.target.value.replace(/\D/g, '').substring(0, 16);
-        let formatted = val.match(/.{1,4}/g)?.join(' ') || val;
+        const prevCursor = e.target.selectionStart || 0;
+        const prevVal = e.target.value;
+        const digitsBeforeCursor = prevVal.slice(0, prevCursor).replace(/\D/g, '').length;
+
+        const isAmex = /^3[47]/.test(prevVal.replace(/\D/g, ''));
+        const maxLen = isAmex ? 15 : 16;
+        let raw = prevVal.replace(/\D/g, '').substring(0, maxLen);
+
+        let formatted = '';
+        if (isAmex) {
+          const p1 = raw.substring(0, 4);
+          const p2 = raw.substring(4, 10);
+          const p3 = raw.substring(10, 15);
+          formatted = [p1, p2, p3].filter(Boolean).join(' ');
+        } else {
+          formatted = raw.match(/.{1,4}/g)?.join(' ') || raw;
+        }
+
         e.target.value = formatted;
         e.target.classList.remove('is-invalid');
 
+        let newCursor = 0;
+        let digitsCount = 0;
+        while (newCursor < formatted.length && digitsCount < digitsBeforeCursor) {
+          if (/\d/.test(formatted[newCursor])) {
+            digitsCount++;
+          }
+          newCursor++;
+        }
+        e.target.setSelectionRange(newCursor, newCursor);
+
         if (cardBrandIcon) {
           cardBrandIcon.className = 'fa sb-card-brand-icon';
-          if (/^4/.test(val)) {
+          if (/^4/.test(raw)) {
             cardBrandIcon.classList.add('fa-cc-visa', 'text-primary');
-          } else if (/^(5[1-5]|2[2-7])/.test(val)) {
+          } else if (/^(5[1-5]|2[2-7])/.test(raw)) {
             cardBrandIcon.classList.add('fa-cc-mastercard', 'text-warning');
-          } else if (/^3[47]/.test(val)) {
+          } else if (/^3[47]/.test(raw)) {
             cardBrandIcon.classList.add('fa-cc-amex', 'text-info');
           } else {
             cardBrandIcon.classList.add('fa-credit-card', 'text-muted');
@@ -195,10 +237,28 @@ const App = (() => {
     }
 
     if (cardExpiryInput) {
+      cardExpiryInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace' && e.target.selectionStart === e.target.selectionEnd) {
+          const pos = e.target.selectionStart;
+          if (pos === 3 && e.target.value[2] === '/') {
+            e.preventDefault();
+            e.target.value = e.target.value.substring(0, 1);
+            e.target.setSelectionRange(1, 1);
+            e.target.dispatchEvent(new Event('input'));
+          }
+        }
+      });
+
       cardExpiryInput.addEventListener('input', (e) => {
         let val = e.target.value.replace(/\D/g, '').substring(0, 4);
-        if (val.length >= 3) {
-          e.target.value = `${val.substring(0, 2)}/${val.substring(2)}`;
+        if (val.length === 1 && parseInt(val, 10) >= 2) {
+          val = `0${val}/`;
+          e.target.value = val;
+        } else if (val.length >= 2) {
+          const mm = parseInt(val.substring(0, 2), 10);
+          const monthStr = mm > 12 ? '12' : (mm === 0 ? '01' : val.substring(0, 2));
+          const yy = val.substring(2);
+          e.target.value = yy ? `${monthStr}/${yy}` : `${monthStr}/`;
         } else {
           e.target.value = val;
         }
@@ -1043,13 +1103,204 @@ const App = (() => {
     }
   }
 
+  // --- SISTEMA DEL CARRITO DE ALQUILER (PERSISTENTE Y MULTI-EQUIPO) ---
+  function loadCartFromStorage() {
+    try {
+      const saved = localStorage.getItem('rentatools_cart_v1');
+      cart = saved ? JSON.parse(saved) : [];
+      if (!Array.isArray(cart)) cart = [];
+    } catch (_) {
+      cart = [];
+    }
+    updateCartBadge();
+  }
+
+  function saveCartToStorage() {
+    try {
+      localStorage.setItem('rentatools_cart_v1', JSON.stringify(cart));
+    } catch (e) {
+      console.error('Error guardando carrito:', e);
+    }
+    updateCartBadge();
+  }
+
   function updateCartBadge() {
-    const hasQuote = Boolean(activeToolForBooking && activeToolForBooking.calculatedQuote);
-    const count = hasQuote ? 1 : 0;
+    const count = cart.length + (activeToolForBooking && activeToolForBooking.calculatedQuote ? 1 : 0);
     const badgeEl = document.getElementById('sb-cart-count');
     if (badgeEl) badgeEl.textContent = count;
     const modalBadgeEl = document.getElementById('cart-modal-badge');
     if (modalBadgeEl) modalBadgeEl.textContent = count;
+  }
+
+  function addToCart(toolId, daysCount = 3) {
+    const tool = allTools.find(t => String(t.id) === String(toolId));
+    if (!tool) return;
+
+    const existing = cart.find(item => String(item.toolId) === String(toolId));
+    if (existing) {
+      existing.days = Math.min(60, existing.days + 1);
+      recalculateCartItem(existing);
+      saveCartToStorage();
+      if (document.getElementById('cartModal')?.classList.contains('show')) {
+        renderCartModal();
+      }
+      Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 2000,
+        icon: 'info',
+        title: `Se aumentó a ${existing.days} días el alquiler de ${tool.name}`
+      }).fire();
+      return;
+    }
+
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const end = new Date(tomorrow);
+    end.setDate(end.getDate() + daysCount);
+
+    const startStr = tomorrow.toISOString().split('T')[0];
+    const endStr = end.toISOString().split('T')[0];
+    const daily = Number(tool.dailyPrice || tool.dailyRate || tool.pricePerDay || 0);
+    const subtotal = daily * daysCount;
+    const iva = Math.round(subtotal * 0.19);
+    const deposit = Number(tool.depositAmount || 0);
+    const total = subtotal + iva + deposit;
+
+    cart.push({
+      toolId: String(tool.id),
+      name: tool.name,
+      category: tool.categoryName || tool.category || 'Maquinaria',
+      imageUrl: getToolImageUrl(tool),
+      pricePerDay: daily,
+      dailyRate: daily,
+      days: daysCount,
+      startDate: startStr,
+      endDate: endStr,
+      depositAmount: deposit,
+      subtotal: subtotal,
+      iva: iva,
+      deposit: deposit,
+      total: total
+    });
+
+    saveCartToStorage();
+
+    Swal.mixin({
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 2500,
+      timerProgressBar: true,
+      icon: 'success',
+      title: `¡${tool.name} añadido al carrito!`
+    }).fire();
+  }
+
+  function addActiveBookingToCart() {
+    if (!activeToolForBooking || !activeToolForBooking.calculatedQuote) return;
+    const tool = activeToolForBooking;
+    const q = tool.calculatedQuote;
+    const details = tool.bookingDetails || {};
+
+    const idx = cart.findIndex(c => String(c.toolId) === String(tool.id));
+    const itemData = {
+      toolId: String(tool.id),
+      name: tool.name,
+      category: tool.categoryName || tool.category || 'Maquinaria',
+      imageUrl: getToolImageUrl(tool),
+      pricePerDay: Number(tool.dailyPrice || tool.dailyRate || tool.pricePerDay || 0),
+      dailyRate: Number(tool.dailyPrice || tool.dailyRate || tool.pricePerDay || 0),
+      days: q.days,
+      startDate: q.startDate,
+      endDate: q.endDate,
+      depositAmount: q.deposit,
+      subtotal: q.subtotal,
+      iva: q.iva,
+      deposit: q.deposit,
+      total: q.total,
+      bookingDetails: details
+    };
+
+    if (idx >= 0) {
+      cart[idx] = itemData;
+    } else {
+      cart.push(itemData);
+    }
+    saveCartToStorage();
+
+    const bookingModalEl = document.getElementById('bookingModal');
+    const bookingModal = bootstrap.Modal.getInstance(bookingModalEl);
+    if (bookingModal) bookingModal.hide();
+
+    Swal.mixin({
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 2200,
+      icon: 'success',
+      title: `¡Cotización de ${tool.name} guardada en el carrito!`
+    }).fire();
+  }
+
+  function recalculateCartItem(item) {
+    const daily = Number(item.dailyPrice || item.dailyRate || item.pricePerDay || 0);
+    item.pricePerDay = daily;
+    item.dailyRate = daily;
+    item.subtotal = daily * item.days;
+    item.iva = Math.round(item.subtotal * 0.19);
+    item.deposit = Number(item.depositAmount || 0);
+    item.total = item.subtotal + item.iva + item.deposit;
+  }
+
+  function changeCartDays(toolId, delta) {
+    const item = cart.find(c => String(c.toolId) === String(toolId));
+    if (!item) return;
+    const newDays = item.days + delta;
+    if (newDays <= 0) {
+      removeFromCart(toolId);
+      return;
+    }
+    item.days = Math.min(60, newDays);
+    recalculateCartItem(item);
+    saveCartToStorage();
+    renderCartModal();
+  }
+
+  function removeFromCart(toolId) {
+    cart = cart.filter(c => String(c.toolId) !== String(toolId));
+    saveCartToStorage();
+    renderCartModal();
+  }
+
+  function clearCart() {
+    cart = [];
+    activeToolForBooking = null;
+    saveCartToStorage();
+    renderCartModal();
+  }
+
+  function checkoutCartItem(toolId) {
+    const cartModalEl = document.getElementById('cartModal');
+    const cartModal = bootstrap.Modal.getInstance(cartModalEl);
+    if (cartModal) cartModal.hide();
+
+    openBookingModal(toolId);
+  }
+
+  function checkoutCartAll() {
+    if (cart.length === 0 && (!activeToolForBooking || !activeToolForBooking.calculatedQuote)) return;
+    const cartModalEl = document.getElementById('cartModal');
+    const cartModal = bootstrap.Modal.getInstance(cartModalEl);
+    if (cartModal) cartModal.hide();
+
+    if (cart.length > 0) {
+      openBookingModal(cart[0].toolId);
+    } else if (activeToolForBooking) {
+      proceedToPaymentFromCart();
+    }
   }
 
   function renderCartModal() {
@@ -1058,8 +1309,8 @@ const App = (() => {
 
     updateCartBadge();
 
-    if (!activeToolForBooking || !activeToolForBooking.calculatedQuote) {
-      // ESTADO DE CARRITO VACÍO (IDÉNTICO A SUNBELT RENTALS - CAPTURA 8)
+    const hasActiveQuote = Boolean(activeToolForBooking && activeToolForBooking.calculatedQuote);
+    if (cart.length === 0 && !hasActiveQuote) {
       container.innerHTML = `
         <div class="text-center py-4">
           <div class="sb-cart-empty-art mx-auto">
@@ -1082,78 +1333,113 @@ const App = (() => {
       return;
     }
 
-    // SI HAY UNA COTIZACIÓN ACTIVA EN CURSO: RESUMEN RÁPIDO CON OPCIÓN DE IR DIRECTO A PAGAR
-    const tool = activeToolForBooking;
-    const q = tool.calculatedQuote;
-    const details = tool.bookingDetails || {};
-    const deliveryAddress = details.deliveryAddress || document.getElementById('book-delivery-address')?.value || 'Bogotá D.C. & Sabana';
-    const camaBajaNotes = details.camaBajaNotes || document.getElementById('book-cama-baja-notes')?.value || '';
+    let itemsHtml = '';
+    let totalSubtotal = 0;
+    let totalIva = 0;
+    let totalDeposit = 0;
+    let grandTotal = 0;
 
-    container.innerHTML = `
-      <div class="cart-active-quote-wrap">
-        <div class="d-flex align-items-center justify-content-between pb-3 border-bottom mb-3">
-          <div class="d-flex align-items-center gap-3">
-            <img src="${getToolImageUrl(tool)}" class="rounded border p-1" style="width: 72px; height: 72px; object-fit: contain; background: #f8fafc;" alt="${tool.name}" onerror="handleToolImageError(this);">
-            <div>
-              <span class="badge bg-success mb-1"><i class="fa fa-check-circle me-1"></i> Cotización en Curso</span>
-              <h6 class="fw-bold text-dark mb-0">${tool.name}</h6>
-              <div class="text-muted small">${tool.categoryName || tool.category || 'Maquinaria'} | CAT CLASS: RT-${String(tool.id).padStart(4, '0')}</div>
+    if (cart.length > 0) {
+      cart.forEach(item => {
+        totalSubtotal += item.subtotal;
+        totalIva += item.iva;
+        totalDeposit += item.deposit;
+        grandTotal += item.total;
+
+        itemsHtml += `
+          <div class="sb-cart-item d-flex align-items-center justify-content-between gap-2">
+            <div class="d-flex align-items-center gap-2">
+              <img src="${item.imageUrl}" class="sb-cart-item-img" alt="${item.name}" onerror="handleToolImageError(this);">
+              <div>
+                <h6 class="fw-bold text-dark mb-0 fs-6">${item.name}</h6>
+                <div class="text-muted small">${item.category} | ${API.formatCurrency(item.pricePerDay)}/día</div>
+                <div class="d-flex align-items-center gap-1 mt-1">
+                  <button type="button" class="sb-cart-qty-btn" onclick="App.changeCartDays('${item.toolId}', -1)" title="Reducir días">-</button>
+                  <span class="small fw-bold px-2 text-dark">${item.days} d</span>
+                  <button type="button" class="sb-cart-qty-btn" onclick="App.changeCartDays('${item.toolId}', 1)" title="Aumentar días">+</button>
+                </div>
+              </div>
+            </div>
+            <div class="text-end">
+              <div class="fw-bold text-success fs-6">${API.formatCurrency(item.total)}</div>
+              <div class="small text-muted mb-1">Subtotal: ${API.formatCurrency(item.subtotal)}</div>
+              <div class="d-flex gap-1 justify-content-end">
+                <button type="button" class="btn btn-sm btn-sb-green py-0 px-2" style="font-size: 0.75rem;" onclick="App.checkoutCartItem('${item.toolId}')" title="Cotizar y reservar">
+                  <i class="fa fa-calendar-check me-1"></i> Cotizar
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size: 0.75rem;" onclick="App.removeFromCart('${item.toolId}')" title="Eliminar del carrito">
+                  <i class="fa fa-trash-alt"></i>
+                </button>
+              </div>
             </div>
           </div>
-          <button class="btn btn-sm btn-outline-danger" onclick="App.clearCart()" title="Vaciar Carrito">
-            <i class="fa fa-trash-alt"></i>
-          </button>
+        `;
+      });
+    } else if (hasActiveQuote) {
+      const tool = activeToolForBooking;
+      const q = tool.calculatedQuote;
+      totalSubtotal = q.subtotal;
+      totalIva = q.iva;
+      totalDeposit = q.deposit;
+      grandTotal = q.total;
+
+      itemsHtml = `
+        <div class="sb-cart-item d-flex align-items-center justify-content-between gap-2">
+          <div class="d-flex align-items-center gap-2">
+            <img src="${getToolImageUrl(tool)}" class="sb-cart-item-img" alt="${tool.name}" onerror="handleToolImageError(this);">
+            <div>
+              <span class="badge bg-success mb-1 small"><i class="fa fa-clock me-1"></i> Cotización en Curso</span>
+              <h6 class="fw-bold text-dark mb-0">${tool.name}</h6>
+              <div class="text-muted small">${tool.categoryName || tool.category || 'Maquinaria'} | ${q.days} días</div>
+            </div>
+          </div>
+          <div class="text-end">
+            <div class="fw-bold text-success fs-6">${API.formatCurrency(q.total)}</div>
+            <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2 mt-1" style="font-size: 0.75rem;" onclick="App.clearCart()">
+              <i class="fa fa-trash-alt"></i>
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    container.innerHTML = `
+      <div class="sb-cart-active-wrap">
+        <div class="mb-3" style="max-height: 280px; overflow-y: auto;">
+          ${itemsHtml}
         </div>
 
-        <div class="bg-light p-3 rounded-3 border mb-3">
-          <div class="d-flex justify-content-between small text-muted mb-2">
-            <span><i class="fa fa-calendar-alt text-success me-1"></i> Periodo de Reserva:</span>
-            <strong class="text-dark">${q.startDate} al ${q.endDate} (${q.days} días)</strong>
-          </div>
-          <div class="d-flex justify-content-between small text-muted mb-2">
-            <span><i class="fa fa-map-marker-alt text-danger me-1"></i> Frente de Obra:</span>
-            <strong class="text-dark text-truncate ms-2" style="max-width: 230px;" title="${deliveryAddress}">${deliveryAddress}</strong>
-          </div>
-          ${camaBajaNotes ? `
-          <div class="d-flex justify-content-between small text-muted mb-2">
-            <span><i class="fa fa-truck-pickup text-primary me-1"></i> Cama Baja:</span>
-            <span class="text-muted text-truncate ms-2" style="max-width: 230px;" title="${camaBajaNotes}">${camaBajaNotes}</span>
-          </div>` : ''}
-          <hr class="my-2">
+        <div class="sb-cart-summary-box mb-3">
           <div class="d-flex justify-content-between small text-muted mb-1">
-            <span>Subtotal Alquiler (${q.days} días):</span>
-            <span class="text-dark fw-bold">${API.formatCurrency(q.subtotal)}</span>
+            <span>Subtotal de Alquiler:</span>
+            <span class="text-dark fw-bold">${API.formatCurrency(totalSubtotal)}</span>
           </div>
           <div class="d-flex justify-content-between small text-muted mb-1">
             <span>IVA (19% Factura DIAN):</span>
-            <span class="text-dark fw-bold">${API.formatCurrency(q.iva)}</span>
+            <span class="text-dark fw-bold">${API.formatCurrency(totalIva)}</span>
           </div>
           <div class="d-flex justify-content-between small text-muted mb-1">
             <span>Depósito Garantía (Retornable):</span>
-            <span class="text-primary fw-bold">${API.formatCurrency(q.deposit)}</span>
+            <span class="text-primary fw-bold">${API.formatCurrency(totalDeposit)}</span>
           </div>
           <hr class="my-2">
           <div class="d-flex justify-content-between align-items-center">
             <span class="fw-bold text-dark">TOTAL ESTIMADO COP:</span>
-            <span class="h4 text-success fw-bold mb-0">${API.formatCurrency(q.total)}</span>
+            <span class="h4 text-success fw-bold mb-0">${API.formatCurrency(grandTotal)}</span>
           </div>
         </div>
 
         <div class="d-flex flex-column gap-2">
-          <button type="button" class="btn btn-sb-green w-100 py-2 fw-bold" onclick="App.proceedToPaymentFromCart()">
-            <i class="fa fa-credit-card me-2"></i> Ir Directo a Pagar (${API.formatCurrency(q.total)})
+          <button type="button" class="btn btn-sb-green w-100 py-2 fw-bold" onclick="App.checkoutCartAll()">
+            <i class="fa fa-credit-card me-2"></i> Proceder al Alquiler (${API.formatCurrency(grandTotal)})
           </button>
-          <div class="row g-2">
-            <div class="col-6">
-              <button type="button" class="btn btn-outline-secondary w-100 py-1 btn-sm" onclick="App.modifyBookingFromCart()">
-                <i class="fa fa-edit me-1"></i> Modificar Fechas
-              </button>
-            </div>
-            <div class="col-6">
-              <button type="button" class="btn btn-outline-danger w-100 py-1 btn-sm" onclick="App.clearCart()">
-                <i class="fa fa-trash-alt me-1"></i> Vaciar Carrito
-              </button>
-            </div>
+          <div class="d-flex justify-content-between gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm w-50 py-1" data-bs-dismiss="modal">
+              <i class="fa fa-arrow-left me-1"></i> Seguir Explorando
+            </button>
+            <button type="button" class="btn btn-outline-danger btn-sm w-50 py-1" onclick="App.clearCart()">
+              <i class="fa fa-trash-alt me-1"></i> Vaciar Carrito
+            </button>
           </div>
         </div>
       </div>
@@ -1175,12 +1461,10 @@ const App = (() => {
     const cartModal = bootstrap.Modal.getInstance(cartModalEl);
     if (cartModal) cartModal.hide();
 
-    // Sincronizar dirección de obra si no está fijada aún
     const addr = activeToolForBooking.bookingDetails?.deliveryAddress || document.getElementById('book-delivery-address')?.value || 'Bogotá D.C. & Sabana';
     const notes = activeToolForBooking.bookingDetails?.camaBajaNotes || document.getElementById('book-cama-baja-notes')?.value || '';
     activeToolForBooking.bookingDetails = { deliveryAddress: addr, camaBajaNotes: notes };
 
-    // Abrir Modal de Pago
     const q = activeToolForBooking.calculatedQuote;
     document.getElementById('pay-tool-title').textContent = activeToolForBooking.name;
     document.getElementById('pay-summary-total').textContent = API.formatCurrency(q.total);
@@ -1207,10 +1491,30 @@ const App = (() => {
     bookingModal.show();
   }
 
-  function clearCart() {
-    activeToolForBooking = null;
-    updateCartBadge();
-    renderCartModal();
+  function fillTestCard() {
+    const holder = document.getElementById('card-holder-name');
+    const number = document.getElementById('card-number');
+    const expiry = document.getElementById('card-expiry');
+    const cvc = document.getElementById('card-cvc');
+    if (holder) {
+      holder.value = 'Juan Pérez';
+      holder.classList.remove('is-invalid');
+    }
+    if (number) {
+      number.value = '4532 0123 4567 8910';
+      number.dispatchEvent(new Event('input'));
+      number.classList.remove('is-invalid');
+    }
+    if (expiry) {
+      expiry.value = '12/28';
+      expiry.dispatchEvent(new Event('input'));
+      expiry.classList.remove('is-invalid');
+    }
+    if (cvc) {
+      cvc.value = '123';
+      cvc.dispatchEvent(new Event('input'));
+      cvc.classList.remove('is-invalid');
+    }
   }
 
   function renderTools(tools) {
@@ -1288,6 +1592,9 @@ const App = (() => {
             </div>
             <button class="btn btn-sb-green w-100" onclick="App.openBookingModal('${t.id}')">
               <i class="fa fa-calendar-check me-1"></i> Cotizar & Reservar
+            </button>
+            <button class="btn btn-outline-success btn-sm w-100 mt-2 py-1 fw-bold" onclick="App.addToCart('${t.id}')">
+              <i class="fa fa-cart-plus me-1"></i> Añadir al Carrito
             </button>
             <div class="sb-tool-availability-note">
               <i class="fa fa-check-circle me-1"></i> Disponibilidad garantizada en Bogotá
@@ -1910,7 +2217,13 @@ const App = (() => {
       // 4. Confirmar automáticamente el estado de la reserva al estar pagada
       await API.rentals.updateStatus(rental.id, 'CONFIRMADA');
 
-      // Limpiar cotización activa del carrito
+      const confirmedToolName = activeToolForBooking?.name || rental.toolName || 'Equipo Industrial';
+
+      // Limpiar cotización activa del carrito y remover ítem si existía en cart
+      if (activeToolForBooking) {
+        cart = cart.filter(c => String(c.toolId) !== String(activeToolForBooking.id));
+        saveCartToStorage();
+      }
       activeToolForBooking = null;
       updateCartBadge();
 
@@ -1919,9 +2232,16 @@ const App = (() => {
       loadClientRentals();
       loadProviderRequests();
 
-      // Cerrar modal de pago
-      const payModal = bootstrap.Modal.getInstance(document.getElementById('paymentModal'));
+      // Cerrar modal de pago y limpiar backdrop limpiamente para evitar solapamientos
+      const payModalEl = document.getElementById('paymentModal');
+      const payModal = bootstrap.Modal.getInstance(payModalEl);
       if (payModal) payModal.hide();
+
+      await new Promise(r => setTimeout(r, 220));
+      document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+      document.body.classList.remove('modal-open');
+      document.body.style.removeProperty('overflow');
+      document.body.style.removeProperty('padding-right');
 
       // Restaurar estado del botón
       if (btnSubmit) {
@@ -1929,46 +2249,60 @@ const App = (() => {
         btnSubmit.innerHTML = originalBtnHtml;
       }
 
-      // SWEETALERT DE ÉXITO CON NÚMERO DE FACTURA Y BOTÓN DIRECTO PARA DESCARGAR EL PDF
+      // SWEETALERT DE ÉXITO PROFESIONAL TIPO RECIBO CON DESCARGA OFICIAL DE FACTURA PDF
       const pdfUrl = API.invoices.downloadPdfUrl(invoice.id);
+      const invoiceNum = invoice.invoiceNumber || ('INV-' + invoice.id);
+
       Swal.fire({
         icon: 'success',
         title: '¡Pago y Reserva Confirmados!',
         html: `
-          <div class="text-start p-2">
-            <p class="text-dark mb-2">Tu transacción <strong>${payment.transactionReference}</strong> ha sido aprobada exitosamente a través de <strong>${selectedMethod}</strong>.</p>
-            <div class="d-flex align-items-center gap-2 mb-3">
-              <span class="badge bg-success px-3 py-2 fs-6"><i class="fa fa-check-circle me-1"></i> Estado: CONFIRMADA</span>
-              <span class="badge bg-dark px-3 py-2 fs-6"><i class="fa fa-file-invoice me-1"></i> Factura Nº: ${invoice.invoiceNumber || 'FAC-' + invoice.id}</span>
-            </div>
-            
-            <div class="bg-light p-3 rounded border mb-3 small">
-              <div class="d-flex justify-content-between mb-1">
-                <span>Maquinaria:</span>
-                <strong class="text-dark">${rental.toolName || activeToolForBooking?.name || 'Equipo Industrial'}</strong>
+          <div class="sb-receipt-container text-start">
+            <p class="text-center text-muted mb-3 fs-6">
+              Tu transacción <strong class="text-dark font-monospace">${payment.transactionReference}</strong> ha sido aprobada con éxito vía <strong>${selectedMethod}</strong>.
+            </p>
+
+            <div class="sb-receipt-card p-3 rounded-3 border mb-3">
+              <div class="sb-receipt-badges-wrap pb-2 mb-2 border-bottom">
+                <span class="badge bg-success px-2 py-1"><i class="fa fa-check-circle me-1"></i> Estado: CONFIRMADA</span>
+                <span class="badge bg-dark px-2 py-1 font-monospace" style="max-width: 100%; word-break: break-all;">
+                  <i class="fa fa-file-invoice me-1"></i> Factura Nº: ${invoiceNum}
+                </span>
               </div>
-              <div class="d-flex justify-content-between mb-1">
-                <span>Frente de Obra:</span>
-                <strong class="text-dark text-truncate ms-2" style="max-width: 250px;">${deliveryAddress}</strong>
-              </div>
-              <div class="d-flex justify-content-between mb-1">
-                <span>Total Pagado:</span>
-                <strong class="text-success">${API.formatCurrency(q.total)}</strong>
+              <div class="small">
+                <div class="d-flex justify-content-between py-1">
+                  <span class="text-muted">Maquinaria:</span>
+                  <strong class="text-dark text-end ms-2">${confirmedToolName}</strong>
+                </div>
+                <div class="d-flex justify-content-between py-1">
+                  <span class="text-muted">Frente de Obra:</span>
+                  <strong class="text-dark text-truncate text-end ms-2" style="max-width: 250px;" title="${deliveryAddress}">${deliveryAddress}</strong>
+                </div>
+                <div class="d-flex justify-content-between py-1 border-top mt-1 pt-2 align-items-center">
+                  <span class="fw-bold text-dark">Total Pagado:</span>
+                  <span class="h5 text-success fw-bold mb-0">${API.formatCurrency(q.total)}</span>
+                </div>
               </div>
             </div>
 
             <div class="text-center mt-3">
-              <a href="${pdfUrl}" target="_blank" class="btn btn-sb-green w-100 py-2 fw-bold shadow-sm" id="btn-download-pdf">
+              <a href="${pdfUrl}" target="_blank" class="btn btn-sb-green w-100 py-2 fw-bold shadow-sm mb-2" id="btn-download-pdf">
                 <i class="fa fa-file-pdf me-2"></i> Descargar Factura Oficial PDF
               </a>
-              <div class="text-muted small mt-1">Generada en vivo por el backend (${pdfUrl})</div>
+              <div class="text-success small fw-semibold">
+                <i class="fa fa-shield-alt me-1"></i> Documento tributario electrónico certificado DIAN
+              </div>
             </div>
           </div>
         `,
         confirmButtonColor: '#00843D',
         confirmButtonText: (user.role === 'ROLE_ADMIN') ? 'Ver Alquileres Activos' : 'Ver mis Alquileres',
         background: '#ffffff',
-        color: '#101820'
+        color: '#101820',
+        width: '500px',
+        customClass: {
+          popup: 'sb-receipt-modal shadow-lg'
+        }
       }).then(() => {
         switchView('client-dashboard');
       });
@@ -2902,6 +3236,13 @@ const App = (() => {
     initScrollUnfoldObserver,
     getCurrentView: () => currentView,
     openCartModal,
+    addToCart,
+    addActiveBookingToCart,
+    removeFromCart,
+    changeCartDays,
+    checkoutCartItem,
+    checkoutCartAll,
+    fillTestCard,
     proceedToPaymentFromCart,
     modifyBookingFromCart,
     clearCart,
