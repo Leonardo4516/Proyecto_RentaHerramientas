@@ -229,7 +229,7 @@ INSERT INTO tool_images (id, tool_id, image_url, is_cover) VALUES
 (17, 17, '/assets/img/machinery/motosoldadora-miller.jpg', TRUE),
 (18, 18, '/assets/img/machinery/hidrolavadora-karcher.jpg', TRUE),
 (19, 19, '/assets/img/machinery/ReglaVibratoriaDeConcreto.jpeg', TRUE),
-(20, 20, '/assets/img/machinery/retroexcavadora-cat-420f2.jpg', TRUE),
+(20, 20, '/assets/img/machinery/jcb-3cx-4x4.jpg', TRUE),
 (21, 21, '/assets/img/machinery/perforadora-sacanucleos.jpg', TRUE),
 (22, 22, '/assets/img/machinery/equipo-pintura-airless.jpg', TRUE),
 (23, 23, '/assets/img/machinery/malacate-electrico.jpg', TRUE),

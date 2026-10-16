@@ -1344,16 +1344,16 @@
 
             <div class="row g-3 mb-3">
               <div class="col-md-4">
-                <label class="sb-form-label" for="add-tool-brand">Marca:</label>
-                <input type="text" id="add-tool-brand" class="sb-form-control" placeholder="Ej. Caterpillar">
+                <label class="sb-form-label" for="add-tool-brand">Marca <span class="text-danger">*</span>:</label>
+                <input type="text" id="add-tool-brand" class="sb-form-control" placeholder="Ej. Caterpillar" required>
               </div>
               <div class="col-md-4">
-                <label class="sb-form-label" for="add-tool-model">Modelo:</label>
-                <input type="text" id="add-tool-model" class="sb-form-control" placeholder="Ej. 420F2">
+                <label class="sb-form-label" for="add-tool-model">Modelo <span class="text-danger">*</span>:</label>
+                <input type="text" id="add-tool-model" class="sb-form-control" placeholder="Ej. 420F2" required>
               </div>
               <div class="col-md-4">
-                <label class="sb-form-label" for="add-tool-code">Código de Inventario / Serie:</label>
-                <input type="text" id="add-tool-code" class="sb-form-control" placeholder="Autogenerado si está vacío">
+                <label class="sb-form-label" for="add-tool-code">Código de Inventario / Serie <span class="text-danger">*</span>:</label>
+                <input type="text" id="add-tool-code" class="sb-form-control" placeholder="Ej. CAT-420-001" required>
               </div>
             </div>
 
@@ -1376,12 +1376,12 @@
 
             <div class="row g-3 mb-3">
               <div class="col-md-6">
-                <label class="sb-form-label" for="add-tool-spec-power">Especificación Técnica (Potencia / Capacidad):</label>
-                <input type="text" id="add-tool-spec-power" class="sb-form-control" placeholder="Ej. 93 HP / Balde 1.0 m3">
+                <label class="sb-form-label" for="add-tool-spec-power">Especificación Técnica (Potencia / Capacidad) <span class="text-danger">*</span>:</label>
+                <input type="text" id="add-tool-spec-power" class="sb-form-control" placeholder="Ej. 93 HP / Balde 1.0 m3" required>
               </div>
               <div class="col-md-6">
-                <label class="sb-form-label" for="add-tool-spec-fuel">Fuente de Energía / Combustible:</label>
-                <select id="add-tool-spec-fuel" class="sb-form-control">
+                <label class="sb-form-label" for="add-tool-spec-fuel">Fuente de Energía / Combustible <span class="text-danger">*</span>:</label>
+                <select id="add-tool-spec-fuel" class="sb-form-control" required>
                   <option value="Diesel">Diesel</option>
                   <option value="Gasolina">Gasolina</option>
                   <option value="Eléctrico 220V/110V">Eléctrico 220V/110V</option>
@@ -1394,12 +1394,12 @@
 
             <div class="row g-3 mb-3">
               <div class="col-md-4">
-                <label class="sb-form-label" for="add-tool-lat">Latitud GPS (Patio):</label>
-                <input type="number" id="add-tool-lat" class="sb-form-control" placeholder="4.6534" step="0.0001" value="4.6534">
+                <label class="sb-form-label" for="add-tool-lat">Latitud GPS (Patio) <span class="text-danger">*</span>:</label>
+                <input type="number" id="add-tool-lat" class="sb-form-control" placeholder="4.6534" step="0.0001" value="4.6534" required>
               </div>
               <div class="col-md-4">
-                <label class="sb-form-label" for="add-tool-lng">Longitud GPS (Patio):</label>
-                <input type="number" id="add-tool-lng" class="sb-form-control" placeholder="-74.0836" step="0.0001" value="-74.0836">
+                <label class="sb-form-label" for="add-tool-lng">Longitud GPS (Patio) <span class="text-danger">*</span>:</label>
+                <input type="number" id="add-tool-lng" class="sb-form-control" placeholder="-74.0836" step="0.0001" value="-74.0836" required>
               </div>
               <div class="col-md-4">
                 <label class="sb-form-label">Ciudad Operativa:</label>
@@ -1408,44 +1408,23 @@
             </div>
 
             <div class="mb-3 p-3 rounded-3 bg-light border">
-              <label class="sb-form-label d-flex align-items-center gap-2 mb-2">
-                <i class="fa fa-camera text-success"></i> Fotografía Real de la Maquinaria:
+              <label class="sb-form-label d-flex align-items-center gap-2 mb-2" for="add-tool-image-file">
+                <i class="fa fa-camera text-success"></i> Fotografía Real de la Maquinaria <span class="text-danger">*</span>:
               </label>
               <div class="row g-2 align-items-center">
                 <div class="col-md-8">
-                  <select id="add-tool-image-select" class="sb-form-control mb-2" onchange="App.handleNewToolImageSelect(this.value)">
-                    <option value="assets/img/machinery/retroexcavadora-cat-420f2.jpg">Retroexcavadora CAT 420F2 (Foto Real HD)</option>
-                    <option value="assets/img/machinery/Retroexcavadora-Oruga-CAT-320D.png">Retroexcavadora Oruga CAT 320D (Foto Real HD)</option>
-                    <option value="assets/img/machinery/minicargador-bobcat.jpeg">Minicargador Bobcat S550 (Foto Real HD)</option>
-                    <option value="assets/img/machinery/rodillo-compactador.jpg">Rodillo Compactador Hamm (Foto Real HD)</option>
-                    <option value="assets/img/machinery/placa-compactadora.jpg">Placa Compactadora Wacker Neuson (Foto Real HD)</option>
-                    <option value="assets/img/machinery/compactadora-canguro.jpg">Compactadora Canguro Mikasa (Foto Real HD)</option>
-                    <option value="assets/img/machinery/cortadora-pavimento.jpg">Cortadora de Pavimento Husqvarna (Foto Real HD)</option>
-                    <option value="assets/img/machinery/mezcladora-diesel-380l.jpg">Mezcladora Trompo Diesel 380L (Foto Real HD)</option>
-                    <option value="assets/img/machinery/allanadora-concreto.jpeg">Allanadora Helicóptero de Concreto (Foto Real HD)</option>
-                    <option value="assets/img/machinery/regla-vibratoria-concreto.jpeg">Regla Vibratoria de Concreto (Foto Real HD)</option>
-                    <option value="assets/img/machinery/vibrador-concreto.jpg">Vibrador de Concreto Eléctrico (Foto Real HD)</option>
-                    <option value="assets/img/machinery/planta-electrica-cummins.jpg">Planta Eléctrica Cummins 150 kVA (Foto Real HD)</option>
-                    <option value="assets/img/machinery/torre-iluminacion-generac.jpg">Torre de Iluminación Generac (Foto Real HD)</option>
-                    <option value="assets/img/machinery/motosoldadora-miller.jpg">Motosoldadora Miller Bobcat (Foto Real HD)</option>
-                    <option value="assets/img/machinery/martillo-rompedor-hilti.jpg">Martillo Rompedor Hilti TE 3000 (Foto Real HD)</option>
-                    <option value="assets/img/machinery/taladro-demoledor-bosch.jpeg">Taladro Demoledor Bosch GSH 11E (Foto Real HD)</option>
-                    <option value="assets/img/machinery/perforadora-sacanucleos.jpg">Perforadora Saca Núcleos (Foto Real HD)</option>
-                    <option value="assets/img/machinery/compresor-aire.jpg">Compresor de Aire Portátil Chicago (Foto Real HD)</option>
-                    <option value="assets/img/machinery/plataforma-tijera.jpg">Plataforma Tijera Genie GS-1930 (Foto Real HD)</option>
-                    <option value="assets/img/machinery/andamio-multidireccional.jpg">Andamio Multidireccional Certificado (Foto Real HD)</option>
-                    <option value="assets/img/machinery/malacate-electrico.jpg">Malacate Eléctrico de Obra (Foto Real HD)</option>
-                    <option value="assets/img/machinery/motobomba-lodos.jpg">Motobomba para Lodos Honda (Foto Real HD)</option>
-                    <option value="assets/img/machinery/hidrolavadora-karcher.jpg">Hidrolavadora Kärcher HD Industrial (Foto Real HD)</option>
-                    <option value="assets/img/machinery/equipo-pintura-airless.jpg">Equipo Airless Graco (Foto Real HD)</option>
-                    <option value="assets/img/machinery/estacion-total.jpg">Estación Total Leica (Foto Real HD)</option>
-                    <option value="__custom__">-- Ingresar URL personalizada en la nube o web --</option>
-                  </select>
-                  <input type="text" id="add-tool-image-url" class="sb-form-control" placeholder="https://ejemplo.com/foto-maquinaria.jpg" style="display: none;">
+                  <input type="file" id="add-tool-image-file" class="sb-form-control mb-1" accept="image/png, image/jpeg, image/jpg, image/webp" required onchange="App.handleNewToolImageFile(this)">
+                  <div class="small text-muted">
+                    <i class="fa fa-info-circle me-1"></i> Formatos admitidos: PNG, JPG, JPEG o WEBP. Carga y optimización automática.
+                  </div>
                 </div>
                 <div class="col-md-4 text-center">
-                  <div class="rounded border p-1" style="height: 100px; background: #ffffff;">
-                    <img id="add-tool-preview-img" src="assets/img/machinery/retroexcavadora-cat-420f2.jpg" alt="Preview" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.src=window.TOOL_FALLBACK_IMG;">
+                  <div class="rounded border p-1 position-relative" style="height: 100px; background: #ffffff;">
+                    <img id="add-tool-preview-img" src="" alt="Previsualización de Fotografía" style="width: 100%; height: 100%; object-fit: contain; display: none;">
+                    <div id="add-tool-preview-placeholder" class="d-flex flex-column align-items-center justify-content-center h-100 text-muted small">
+                      <i class="fa fa-image fa-2x mb-1 text-secondary opacity-50"></i>
+                      <span>Sin fotografía adjunta</span>
+                    </div>
                   </div>
                 </div>
               </div>

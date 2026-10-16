@@ -49,6 +49,8 @@ const App = (() => {
   let categories = [];
   let selectedCategory = 'TODAS';
   let activeToolForBooking = null;
+  let activeCartCheckout = null;
+  let newToolAttachedImage = null;
   let cart = [];
   let cachedRentals = [];
   let currentView = 'catalog';
@@ -1277,6 +1279,7 @@ const App = (() => {
 
   function clearCart() {
     cart = [];
+    activeCartCheckout = null;
     activeToolForBooking = null;
     saveCartToStorage();
     renderCartModal();
@@ -1292,13 +1295,84 @@ const App = (() => {
 
   function checkoutCartAll() {
     if (cart.length === 0 && (!activeToolForBooking || !activeToolForBooking.calculatedQuote)) return;
+
+    const user = API.getUser();
+    if (!user) {
+      const cartModalEl = document.getElementById('cartModal');
+      const cartModal = bootstrap.Modal.getInstance(cartModalEl);
+      if (cartModal) cartModal.hide();
+
+      Swal.fire({
+        icon: 'info',
+        title: 'Iniciar Sesión Requerido',
+        text: 'Debes iniciar sesión para procesar el alquiler y pago de tu maquinaria.',
+        confirmButtonColor: '#00843D',
+        confirmButtonText: 'Ir a Iniciar Sesión',
+        background: '#ffffff',
+        color: '#101820'
+      }).then(() => {
+        openAuthModal('login');
+      });
+      return;
+    }
+
     const cartModalEl = document.getElementById('cartModal');
     const cartModal = bootstrap.Modal.getInstance(cartModalEl);
     if (cartModal) cartModal.hide();
 
     if (cart.length > 0) {
-      openBookingModal(cart[0].toolId);
+      activeCartCheckout = [...cart];
+      activeToolForBooking = null;
+
+      let totalSubtotal = 0;
+      let totalIva = 0;
+      let totalDeposit = 0;
+      let grandTotal = 0;
+
+      activeCartCheckout.forEach(item => {
+        totalSubtotal += Number(item.subtotal || 0);
+        totalIva += Number(item.iva || 0);
+        totalDeposit += Number(item.deposit || item.depositAmount || 0);
+        grandTotal += Number(item.total || 0);
+      });
+
+      const heroLoc = document.getElementById('hero-location-input')?.value || '';
+      const deliveryAddress = user.address || (heroLoc && heroLoc !== 'Bogotá D.C. & Sabana' ? heroLoc : 'Bogotá D.C. & Sabana - Despacho Obra');
+
+      // Configurar #paymentModal con el título consolidado, total consolidado, desglose y lista de equipos a despachar
+      document.getElementById('pay-tool-title').textContent = `Alquiler Consolidado (${activeCartCheckout.length} Equipos)`;
+      document.getElementById('pay-summary-total').textContent = API.formatCurrency(grandTotal);
+      document.getElementById('pay-summary-breakdown').textContent = `Subtotal: ${API.formatCurrency(totalSubtotal)} + IVA 19% (${API.formatCurrency(totalIva)}) + Garantías (${API.formatCurrency(totalDeposit)})`;
+
+      const payDelivery = document.getElementById('pay-summary-delivery');
+      if (payDelivery) {
+        payDelivery.style.display = 'block';
+        const itemsList = activeCartCheckout.map((item, idx) => `
+          <div class="d-flex justify-content-between align-items-center py-1 border-bottom small">
+            <span class="text-truncate text-start" style="max-width: 250px;">
+              <strong>${idx + 1}. ${item.name}</strong> (${item.days} días)
+            </span>
+            <span class="text-success fw-bold text-end">${API.formatCurrency(item.total)}</span>
+          </div>
+        `).join('');
+
+        payDelivery.innerHTML = `
+          <div class="mt-2 pt-2 border-top text-start">
+            <div class="text-muted small fw-bold mb-1"><i class="fa fa-boxes-stacked text-success me-1"></i> Equipos a despachar:</div>
+            <div class="mb-2" style="max-height: 120px; overflow-y: auto;">
+              ${itemsList}
+            </div>
+            <div class="small text-muted"><i class="fa fa-map-marker-alt text-danger me-1"></i> Despacho consolidado a: <strong>${deliveryAddress}</strong></div>
+          </div>
+        `;
+      }
+
+      const payModalEl = document.getElementById('paymentModal');
+      const paymentModal = bootstrap.Modal.getInstance(payModalEl) || new bootstrap.Modal(payModalEl);
+      paymentModal.show();
+
     } else if (activeToolForBooking) {
+      activeCartCheckout = null;
       proceedToPaymentFromCart();
     }
   }
@@ -1456,6 +1530,7 @@ const App = (() => {
   }
 
   function proceedToPaymentFromCart() {
+    activeCartCheckout = null;
     if (!activeToolForBooking || !activeToolForBooking.calculatedQuote) return;
     const cartModalEl = document.getElementById('cartModal');
     const cartModal = bootstrap.Modal.getInstance(cartModalEl);
@@ -1742,6 +1817,7 @@ const App = (() => {
   }
 
   async function openBookingModal(toolId) {
+    activeCartCheckout = null;
     const user = API.getUser();
     if (!user) {
       Swal.fire({
@@ -1929,6 +2005,7 @@ const App = (() => {
   }
 
   async function proceedToPaymentFromBooking() {
+    activeCartCheckout = null;
     if (!activeToolForBooking || !activeToolForBooking.calculatedQuote) return;
 
     const q = activeToolForBooking.calculatedQuote;
@@ -2032,12 +2109,9 @@ const App = (() => {
 
   async function submitPayment() {
     const user = API.getUser();
-    if (!user || !activeToolForBooking) return;
+    if (!user) return;
+    if (!activeToolForBooking && (!activeCartCheckout || activeCartCheckout.length === 0)) return;
 
-    const q = activeToolForBooking.calculatedQuote;
-    const details = activeToolForBooking.bookingDetails || {};
-    const deliveryAddress = details.deliveryAddress || document.getElementById('book-delivery-address')?.value || user.address || 'Bogotá D.C. & Sabana';
-    const camaBajaNotes = details.camaBajaNotes || document.getElementById('book-cama-baja-notes')?.value || '';
     const selectedMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value || 'PSE';
 
     // VALIDACIÓN ESTRICTA DE CAMPOS OBLIGATORIOS SEGÚN MÉTODO DE PAGO
@@ -2159,9 +2233,13 @@ const App = (() => {
       btnSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Procesando Pago Seguro...';
     }
 
+    const isConsolidated = Boolean(activeCartCheckout && activeCartCheckout.length > 0);
+
     Swal.fire({
       title: 'Procesando Pago Seguro...',
-      text: 'Conectando con la pasarela de pagos, validando fondos y emitiendo factura electrónica con la DIAN...',
+      text: isConsolidated
+        ? `Procesando reservas y facturas para ${activeCartCheckout.length} maquinarias con la DIAN...`
+        : 'Conectando con la pasarela de pagos, validando fondos y emitiendo factura electrónica con la DIAN...',
       allowOutsideClick: false,
       didOpen: () => {
         Swal.showLoading();
@@ -2172,140 +2250,298 @@ const App = (() => {
 
     try {
       const effectiveClientId = user.clientId || user.id;
+      const heroLoc = document.getElementById('hero-location-input')?.value || '';
+      const baseAddress = user.address || (heroLoc && heroLoc !== 'Bogotá D.C. & Sabana' ? heroLoc : 'Bogotá D.C. & Sabana');
 
-      // 1. Crear Reserva con dirección de obra y notas para operador de cama baja
-      const rentalNotes = [
-        `Reserva para ${activeToolForBooking.name}`,
-        camaBajaNotes ? `Instrucciones cama baja: ${camaBajaNotes}` : ''
-      ].filter(Boolean).join(' | ');
+      if (isConsolidated) {
+        const completedRentals = [];
 
-      const rental = await API.rentals.create({
-        toolId: activeToolForBooking.id,
-        clientId: effectiveClientId,
-        startDate: q.startDate,
-        endDate: q.endDate,
-        deliveryAddress: deliveryAddress,
-        notes: rentalNotes
-      });
+        for (let i = 0; i < activeCartCheckout.length; i++) {
+          const item = activeCartCheckout[i];
+          const itemAddress = item.bookingDetails?.deliveryAddress || baseAddress;
+          const itemNotes = item.bookingDetails?.camaBajaNotes
+            ? `Alquiler Consolidado - ${item.name} | Cama baja: ${item.bookingDetails.camaBajaNotes}`
+            : `Alquiler Consolidado Carrito - ${item.name}`;
 
-      // 2. Generar Factura con desglose fiscal
-      const invoice = await API.invoices.generate({
-        rentalId: rental.id,
-        clientId: effectiveClientId,
-        clientName: user.fullName || user.username,
-        clientTaxId: user.clientProfile?.taxId || user.taxId || '900.000.000-1',
-        depositAmount: q.deposit,
-        items: [{
-          toolId: activeToolForBooking.id,
-          toolName: activeToolForBooking.name,
-          dailyRate: activeToolForBooking.dailyRate,
-          days: q.days
-        }]
-      });
+          const today = new Date();
+          const tomorrow = new Date(today);
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          const fallbackStart = tomorrow.toISOString().split('T')[0];
+          const fallbackEndObj = new Date(tomorrow);
+          fallbackEndObj.setDate(fallbackEndObj.getDate() + (item.days || 3));
+          const fallbackEnd = fallbackEndObj.toISOString().split('T')[0];
 
-      // 3. Procesar Pago
-      const payment = await API.payments.process({
-        invoiceId: invoice.id,
-        rentalId: rental.id,
-        clientId: effectiveClientId,
-        amount: q.total,
-        paymentMethod: selectedMethod,
-        transactionReference: `PAY-${Date.now().toString().slice(-6)}`,
-        notes: `Pago verificado vía ${selectedMethod} para ${activeToolForBooking.name}`
-      });
+          const startDate = item.startDate || fallbackStart;
+          const endDate = item.endDate || fallbackEnd;
 
-      // 4. Confirmar automáticamente el estado de la reserva al estar pagada
-      await API.rentals.updateStatus(rental.id, 'CONFIRMADA');
+          // a) Crear Reserva
+          const rental = await API.rentals.create({
+            toolId: item.toolId,
+            clientId: effectiveClientId,
+            startDate: startDate,
+            endDate: endDate,
+            deliveryAddress: itemAddress,
+            notes: itemNotes
+          });
 
-      const confirmedToolName = activeToolForBooking?.name || rental.toolName || 'Equipo Industrial';
+          // b) Generar Factura
+          const invoice = await API.invoices.generate({
+            rentalId: rental.id,
+            clientId: effectiveClientId,
+            clientName: user.fullName || user.username,
+            clientTaxId: user.clientProfile?.taxId || user.taxId || '900.000.000-1',
+            depositAmount: item.deposit || item.depositAmount || 0,
+            items: [{
+              toolId: item.toolId,
+              toolName: item.name,
+              dailyRate: item.dailyRate || item.pricePerDay || 0,
+              days: item.days || 1
+            }]
+          });
 
-      // Limpiar cotización activa del carrito y remover ítem si existía en cart
-      if (activeToolForBooking) {
-        cart = cart.filter(c => String(c.toolId) !== String(activeToolForBooking.id));
+          // c) Procesar Pago
+          const payment = await API.payments.process({
+            invoiceId: invoice.id,
+            rentalId: rental.id,
+            clientId: effectiveClientId,
+            amount: item.total,
+            paymentMethod: selectedMethod,
+            transactionReference: `PAY-CART-${Date.now().toString().slice(-6)}-${i + 1}`,
+            notes: `Pago consolidado vía ${selectedMethod} para ${item.name}`
+          });
+
+          // d) Confirmar estado de la reserva
+          await API.rentals.updateStatus(rental.id, 'CONFIRMADA');
+
+          completedRentals.push({ item, rental, invoice, payment });
+        }
+
+        const grandTotalPaid = completedRentals.reduce((sum, r) => sum + r.item.total, 0);
+
+        // Limpiar carrito y estado
+        cart = [];
         saveCartToStorage();
-      }
-      activeToolForBooking = null;
-      updateCartBadge();
+        updateCartBadge();
+        activeCartCheckout = null;
+        activeToolForBooking = null;
 
-      // Actualizar datos en memoria y vistas
-      await loadTools();
-      loadClientRentals();
-      loadProviderRequests();
+        // Refrescar
+        await loadTools();
+        loadClientRentals();
+        loadProviderRequests();
 
-      // Cerrar modal de pago y limpiar backdrop limpiamente para evitar solapamientos
-      const payModalEl = document.getElementById('paymentModal');
-      const payModal = bootstrap.Modal.getInstance(payModalEl);
-      if (payModal) payModal.hide();
+        // Cerrar modal de pago y limpiar backdrop limpiamente
+        const payModalEl = document.getElementById('paymentModal');
+        const payModal = bootstrap.Modal.getInstance(payModalEl);
+        if (payModal) payModal.hide();
 
-      await new Promise(r => setTimeout(r, 220));
-      document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-      document.body.classList.remove('modal-open');
-      document.body.style.removeProperty('overflow');
-      document.body.style.removeProperty('padding-right');
+        await new Promise(r => setTimeout(r, 220));
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('overflow');
+        document.body.style.removeProperty('padding-right');
 
-      // Restaurar estado del botón
-      if (btnSubmit) {
-        btnSubmit.disabled = false;
-        btnSubmit.innerHTML = originalBtnHtml;
-      }
+        if (btnSubmit) {
+          btnSubmit.disabled = false;
+          btnSubmit.innerHTML = originalBtnHtml;
+        }
 
-      // SWEETALERT DE ÉXITO PROFESIONAL TIPO RECIBO CON DESCARGA OFICIAL DE FACTURA PDF
-      const pdfUrl = API.invoices.downloadPdfUrl(invoice.id);
-      const invoiceNum = invoice.invoiceNumber || ('INV-' + invoice.id);
-
-      Swal.fire({
-        icon: 'success',
-        title: '¡Pago y Reserva Confirmados!',
-        html: `
-          <div class="sb-receipt-container text-start">
-            <p class="text-center text-muted mb-3 fs-6">
-              Tu transacción <strong class="text-dark font-monospace">${payment.transactionReference}</strong> ha sido aprobada con éxito vía <strong>${selectedMethod}</strong>.
-            </p>
-
-            <div class="sb-receipt-card p-3 rounded-3 border mb-3">
-              <div class="sb-receipt-badges-wrap pb-2 mb-2 border-bottom">
-                <span class="badge bg-success px-2 py-1"><i class="fa fa-check-circle me-1"></i> Estado: CONFIRMADA</span>
-                <span class="badge bg-dark px-2 py-1 font-monospace" style="max-width: 100%; word-break: break-all;">
-                  <i class="fa fa-file-invoice me-1"></i> Factura Nº: ${invoiceNum}
-                </span>
-              </div>
-              <div class="small">
-                <div class="d-flex justify-content-between py-1">
-                  <span class="text-muted">Maquinaria:</span>
-                  <strong class="text-dark text-end ms-2">${confirmedToolName}</strong>
-                </div>
-                <div class="d-flex justify-content-between py-1">
-                  <span class="text-muted">Frente de Obra:</span>
-                  <strong class="text-dark text-truncate text-end ms-2" style="max-width: 250px;" title="${deliveryAddress}">${deliveryAddress}</strong>
-                </div>
-                <div class="d-flex justify-content-between py-1 border-top mt-1 pt-2 align-items-center">
-                  <span class="fw-bold text-dark">Total Pagado:</span>
-                  <span class="h5 text-success fw-bold mb-0">${API.formatCurrency(q.total)}</span>
-                </div>
-              </div>
+        const itemsRowsHtml = completedRentals.map(cr => `
+          <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+            <div>
+              <strong class="text-dark d-block">${cr.item.name}</strong>
+              <small class="text-muted">${cr.item.days} días &bull; Factura: <span class="font-monospace text-dark">${cr.invoice.invoiceNumber || ('INV-' + cr.invoice.id)}</span></small>
             </div>
-
-            <div class="text-center mt-3">
-              <a href="${pdfUrl}" target="_blank" class="btn btn-sb-green w-100 py-2 fw-bold shadow-sm mb-2" id="btn-download-pdf">
-                <i class="fa fa-file-pdf me-2"></i> Descargar Factura Oficial PDF
+            <div class="text-end">
+              <div class="fw-bold text-success">${API.formatCurrency(cr.item.total)}</div>
+              <a href="${API.invoices.downloadPdfUrl(cr.invoice.id)}" target="_blank" class="small text-decoration-none text-primary fw-semibold">
+                <i class="fa fa-file-pdf me-1"></i>Factura PDF
               </a>
-              <div class="text-success small fw-semibold">
-                <i class="fa fa-shield-alt me-1"></i> Documento tributario electrónico certificado DIAN
-              </div>
             </div>
           </div>
-        `,
-        confirmButtonColor: '#00843D',
-        confirmButtonText: (user.role === 'ROLE_ADMIN') ? 'Ver Alquileres Activos' : 'Ver mis Alquileres',
-        background: '#ffffff',
-        color: '#101820',
-        width: '500px',
-        customClass: {
-          popup: 'sb-receipt-modal shadow-lg'
+        `).join('');
+
+        Swal.fire({
+          icon: 'success',
+          title: '¡Alquiler Consolidado y Pagos Confirmados!',
+          html: `
+            <div class="sb-receipt-container text-start">
+              <p class="text-center text-muted mb-3 fs-6">
+                Se han procesado y confirmado con éxito <strong>${completedRentals.length} reservas</strong> vía <strong>${selectedMethod}</strong>.
+              </p>
+              <div class="sb-receipt-card p-3 rounded-3 border mb-3">
+                <div class="sb-receipt-badges-wrap pb-2 mb-2 border-bottom d-flex justify-content-between align-items-center">
+                  <span class="badge bg-success px-2 py-1"><i class="fa fa-check-circle me-1"></i> Estado: CONFIRMADA</span>
+                  <span class="badge bg-dark px-2 py-1 font-monospace">
+                    ${completedRentals.length} Maquinarias
+                  </span>
+                </div>
+                <div style="max-height: 180px; overflow-y: auto;">
+                  ${itemsRowsHtml}
+                </div>
+                <div class="d-flex justify-content-between py-2 border-top mt-2 align-items-center">
+                  <span class="fw-bold text-dark fs-6">Total Pagado Consolidado:</span>
+                  <span class="h4 text-success fw-bold mb-0">${API.formatCurrency(grandTotalPaid)}</span>
+                </div>
+              </div>
+              <div class="text-center small text-success fw-semibold">
+                <i class="fa fa-shield-alt me-1"></i> Documentos tributarios electrónicos certificados DIAN
+              </div>
+            </div>
+          `,
+          confirmButtonColor: '#00843D',
+          confirmButtonText: (user.role === 'ROLE_ADMIN') ? 'Ver Alquileres Activos' : 'Ver mis Alquileres',
+          background: '#ffffff',
+          color: '#101820',
+          width: '540px',
+          customClass: {
+            popup: 'sb-receipt-modal shadow-lg'
+          }
+        }).then(() => {
+          switchView('client-dashboard');
+        });
+
+      } else {
+        // Individual booking flow
+        const q = activeToolForBooking.calculatedQuote;
+        const details = activeToolForBooking.bookingDetails || {};
+        const deliveryAddress = details.deliveryAddress || document.getElementById('book-delivery-address')?.value || user.address || 'Bogotá D.C. & Sabana';
+        const camaBajaNotes = details.camaBajaNotes || document.getElementById('book-cama-baja-notes')?.value || '';
+
+        // 1. Crear Reserva con dirección de obra y notas para operador de cama baja
+        const rentalNotes = [
+          `Reserva para ${activeToolForBooking.name}`,
+          camaBajaNotes ? `Instrucciones cama baja: ${camaBajaNotes}` : ''
+        ].filter(Boolean).join(' | ');
+
+        const rental = await API.rentals.create({
+          toolId: activeToolForBooking.id,
+          clientId: effectiveClientId,
+          startDate: q.startDate,
+          endDate: q.endDate,
+          deliveryAddress: deliveryAddress,
+          notes: rentalNotes
+        });
+
+        // 2. Generar Factura con desglose fiscal
+        const invoice = await API.invoices.generate({
+          rentalId: rental.id,
+          clientId: effectiveClientId,
+          clientName: user.fullName || user.username,
+          clientTaxId: user.clientProfile?.taxId || user.taxId || '900.000.000-1',
+          depositAmount: q.deposit,
+          items: [{
+            toolId: activeToolForBooking.id,
+            toolName: activeToolForBooking.name,
+            dailyRate: activeToolForBooking.dailyRate,
+            days: q.days
+          }]
+        });
+
+        // 3. Procesar Pago
+        const payment = await API.payments.process({
+          invoiceId: invoice.id,
+          rentalId: rental.id,
+          clientId: effectiveClientId,
+          amount: q.total,
+          paymentMethod: selectedMethod,
+          transactionReference: `PAY-${Date.now().toString().slice(-6)}`,
+          notes: `Pago verificado vía ${selectedMethod} para ${activeToolForBooking.name}`
+        });
+
+        // 4. Confirmar automáticamente el estado de la reserva al estar pagada
+        await API.rentals.updateStatus(rental.id, 'CONFIRMADA');
+
+        const confirmedToolName = activeToolForBooking?.name || rental.toolName || 'Equipo Industrial';
+
+        // Limpiar cotización activa del carrito y remover ítem si existía en cart
+        if (activeToolForBooking) {
+          cart = cart.filter(c => String(c.toolId) !== String(activeToolForBooking.id));
+          saveCartToStorage();
         }
-      }).then(() => {
-        switchView('client-dashboard');
-      });
+        activeToolForBooking = null;
+        updateCartBadge();
+
+        // Actualizar datos en memoria y vistas
+        await loadTools();
+        loadClientRentals();
+        loadProviderRequests();
+
+        // Cerrar modal de pago y limpiar backdrop limpiamente para evitar solapamientos
+        const payModalEl = document.getElementById('paymentModal');
+        const payModal = bootstrap.Modal.getInstance(payModalEl);
+        if (payModal) payModal.hide();
+
+        await new Promise(r => setTimeout(r, 220));
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('overflow');
+        document.body.style.removeProperty('padding-right');
+
+        // Restaurar estado del botón
+        if (btnSubmit) {
+          btnSubmit.disabled = false;
+          btnSubmit.innerHTML = originalBtnHtml;
+        }
+
+        // SWEETALERT DE ÉXITO PROFESIONAL TIPO RECIBO CON DESCARGA OFICIAL DE FACTURA PDF
+        const pdfUrl = API.invoices.downloadPdfUrl(invoice.id);
+        const invoiceNum = invoice.invoiceNumber || ('INV-' + invoice.id);
+
+        Swal.fire({
+          icon: 'success',
+          title: '¡Pago y Reserva Confirmados!',
+          html: `
+            <div class="sb-receipt-container text-start">
+              <p class="text-center text-muted mb-3 fs-6">
+                Tu transacción <strong class="text-dark font-monospace">${payment.transactionReference}</strong> ha sido aprobada con éxito vía <strong>${selectedMethod}</strong>.
+              </p>
+
+              <div class="sb-receipt-card p-3 rounded-3 border mb-3">
+                <div class="sb-receipt-badges-wrap pb-2 mb-2 border-bottom">
+                  <span class="badge bg-success px-2 py-1"><i class="fa fa-check-circle me-1"></i> Estado: CONFIRMADA</span>
+                  <span class="badge bg-dark px-2 py-1 font-monospace" style="max-width: 100%; word-break: break-all;">
+                    <i class="fa fa-file-invoice me-1"></i> Factura Nº: ${invoiceNum}
+                  </span>
+                </div>
+                <div class="small">
+                  <div class="d-flex justify-content-between py-1">
+                    <span class="text-muted">Maquinaria:</span>
+                    <strong class="text-dark text-end ms-2">${confirmedToolName}</strong>
+                  </div>
+                  <div class="d-flex justify-content-between py-1">
+                    <span class="text-muted">Frente de Obra:</span>
+                    <strong class="text-dark text-truncate text-end ms-2" style="max-width: 250px;" title="${deliveryAddress}">${deliveryAddress}</strong>
+                  </div>
+                  <div class="d-flex justify-content-between py-1 border-top mt-1 pt-2 align-items-center">
+                    <span class="fw-bold text-dark">Total Pagado:</span>
+                    <span class="h5 text-success fw-bold mb-0">${API.formatCurrency(q.total)}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="text-center mt-3">
+                <a href="${pdfUrl}" target="_blank" class="btn btn-sb-green w-100 py-2 fw-bold shadow-sm mb-2" id="btn-download-pdf">
+                  <i class="fa fa-file-pdf me-2"></i> Descargar Factura Oficial PDF
+                </a>
+                <div class="text-success small fw-semibold">
+                  <i class="fa fa-shield-alt me-1"></i> Documento tributario electrónico certificado DIAN
+                </div>
+              </div>
+            </div>
+          `,
+          confirmButtonColor: '#00843D',
+          confirmButtonText: (user.role === 'ROLE_ADMIN') ? 'Ver Alquileres Activos' : 'Ver mis Alquileres',
+          background: '#ffffff',
+          color: '#101820',
+          width: '500px',
+          customClass: {
+            popup: 'sb-receipt-modal shadow-lg'
+          }
+        }).then(() => {
+          switchView('client-dashboard');
+        });
+      }
 
     } catch (err) {
       if (btnSubmit) {
@@ -3054,7 +3290,7 @@ const App = (() => {
 
   function openAddToolModal() {
     const user = API.getUser();
-    if (!user || (user.role !== 'ROLE_PROVEEDOR' && user.role !== 'PROVEEDOR')) {
+    if (!user || (user.role !== 'ROLE_PROVEEDOR' && user.role !== 'PROVEEDOR' && user.role !== 'ROLE_PROVIDER' && user.role !== 'PROVIDER' && user.role !== 'ROLE_ADMIN')) {
       Swal.fire({
         icon: 'warning',
         title: 'Acceso Restringido',
@@ -3077,29 +3313,114 @@ const App = (() => {
       codeInput.value = `MAQ-${Math.floor(1000 + Math.random() * 9000)}`;
     }
 
-    const select = document.getElementById('add-tool-image-select');
-    if (select) {
-      handleNewToolImageSelect(select.value);
-    }
+    setNewToolAttachedImage(null);
+    const fileInput = document.getElementById('add-tool-image-file');
+    if (fileInput) fileInput.value = '';
 
     const modal = new bootstrap.Modal(document.getElementById('addToolModal'));
     modal.show();
   }
 
-  function handleNewToolImageSelect(val) {
-    const customInput = document.getElementById('add-tool-image-url');
+  function setNewToolAttachedImage(dataUrl) {
+    newToolAttachedImage = dataUrl || null;
     const previewImg = document.getElementById('add-tool-preview-img');
-    if (val === '__custom__') {
-      if (customInput) {
-        customInput.style.display = 'block';
-        customInput.oninput = () => {
-          if (previewImg) previewImg.src = customInput.value || window.TOOL_FALLBACK_IMG;
-        };
+    const placeholder = document.getElementById('add-tool-preview-placeholder');
+    if (previewImg) {
+      if (dataUrl) {
+        previewImg.src = dataUrl;
+        previewImg.style.display = 'block';
+        if (placeholder) placeholder.style.display = 'none';
+      } else {
+        previewImg.src = '';
+        previewImg.style.display = 'none';
+        if (placeholder) placeholder.style.display = 'flex';
       }
-      if (previewImg) previewImg.src = customInput?.value || window.TOOL_FALLBACK_IMG;
-    } else {
-      if (customInput) customInput.style.display = 'none';
-      if (previewImg) previewImg.src = val;
+    }
+  }
+
+  function handleNewToolImageFile(input) {
+    const file = input?.files?.[0];
+    if (!file) {
+      setNewToolAttachedImage(null);
+      return;
+    }
+
+    // Validar tipo de imagen
+    if (!file.type.match(/^image\/(png|jpe?g|webp)$/i)) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Formato no compatible',
+        text: 'Por favor selecciona una fotografía en formato PNG, JPG, JPEG o WEBP.',
+        confirmButtonColor: '#00843D',
+        background: '#ffffff',
+        color: '#101820'
+      });
+      input.value = '';
+      setNewToolAttachedImage(null);
+      return;
+    }
+
+    // Validar tamaño máximo antes de compresión (15 MB)
+    if (file.size > 15 * 1024 * 1024) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Fotografía Demasiado Pesada',
+        text: 'La fotografía no debe superar los 15 MB. Por favor selecciona una imagen más liviana.',
+        confirmButtonColor: '#00843D',
+        background: '#ffffff',
+        color: '#101820'
+      });
+      input.value = '';
+      setNewToolAttachedImage(null);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const rawDataUrl = e.target.result;
+      const img = new Image();
+      img.onload = function() {
+        try {
+          const maxWidth = 1000;
+          const maxHeight = 750;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxWidth || height > maxHeight) {
+            if (width / height > maxWidth / maxHeight) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            } else {
+              width = Math.round((width * maxHeight) / height);
+              height = maxHeight;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Comprimir a JPEG con calidad 0.82
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+          setNewToolAttachedImage(compressedDataUrl);
+        } catch (err) {
+          console.warn('Compresión en canvas no disponible, usando data URL directa:', err);
+          setNewToolAttachedImage(rawDataUrl);
+        }
+      };
+      img.onerror = function() {
+        setNewToolAttachedImage(rawDataUrl);
+      };
+      img.src = rawDataUrl;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function handleNewToolImageSelect(val) {
+    if (val && val !== '__custom__') {
+      setNewToolAttachedImage(val);
     }
   }
 
@@ -3111,33 +3432,48 @@ const App = (() => {
 
     const name = document.getElementById('add-tool-name')?.value?.trim();
     const categoryId = document.getElementById('add-tool-category')?.value;
-    const brand = document.getElementById('add-tool-brand')?.value?.trim() || 'Genérica';
-    const model = document.getElementById('add-tool-model')?.value?.trim() || 'Estándar';
-    let code = document.getElementById('add-tool-code')?.value?.trim();
-    if (!code) code = `MAQ-${Date.now().toString().slice(-6)}`;
+    const brand = document.getElementById('add-tool-brand')?.value?.trim();
+    const model = document.getElementById('add-tool-model')?.value?.trim();
+    const code = document.getElementById('add-tool-code')?.value?.trim();
 
     const dailyPrice = parseFloat(document.getElementById('add-tool-price')?.value);
     const depositAmount = parseFloat(document.getElementById('add-tool-deposit')?.value);
-    const lat = parseFloat(document.getElementById('add-tool-lat')?.value) || 4.6534;
-    const lng = parseFloat(document.getElementById('add-tool-lng')?.value) || -74.0836;
-
-    const imgSelect = document.getElementById('add-tool-image-select')?.value;
-    let imageUrl = imgSelect;
-    if (imgSelect === '__custom__') {
-      imageUrl = document.getElementById('add-tool-image-url')?.value?.trim() || 'assets/img/machinery/retroexcavadora-cat-420f2.jpg';
-    }
+    const lat = parseFloat(document.getElementById('add-tool-lat')?.value);
+    const lng = parseFloat(document.getElementById('add-tool-lng')?.value);
 
     const powerSpec = document.getElementById('add-tool-spec-power')?.value?.trim();
     const fuelSpec = document.getElementById('add-tool-spec-fuel')?.value;
 
+    // Validación estricta de todos los campos obligatorios
+    if (!name || !categoryId || !brand || !model || !code || isNaN(dailyPrice) || dailyPrice <= 0 || isNaN(depositAmount) || depositAmount < 0 || !powerSpec || !fuelSpec || isNaN(lat) || isNaN(lng)) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Campos Obligatorios Incompletos',
+        text: 'Por favor completa todos los campos requeridos del formulario: nombre, categoría, marca, modelo, código, tarifas, especificaciones y coordenadas GPS.',
+        confirmButtonColor: '#f59e0b',
+        background: '#0f172a',
+        color: '#f8fafc'
+      });
+      return;
+    }
+
+    // Validación estricta de fotografía adjunta requerida
+    if (!newToolAttachedImage) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Fotografía Requerida',
+        text: 'Debes adjuntar la fotografía real de la maquinaria para poder registrarla y publicarla en el catálogo oficial.',
+        confirmButtonColor: '#f59e0b',
+        background: '#0f172a',
+        color: '#f8fafc'
+      });
+      document.getElementById('add-tool-image-file')?.focus();
+      return;
+    }
+
     const specifications = [];
     if (powerSpec) specifications.push({ key: 'Potencia / Capacidad', value: powerSpec });
     if (fuelSpec) specifications.push({ key: 'Tipo de Energía', value: fuelSpec });
-
-    if (!name || isNaN(dailyPrice) || dailyPrice <= 0 || isNaN(depositAmount)) {
-      Swal.fire('Atención', 'Por favor diligencia todos los campos obligatorios correctamente.', 'warning');
-      return;
-    }
 
     Swal.fire({
       title: 'Publicando Maquinaria...',
@@ -3160,7 +3496,7 @@ const App = (() => {
         depositAmount,
         latitude: lat,
         longitude: lng,
-        imageUrls: [imageUrl],
+        imageUrls: [newToolAttachedImage],
         specifications
       };
 
@@ -3261,6 +3597,8 @@ const App = (() => {
     submitAuth,
     openAddToolModal,
     handleNewToolImageSelect,
+    handleNewToolImageFile,
+    setNewToolAttachedImage,
     submitNewTool,
     logout,
     updateRentalStatus,
