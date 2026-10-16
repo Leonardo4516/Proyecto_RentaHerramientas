@@ -747,6 +747,18 @@
         </div>
         <div id="provider-map-container" style="height: 420px; border-radius: 8px; z-index: 1;"></div>
       </div>
+      <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div>
+          <h5 class="fw-bold text-dark mb-0"><i class="fa fa-list-check text-success me-2"></i>Historial y Solicitudes de Alquiler</h5>
+          <span class="text-muted small">Revisa tus solicitudes activas, pendientes de aprobación y el historial de devoluciones</span>
+        </div>
+        <div class="btn-group btn-group-sm" role="group">
+          <button type="button" class="btn btn-outline-secondary active fw-semibold" id="btn-filter-prov-all" onclick="App.filterProviderRequests('ALL')">Todas (<span id="prov-count-all">0</span>)</button>
+          <button type="button" class="btn btn-outline-warning fw-semibold" id="btn-filter-prov-active" onclick="App.filterProviderRequests('ACTIVE')"><i class="fa fa-hard-hat me-1"></i>En Obra (<span id="prov-count-active">0</span>)</button>
+          <button type="button" class="btn btn-outline-info fw-semibold" id="btn-filter-prov-pending" onclick="App.filterProviderRequests('PENDING')"><i class="fa fa-clock me-1"></i>Por Aprobar (<span id="prov-count-pending">0</span>)</button>
+          <button type="button" class="btn btn-outline-secondary" id="btn-filter-prov-completed" onclick="App.filterProviderRequests('COMPLETED')">Completadas (<span id="prov-count-completed">0</span>)</button>
+        </div>
+      </div>
 
       <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">

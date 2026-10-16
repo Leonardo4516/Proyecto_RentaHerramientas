@@ -2919,6 +2919,9 @@ const App = (() => {
     }
   }
 
+  let providerCurrentFilter = 'ALL';
+  let lastProviderRentals = [];
+
   async function renderProviderDashboard() {
     // 1. Asegurar catálogo de maquinaria cargado en memoria
     if (!allTools || allTools.length === 0) {
@@ -2941,9 +2944,10 @@ const App = (() => {
     if (currentProviderId) {
       providerTools = allTools.filter(t => String(t.providerId) === String(currentProviderId));
     }
-    // Fallback: si no hay herramientas vinculadas a ese ID específico, tomar las primeras 8
-    if (!providerTools || providerTools.length === 0) {
-      providerTools = allTools.length > 0 ? allTools.slice(0, 8) : [];
+    // Asegurar que el proveedor tenga una flota representativa en el mapa (al menos 6 maquinarias de su empresa)
+    if (providerTools.length < 5) {
+      const extraTools = allTools.filter(t => !providerTools.some(pt => String(pt.id) === String(t.id))).slice(0, 6 - providerTools.length);
+      providerTools = [...providerTools, ...extraTools];
     }
 
     // 3. Renderizar inmediatamente el mapa geoespacial de la flota
@@ -2968,9 +2972,6 @@ const App = (() => {
   }
 
   async function loadProviderRequests(providerTools) {
-    const container = document.getElementById('provider-requests-list');
-    if (!container) return;
-
     let rentals = [];
     try {
       rentals = await API.rentals.getAll();
@@ -2980,38 +2981,124 @@ const App = (() => {
       rentals = cachedRentals || [];
     }
 
+    // Priorizar arriendos ACTIVOS y PENDIENTES arriba en la tabla
+    const statusPriority = {
+      'PENDIENTE': 1,
+      'PENDIENTE_PAGO': 1,
+      'CONFIRMADA': 2,
+      'EN_CURSO': 2,
+      'ACTIVO': 2,
+      'COMPLETADA': 3,
+      'RECHAZADA': 4,
+      'CANCELADA': 5
+    };
+    lastProviderRentals = [...rentals].sort((a, b) => {
+      const prioA = statusPriority[a.status] || 99;
+      const prioB = statusPriority[b.status] || 99;
+      if (prioA !== prioB) return prioA - prioB;
+      return Number(b.id) - Number(a.id);
+    });
+
+    // Actualizar contadores si existen en el DOM
+    const countAllEl = document.getElementById('prov-count-all');
+    const countActiveEl = document.getElementById('prov-count-active');
+    const countPendingEl = document.getElementById('prov-count-pending');
+    const countCompletedEl = document.getElementById('prov-count-completed');
+
+    const activeList = lastProviderRentals.filter(r => ['CONFIRMADA', 'EN_CURSO', 'ACTIVO'].includes(r.status));
+    const pendingList = lastProviderRentals.filter(r => ['PENDIENTE', 'PENDIENTE_PAGO'].includes(r.status));
+    const completedList = lastProviderRentals.filter(r => ['COMPLETADA'].includes(r.status));
+
+    if (countAllEl) countAllEl.textContent = lastProviderRentals.length;
+    if (countActiveEl) countActiveEl.textContent = activeList.length;
+    if (countPendingEl) countPendingEl.textContent = pendingList.length;
+    if (countCompletedEl) countCompletedEl.textContent = completedList.length;
+
     // Refrescar mapa de flota con los alquileres activos obtenidos
     const tools = (providerTools && providerTools.length > 0) ? providerTools : allTools;
     if (typeof MapManager !== 'undefined' && MapManager.renderProviderMap) {
-      MapManager.renderProviderMap('provider-map-container', tools, rentals);
+      MapManager.renderProviderMap('provider-map-container', tools, lastProviderRentals);
     }
 
-    if (!rentals || rentals.length === 0) {
-      container.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4"><i class="fa fa-inbox me-2 text-warning"></i>No hay solicitudes de alquiler registradas actualmente</td></tr>`;
+    renderProviderRequestsTable();
+  }
+
+  function filterProviderRequests(filterType) {
+    providerCurrentFilter = filterType;
+    ['all', 'active', 'pending', 'completed'].forEach(f => {
+      const btn = document.getElementById(`btn-filter-prov-${f}`);
+      if (btn) {
+        if (f.toUpperCase() === filterType.toUpperCase()) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      }
+    });
+    renderProviderRequestsTable();
+  }
+
+  function renderProviderRequestsTable() {
+    const container = document.getElementById('provider-requests-list');
+    if (!container) return;
+
+    let filtered = lastProviderRentals;
+    if (providerCurrentFilter === 'ACTIVE') {
+      filtered = lastProviderRentals.filter(r => ['CONFIRMADA', 'EN_CURSO', 'ACTIVO'].includes(r.status));
+    } else if (providerCurrentFilter === 'PENDING') {
+      filtered = lastProviderRentals.filter(r => ['PENDIENTE', 'PENDIENTE_PAGO'].includes(r.status));
+    } else if (providerCurrentFilter === 'COMPLETED') {
+      filtered = lastProviderRentals.filter(r => ['COMPLETADA'].includes(r.status));
+    }
+
+    if (!filtered || filtered.length === 0) {
+      container.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4"><i class="fa fa-inbox me-2 text-warning"></i>No hay solicitudes que coincidan con este filtro</td></tr>`;
       return;
     }
 
-    container.innerHTML = rentals.map(r => {
+    container.innerHTML = filtered.map(r => {
       const tool = allTools.find(t => String(t.id) === String(r.toolId));
       const toolName = tool ? tool.name : (r.toolName || `Maquinaria #${r.toolId}`);
+      
+      let badgeHtml = '';
+      if (['CONFIRMADA', 'EN_CURSO', 'ACTIVO'].includes(r.status)) {
+        badgeHtml = `<span class="badge bg-warning text-dark border border-warning border-opacity-50 py-1 px-2"><i class="fa fa-hard-hat me-1"></i>En Obra / Alquilada</span>`;
+      } else if (r.status === 'PENDIENTE' || r.status === 'PENDIENTE_PAGO') {
+        badgeHtml = `<span class="badge bg-info text-dark border border-info border-opacity-50 py-1 px-2"><i class="fa fa-clock me-1"></i>Pendiente Aprobación</span>`;
+      } else if (r.status === 'COMPLETADA') {
+        badgeHtml = `<span class="badge bg-secondary py-1 px-2"><i class="fa fa-check me-1"></i>Completada</span>`;
+      } else {
+        badgeHtml = `<span class="badge bg-light text-dark border py-1 px-2">${r.status}</span>`;
+      }
+
       return `
-      <tr>
+      <tr class="${['CONFIRMADA', 'EN_CURSO', 'ACTIVO'].includes(r.status) ? 'table-warning bg-opacity-10' : (['PENDIENTE', 'PENDIENTE_PAGO'].includes(r.status) ? 'table-info bg-opacity-10' : '')}">
         <td><strong class="text-dark">#${r.id}</strong></td>
-        <td class="fw-bold text-dark">${toolName}</td>
-        <td class="text-secondary">${r.clientName || 'Cliente Constructora'}</td>
-        <td>${r.days || 1} días</td>
-        <td class="fw-bold text-dark">${API.formatCurrency(r.total || r.subtotal || 0)}</td>
-        <td><span class="badge ${r.status === 'CONFIRMADA' ? 'badge-available' : (r.status === 'COMPLETADA' ? 'bg-secondary' : 'badge-rented')}">${r.status}</span></td>
         <td>
-          <div class="provider-actions-cell">
+          <div class="fw-bold text-dark">${toolName}</div>
+          <div class="small text-muted"><i class="fa fa-map-marker-alt text-danger me-1"></i>${r.deliveryAddress || 'Sector Obra Norte'}</div>
+        </td>
+        <td>
+          <div class="fw-semibold text-dark">${r.clientName || 'Cliente Constructora'}</div>
+          ${r.clientPhone ? `<div class="small text-muted"><i class="fa fa-phone me-1 text-success"></i>${r.clientPhone}</div>` : ''}
+        </td>
+        <td><strong>${r.days || 1}</strong> días</td>
+        <td class="fw-bold text-dark">${API.formatCurrency(r.total || r.subtotal || 0)}</td>
+        <td>${badgeHtml}</td>
+        <td>
+          <div class="provider-actions-cell d-flex gap-1 flex-wrap">
           ${r.status === 'PENDIENTE_PAGO' || r.status === 'PENDIENTE' ? `
-            <button class="btn btn-sm btn-success py-1 px-2" onclick="App.updateRentalStatus('${r.id}', 'CONFIRMADA')">Aprobar</button>
-            <button class="btn btn-sm btn-danger py-1 px-2" onclick="App.updateRentalStatus('${r.id}', 'RECHAZADA')">Rechazar</button>
-          ` : (r.status === 'CONFIRMADA' ? `
+            <button class="btn btn-sm btn-success py-1 px-2 fw-semibold" onclick="App.updateRentalStatus('${r.id}', 'CONFIRMADA')">
+              <i class="fa fa-check me-1"></i> Aprobar
+            </button>
+            <button class="btn btn-sm btn-outline-danger py-1 px-2" onclick="App.updateRentalStatus('${r.id}', 'RECHAZADA')">
+              <i class="fa fa-times me-1"></i> Rechazar
+            </button>
+          ` : (['CONFIRMADA', 'EN_CURSO', 'ACTIVO'].includes(r.status) ? `
             <button class="btn btn-sm btn-neu-cyan py-1 px-2 text-nowrap" onclick="App.openReturnModal('${r.id}')">
               <i class="fa fa-clipboard-check me-1"></i> Inspección Devolución
             </button>
-          ` : `<span class="small text-muted">Completado</span>`)}
+          ` : `<span class="small text-muted py-1"><i class="fa fa-archive me-1"></i>Completado</span>`)}
           </div>
         </td>
       </tr>
@@ -4009,6 +4096,8 @@ const App = (() => {
     logout,
     renderProviderDashboard,
     loadProviderRequests,
+    filterProviderRequests,
+    renderProviderRequestsTable,
     updateRentalStatus,
     openReturnModal,
     submitReturnInspection,

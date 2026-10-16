@@ -141,15 +141,61 @@ const MapManager = (() => {
       iconAnchor: [12, 12]
     });
 
-    userMarker = L.marker([loc.lat, loc.lng], { icon: userIcon })
+    userMarker = L.marker([loc.lat, loc.lng], { 
+      icon: userIcon,
+      draggable: true
+    })
       .bindPopup(`
-        <div style="font-family: inherit; min-width: 190px;">
-          <strong style="color: #0284c7;"><i class="fa fa-location-arrow me-1"></i>Tu Ubicación Real (GPS)</strong>
+        <div style="font-family: inherit; min-width: 200px;">
+          <strong style="color: #0284c7;"><i class="fa fa-location-arrow me-1"></i>Ubicación de tu Obra (GPS)</strong>
           <div class="small text-muted mt-1">Radio de cobertura: <strong>${Math.round(radius / 1000)} km</strong></div>
-          <div class="small text-muted">Centro de logística y despacho para tu obra</div>
+          <div class="small text-muted mb-2">Centro de despacho para tu maquinaria</div>
+          <div class="alert alert-info py-1 px-2 mb-0 small" style="font-size: 0.75rem;">
+            <i class="fa fa-hand-pointer me-1"></i> Puedes arrastrar este pin o hacer clic en el mapa para ajustar tu obra.
+          </div>
         </div>
       `)
       .addTo(clientMap);
+
+    userMarker.on('dragend', function (e) {
+      const pos = e.target.getLatLng();
+      userLocation = { lat: pos.lat, lng: pos.lng };
+      try {
+        localStorage.setItem('rentatools_user_location', JSON.stringify(userLocation));
+      } catch (_) {}
+      if (userCircle) userCircle.setLatLng(pos);
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'success',
+          title: 'Ubicación de obra actualizada',
+          text: `Coordenadas: ${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)}`,
+          showConfirmButton: false,
+          timer: 2000
+        });
+      }
+    });
+
+    clientMap.off('click');
+    clientMap.on('click', function (e) {
+      userLocation = { lat: e.latlng.lat, lng: e.latlng.lng };
+      try {
+        localStorage.setItem('rentatools_user_location', JSON.stringify(userLocation));
+      } catch (_) {}
+      drawUserLocation(userLocation);
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'info',
+          title: 'Obra reubicada en el mapa',
+          text: `${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)}`,
+          showConfirmButton: false,
+          timer: 1800
+        });
+      }
+    });
   }
 
   // Solicitar permiso explícito al navegador para usar GPS real
@@ -355,10 +401,10 @@ const MapManager = (() => {
       const coords = resolveCoordinates(tool);
       const activeRental = rentalsList.find(r => 
         String(r.toolId) === String(tool.id) && 
-        ['CONFIRMADA', 'EN_CURSO', 'ACTIVO'].includes(r.status)
+        ['CONFIRMADA', 'EN_CURSO', 'ACTIVO', 'PENDIENTE'].includes(r.status)
       );
 
-      const isRented = !!activeRental;
+      const isRented = !!activeRental || tool.status === 'ALQUILADO' || tool.status === 'RENTADA';
       const toolImg = (window.getToolImageUrl ? window.getToolImageUrl(tool) : tool.imageUrl) || (window.TOOL_FALLBACK_IMG || 'assets/img/machinery/placeholder-tool.svg');
 
       let iconHtml = '';
@@ -449,8 +495,12 @@ const MapManager = (() => {
       bounds.push([coords.lat, coords.lng]);
     });
 
-    if (bounds.length > 0 && providerMap) {
+    if (bounds.length > 1 && providerMap) {
       providerMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 13 });
+    } else if (bounds.length === 1 && providerMap) {
+      providerMap.setView(bounds[0], 12);
+    } else if (providerMap) {
+      providerMap.setView([DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lng], 12);
     }
 
     setTimeout(() => {
