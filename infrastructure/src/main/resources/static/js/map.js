@@ -1,8 +1,8 @@
 /**
  * MapManager - Gestión Geoespacial Multi-Rol de Maquinaria y Cobertura (Leaflet.js)
- * Soporta vistas diferenciadas para:
- * 1. Cliente (Catálogo): Identifica herramientas a su disposición (verde brillante) vs disponibles para cotizar (ámbar).
- * 2. Proveedor: Proyecta su flota exclusiva (activas en patio vs utilizadas en obra con datos completos del cliente).
+ * 1. Cliente (Catálogo): Círculo azul de cobertura, detección de ubicación real GPS por navegador,
+ *    diferenciación de herramientas a su disposición (verde brillante con pulso) vs disponibles para cotizar (ámbar).
+ * 2. Proveedor: Proyecta su flota exclusiva (en patio verde vs en obra naranja con datos completos del cliente).
  * 3. Administrador: Telemetría 360° global de la flota (proveedores, estado de renta, clientes activos).
  */
 const MapManager = (() => {
@@ -10,6 +10,8 @@ const MapManager = (() => {
   let clientMap = null;
   let clientMarkersLayer = null;
   let userCircle = null;
+  let userMarker = null;
+  let currentRadiusMeters = 20000;
 
   let providerMap = null;
   let providerMarkersLayer = null;
@@ -21,9 +23,20 @@ const MapManager = (() => {
   let cachedAllTools = [];
   let cachedAllRentals = [];
 
-  // Coordenadas base (Bogotá D.C.)
+  // Coordenadas base por defecto (Bogotá D.C.)
   const DEFAULT_LOCATION = { lat: 4.6500, lng: -74.0800 };
   let userLocation = { ...DEFAULT_LOCATION };
+
+  // Cargar ubicación previa guardada si existe
+  try {
+    const savedLoc = localStorage.getItem('rentatools_user_location');
+    if (savedLoc) {
+      const parsed = JSON.parse(savedLoc);
+      if (parsed.lat && parsed.lng) {
+        userLocation = parsed;
+      }
+    }
+  } catch (_) {}
 
   // Dispersión determinista para herramientas sin lat/lng
   const BOGOTA_ZONES = [
@@ -44,10 +57,8 @@ const MapManager = (() => {
     if (tool.lat && tool.lng && !isNaN(tool.lat) && !isNaN(tool.lng)) {
       return { lat: parseFloat(tool.lat), lng: parseFloat(tool.lng) };
     }
-    // Asignación determinista por ID de herramienta
     const hash = Math.abs(parseInt(tool.id || 1, 10)) % BOGOTA_ZONES.length;
     const base = BOGOTA_ZONES[hash];
-    // Variación sutil para evitar colisión exacta de pines en el mismo punto
     const offsetLat = ((tool.id * 37) % 20 - 10) * 0.0008;
     const offsetLng = ((tool.id * 53) % 20 - 10) * 0.0008;
     return { lat: base.lat + offsetLat, lng: base.lng + offsetLng };
@@ -61,6 +72,10 @@ const MapManager = (() => {
     if (!container) return;
 
     if (!clientMap) {
+      if (container._leaflet_id) {
+        container._leaflet_id = null;
+      }
+
       clientMap = L.map('map-container', {
         zoomControl: true,
         attributionControl: false
@@ -73,50 +88,138 @@ const MapManager = (() => {
 
       clientMarkersLayer = L.layerGroup().addTo(clientMap);
 
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-            clientMap.setView([userLocation.lat, userLocation.lng], 13);
-            drawUserLocation(userLocation);
-          },
-          () => drawUserLocation(userLocation)
-        );
-      } else {
-        drawUserLocation(userLocation);
-      }
+      // Dibujar inmediatamente la ubicación actual y el círculo azul
+      drawUserLocation(userLocation);
+
+      // Solicitar ubicación real por navegador
+      requestRealLocation(false);
     }
 
     setTimeout(() => {
       if (clientMap) clientMap.invalidateSize();
-    }, 150);
+    }, 120);
+    setTimeout(() => {
+      if (clientMap) clientMap.invalidateSize();
+    }, 300);
   }
 
-  function drawUserLocation(loc) {
+  function drawUserLocation(loc, radiusKm = null) {
     if (!clientMap) return;
     if (userCircle) clientMap.removeLayer(userCircle);
+    if (userMarker) clientMap.removeLayer(userMarker);
 
+    const slider = document.getElementById('radius-slider');
+    let radius = currentRadiusMeters;
+    if (radiusKm) {
+      radius = radiusKm * 1000;
+    } else if (slider) {
+      radius = parseInt(slider.value, 10) * 1000;
+    }
+    currentRadiusMeters = radius;
+
+    // CÍRCULO AZUL CIAN DE COBERTURA
     userCircle = L.circle([loc.lat, loc.lng], {
-      color: '#078443',
-      fillColor: '#078443',
-      fillOpacity: 0.10,
-      radius: 12000
+      color: '#06b6d4',
+      fillColor: '#06b6d4',
+      fillOpacity: 0.12,
+      weight: 2,
+      radius: radius
     }).addTo(clientMap);
 
+    // Marcador de la obra del usuario con brillo cian
     const userIcon = L.divIcon({
       className: 'user-pin-icon',
       html: `
-        <div style="background: #078443; width: 22px; height: 22px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 12px rgba(7, 132, 67, 0.8); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px;">
-          <i class="fa fa-user"></i>
+        <div style="position: relative; width: 24px; height: 24px;">
+          <div style="position: absolute; top: -5px; left: -5px; width: 34px; height: 34px; border-radius: 50%; background: rgba(6, 182, 212, 0.45); animation: mapPulse 2s infinite ease-in-out;"></div>
+          <div style="position: relative; z-index: 2; background: #06b6d4; width: 24px; height: 24px; border-radius: 50%; border: 3px solid #ffffff; box-shadow: 0 0 15px #06b6d4; display: flex; align-items: center; justify-content: center; color: #ffffff; font-size: 11px;">
+            <i class="fa fa-crosshairs"></i>
+          </div>
         </div>
       `,
-      iconSize: [22, 22],
-      iconAnchor: [11, 11]
+      iconSize: [24, 24],
+      iconAnchor: [12, 12]
     });
 
-    L.marker([loc.lat, loc.lng], { icon: userIcon })
-      .bindPopup('<strong style="color: #075C35;"><i class="fa fa-map-marker-alt me-1 text-success"></i>Tu Ubicación / Obra Principal</strong>')
+    userMarker = L.marker([loc.lat, loc.lng], { icon: userIcon })
+      .bindPopup(`
+        <div style="font-family: inherit; min-width: 190px;">
+          <strong style="color: #0284c7;"><i class="fa fa-location-arrow me-1"></i>Tu Ubicación Real (GPS)</strong>
+          <div class="small text-muted mt-1">Radio de cobertura: <strong>${Math.round(radius / 1000)} km</strong></div>
+          <div class="small text-muted">Centro de logística y despacho para tu obra</div>
+        </div>
+      `)
       .addTo(clientMap);
+  }
+
+  // Solicitar permiso explícito al navegador para usar GPS real
+  function requestRealLocation(showAlert = false) {
+    if (!navigator.geolocation) {
+      if (showAlert && typeof Swal !== 'undefined') {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Geolocalización no soportada',
+          text: 'Tu navegador no soporta el servicio de ubicación por GPS.',
+          confirmButtonColor: '#00843D'
+        });
+      }
+      return;
+    }
+
+    if (showAlert && typeof Swal !== 'undefined') {
+      Swal.fire({
+        title: 'Detectando tu ubicación real...',
+        text: 'Por favor confirma el permiso de ubicación en tu navegador para posicionar tu obra en el mapa.',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+      });
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        userLocation = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude
+        };
+        try {
+          localStorage.setItem('rentatools_user_location', JSON.stringify(userLocation));
+        } catch (_) {}
+
+        if (clientMap) {
+          clientMap.setView([userLocation.lat, userLocation.lng], 13, { animate: true });
+          drawUserLocation(userLocation);
+        }
+
+        if (showAlert && typeof Swal !== 'undefined') {
+          Swal.fire({
+            icon: 'success',
+            title: '¡Ubicación Sincronizada con Éxito!',
+            html: `<p class="small text-muted mb-0">Coordenadas detectadas: <strong>${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)}</strong>.<br>El círculo azul ahora delimita el radio de entrega desde tu obra.</p>`,
+            timer: 2500,
+            showConfirmButton: false
+          });
+        }
+      },
+      (err) => {
+        console.warn('Geolocalización no permitida o error:', err);
+        drawUserLocation(userLocation);
+
+        if (showAlert && typeof Swal !== 'undefined') {
+          Swal.fire({
+            icon: 'info',
+            title: 'Permisos de Ubicación Requeridos',
+            html: '<p class="small text-muted">Para que el mapa ubique automáticamente tu obra, haz clic en el icono del candado o la chincheta junto a la barra de direcciones de tu navegador y selecciona <strong>Permitir ubicación</strong>.</p>',
+            confirmButtonColor: '#00843D',
+            confirmButtonText: 'Entendido'
+          });
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
   }
 
   function updateToolsOnMap(tools, activeRentals = []) {
@@ -134,11 +237,8 @@ const MapManager = (() => {
       return isClientOwner && isActiveStatus;
     });
 
-    // Mapeo de alquileres activos por toolId
     const activeRentalsByToolId = new Map();
     clientRentals.forEach(r => activeRentalsByToolId.set(String(r.toolId), r));
-
-    const bounds = [];
 
     tools.forEach(tool => {
       const coords = resolveCoordinates(tool);
@@ -151,10 +251,10 @@ const MapManager = (() => {
       const toolImg = (window.getToolImageUrl ? window.getToolImageUrl(tool) : tool.imageUrl) || (window.TOOL_FALLBACK_IMG || 'assets/img/machinery/placeholder-tool.svg');
 
       if (isAtClientDisposal) {
-        // Herramienta a disposición del cliente (Verde Esmeralda con pulso)
+        // Herramienta a su disposición: Verde Esmeralda con pulso
         iconHtml = `
           <div style="position: relative; width: 40px; height: 40px;">
-            <div style="position: absolute; top: -4px; left: -4px; width: 48px; height: 48px; border-radius: 50%; background: rgba(16, 185, 129, 0.35); animation: mapPulse 1.8s infinite ease-in-out;"></div>
+            <div style="position: absolute; top: -4px; left: -4px; width: 48px; height: 48px; border-radius: 50%; background: rgba(16, 185, 129, 0.4); animation: mapPulse 1.8s infinite ease-in-out;"></div>
             <div style="position: relative; z-index: 2; background: #10b981; color: #ffffff; width: 40px; height: 40px; border-radius: 50%; border: 3px solid #ffffff; display: flex; align-items: center; justify-content: center; font-size: 16px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.7);">
               <i class="fa fa-check-circle"></i>
             </div>
@@ -184,7 +284,7 @@ const MapManager = (() => {
           </div>
         `;
       } else {
-        // Herramienta disponible en catálogo (Ámbar industrial)
+        // Herramienta disponible para cotizar: Ámbar industrial
         iconHtml = `
           <div style="background: #f59e0b; color: #0b0f19; width: 34px; height: 34px; border-radius: 50%; border: 2.5px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.6);">
             <i class="fa fa-truck-pickup"></i>
@@ -212,16 +312,10 @@ const MapManager = (() => {
         iconAnchor: isAtClientDisposal ? [20, 20] : [17, 17]
       });
 
-      const marker = L.marker([coords.lat, coords.lng], { icon: toolIcon })
+      L.marker([coords.lat, coords.lng], { icon: toolIcon })
         .bindPopup(popupContent)
         .addTo(clientMarkersLayer);
-
-      bounds.push([coords.lat, coords.lng]);
     });
-
-    if (bounds.length > 0 && clientMap) {
-      clientMap.fitBounds(bounds, { padding: [50, 50], maxZoom: 13 });
-    }
   }
 
   // ==========================================
@@ -231,7 +325,11 @@ const MapManager = (() => {
     const container = document.getElementById(containerId);
     if (!container) return;
 
+    // Si el contenedor ya fue inicializado por Leaflet, resetear _leaflet_id si la instancia previa falló
     if (!providerMap) {
+      if (container._leaflet_id) {
+        container._leaflet_id = null;
+      }
       providerMap = L.map(containerId, {
         zoomControl: true,
         attributionControl: false
@@ -244,15 +342,17 @@ const MapManager = (() => {
 
       providerMarkersLayer = L.layerGroup().addTo(providerMap);
     } else {
-      providerMarkersLayer.clearLayers();
+      if (providerMarkersLayer) {
+        providerMarkersLayer.clearLayers();
+      }
     }
 
     const bounds = [];
     const rentalsList = allRentals || [];
+    const toolsList = (providerTools && providerTools.length > 0) ? providerTools : cachedAllTools;
 
-    (providerTools || []).forEach(tool => {
+    toolsList.forEach(tool => {
       const coords = resolveCoordinates(tool);
-      // Buscar si tiene alquiler activo
       const activeRental = rentalsList.find(r => 
         String(r.toolId) === String(tool.id) && 
         ['CONFIRMADA', 'EN_CURSO', 'ACTIVO'].includes(r.status)
@@ -265,7 +365,7 @@ const MapManager = (() => {
       let popupContent = '';
 
       if (isRented) {
-        // En obra / Utilizada: Naranja Fuego (#f97316)
+        // En obra / Utilizada: Naranja Fuego (#ea580c)
         iconHtml = `
           <div style="background: #ea580c; color: #ffffff; width: 38px; height: 38px; border-radius: 50%; border: 3px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 15px; box-shadow: 0 4px 14px rgba(234, 88, 12, 0.7);">
             <i class="fa fa-hard-hat"></i>
@@ -355,7 +455,10 @@ const MapManager = (() => {
 
     setTimeout(() => {
       if (providerMap) providerMap.invalidateSize();
-    }, 150);
+    }, 120);
+    setTimeout(() => {
+      if (providerMap) providerMap.invalidateSize();
+    }, 350);
   }
 
   // ==========================================
@@ -370,6 +473,9 @@ const MapManager = (() => {
     cachedAllRentals = allRentals || [];
 
     if (!adminMap) {
+      if (container._leaflet_id) {
+        container._leaflet_id = null;
+      }
       adminMap = L.map(containerId, {
         zoomControl: true,
         attributionControl: false
@@ -382,7 +488,9 @@ const MapManager = (() => {
 
       adminMarkersLayer = L.layerGroup().addTo(adminMap);
     } else {
-      adminMarkersLayer.clearLayers();
+      if (adminMarkersLayer) {
+        adminMarkersLayer.clearLayers();
+      }
     }
 
     const bounds = [];
@@ -415,7 +523,7 @@ const MapManager = (() => {
       let popupContent = '';
 
       if (isRented) {
-        // Rentada: Naranja / Ámbar oscuro
+        // Rentada: Naranja / Fuego
         iconHtml = `
           <div style="background: #ea580c; color: #fff; width: 36px; height: 36px; border-radius: 50%; border: 2.5px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; box-shadow: 0 4px 12px rgba(234, 88, 12, 0.6);">
             <i class="fa fa-truck-moving"></i>
@@ -502,7 +610,10 @@ const MapManager = (() => {
 
     setTimeout(() => {
       if (adminMap) adminMap.invalidateSize();
-    }, 150);
+    }, 120);
+    setTimeout(() => {
+      if (adminMap) adminMap.invalidateSize();
+    }, 350);
   }
 
   function filterAdminMap(filterType) {
@@ -511,10 +622,11 @@ const MapManager = (() => {
     }
   }
 
-  // Filtrado por radio de proximidad para el cliente
+  // Filtrado por radio de proximidad para el cliente (actualiza el círculo azul)
   function filterByRadius(radiusKm, allTools) {
+    currentRadiusMeters = radiusKm * 1000;
     if (userCircle) {
-      userCircle.setRadius(radiusKm * 1000);
+      userCircle.setRadius(currentRadiusMeters);
     }
     return (allTools || []).filter(t => {
       const coords = resolveCoordinates(t);
@@ -535,7 +647,6 @@ const MapManager = (() => {
     return R * c;
   }
 
-  // Invalida tamaño de todos los mapas activos al cambiar tamaño o pestaña
   function invalidateSize() {
     if (clientMap) clientMap.invalidateSize();
     if (providerMap) providerMap.invalidateSize();
@@ -552,6 +663,7 @@ const MapManager = (() => {
     renderAdminMap,
     filterAdminMap,
     filterByRadius,
+    requestRealLocation,
     invalidateSize,
     getUserLocation: () => userLocation
   };

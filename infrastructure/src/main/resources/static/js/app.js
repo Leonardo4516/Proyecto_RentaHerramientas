@@ -2919,62 +2919,104 @@ const App = (() => {
     }
   }
 
-  async function loadProviderRequests() {
+  async function renderProviderDashboard() {
+    // 1. Asegurar catálogo de maquinaria cargado en memoria
+    if (!allTools || allTools.length === 0) {
+      try {
+        allTools = await API.tools.getAll() || [];
+        filteredTools = [...allTools];
+      } catch (e) {
+        console.warn('Error precargando maquinaria para portal proveedor:', e);
+      }
+    }
+
+    // 2. Determinar flota asignada al proveedor autenticado
+    const user = API.getUser();
+    let currentProviderId = null;
+    if (user) {
+      currentProviderId = user.providerId || (user.role === 'ROLE_PROVEEDOR' ? 1 : user.id);
+    }
+    
+    let providerTools = [];
+    if (currentProviderId) {
+      providerTools = allTools.filter(t => String(t.providerId) === String(currentProviderId));
+    }
+    // Fallback: si no hay herramientas vinculadas a ese ID específico, tomar las primeras 8
+    if (!providerTools || providerTools.length === 0) {
+      providerTools = allTools.length > 0 ? allTools.slice(0, 8) : [];
+    }
+
+    // 3. Renderizar inmediatamente el mapa geoespacial de la flota
+    if (typeof MapManager !== 'undefined' && MapManager.renderProviderMap) {
+      MapManager.renderProviderMap('provider-map-container', providerTools, cachedRentals || []);
+    }
+
+    // 4. Invalidar dimensiones del mapa para adaptarse a la vista activa
+    setTimeout(() => {
+      if (typeof MapManager !== 'undefined' && MapManager.invalidateSize) {
+        MapManager.invalidateSize();
+      }
+    }, 150);
+    setTimeout(() => {
+      if (typeof MapManager !== 'undefined' && MapManager.invalidateSize) {
+        MapManager.invalidateSize();
+      }
+    }, 400);
+
+    // 5. Cargar solicitudes de arriendo asíncronamente sin bloquear el mapa
+    await loadProviderRequests(providerTools);
+  }
+
+  async function loadProviderRequests(providerTools) {
     const container = document.getElementById('provider-requests-list');
     if (!container) return;
 
+    let rentals = [];
     try {
-      const rentals = await API.rentals.getAll();
+      rentals = await API.rentals.getAll();
       cachedRentals = rentals || [];
-
-      // Renderizar Mapa de Flota del Proveedor
-      const user = API.getUser();
-      const currentProviderId = user ? (user.providerId || user.id) : null;
-      let providerTools = allTools;
-      if (currentProviderId) {
-        const matching = allTools.filter(t => String(t.providerId) === String(currentProviderId));
-        if (matching.length > 0) {
-          providerTools = matching;
-        }
-      }
-      if (typeof MapManager !== 'undefined' && MapManager.renderProviderMap) {
-        MapManager.renderProviderMap('provider-map-container', providerTools, cachedRentals);
-      }
-
-      if (!rentals || rentals.length === 0) {
-        container.innerHTML = `<tr><td colspan="7" class="text-center text-slate-300 py-4"><i class="fa fa-inbox me-2 text-warning"></i>No hay solicitudes de alquiler registradas actualmente</td></tr>`;
-        return;
-      }
-
-      container.innerHTML = rentals.map(r => {
-        const tool = allTools.find(t => String(t.id) === String(r.toolId));
-        const toolName = tool ? tool.name : (r.toolName || `Maquinaria #${r.toolId}`);
-        return `
-        <tr>
-          <td><strong class="text-dark">#${r.id}</strong></td>
-          <td class="fw-bold text-dark">${toolName}</td>
-          <td class="text-secondary">${r.clientName || 'Cliente Constructora'}</td>
-          <td>${r.days} días</td>
-          <td class="fw-bold text-dark">${API.formatCurrency(r.total)}</td>
-          <td><span class="badge ${r.status === 'CONFIRMADA' ? 'badge-available' : (r.status === 'COMPLETADA' ? 'bg-secondary' : 'badge-rented')}">${r.status}</span></td>
-          <td>
-            <div class="provider-actions-cell">
-            ${r.status === 'PENDIENTE_PAGO' || r.status === 'PENDIENTE' ? `
-              <button class="btn btn-sm btn-success py-1 px-2" onclick="App.updateRentalStatus('${r.id}', 'CONFIRMADA')">Aprobar</button>
-              <button class="btn btn-sm btn-danger py-1 px-2" onclick="App.updateRentalStatus('${r.id}', 'RECHAZADA')">Rechazar</button>
-            ` : (r.status === 'CONFIRMADA' ? `
-              <button class="btn btn-sm btn-neu-cyan py-1 px-2 text-nowrap" onclick="App.openReturnModal('${r.id}')">
-                <i class="fa fa-clipboard-check me-1"></i> Inspección Devolución
-              </button>
-            ` : `<span class="small text-muted">Completado</span>`)}
-            </div>
-          </td>
-        </tr>
-      `;
-      }).join('');
     } catch (e) {
-      console.warn('Error cargando solicitudes del proveedor:', e);
+      console.warn('Error cargando solicitudes de alquiler:', e);
+      rentals = cachedRentals || [];
     }
+
+    // Refrescar mapa de flota con los alquileres activos obtenidos
+    const tools = (providerTools && providerTools.length > 0) ? providerTools : allTools;
+    if (typeof MapManager !== 'undefined' && MapManager.renderProviderMap) {
+      MapManager.renderProviderMap('provider-map-container', tools, rentals);
+    }
+
+    if (!rentals || rentals.length === 0) {
+      container.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4"><i class="fa fa-inbox me-2 text-warning"></i>No hay solicitudes de alquiler registradas actualmente</td></tr>`;
+      return;
+    }
+
+    container.innerHTML = rentals.map(r => {
+      const tool = allTools.find(t => String(t.id) === String(r.toolId));
+      const toolName = tool ? tool.name : (r.toolName || `Maquinaria #${r.toolId}`);
+      return `
+      <tr>
+        <td><strong class="text-dark">#${r.id}</strong></td>
+        <td class="fw-bold text-dark">${toolName}</td>
+        <td class="text-secondary">${r.clientName || 'Cliente Constructora'}</td>
+        <td>${r.days || 1} días</td>
+        <td class="fw-bold text-dark">${API.formatCurrency(r.total || r.subtotal || 0)}</td>
+        <td><span class="badge ${r.status === 'CONFIRMADA' ? 'badge-available' : (r.status === 'COMPLETADA' ? 'bg-secondary' : 'badge-rented')}">${r.status}</span></td>
+        <td>
+          <div class="provider-actions-cell">
+          ${r.status === 'PENDIENTE_PAGO' || r.status === 'PENDIENTE' ? `
+            <button class="btn btn-sm btn-success py-1 px-2" onclick="App.updateRentalStatus('${r.id}', 'CONFIRMADA')">Aprobar</button>
+            <button class="btn btn-sm btn-danger py-1 px-2" onclick="App.updateRentalStatus('${r.id}', 'RECHAZADA')">Rechazar</button>
+          ` : (r.status === 'CONFIRMADA' ? `
+            <button class="btn btn-sm btn-neu-cyan py-1 px-2 text-nowrap" onclick="App.openReturnModal('${r.id}')">
+              <i class="fa fa-clipboard-check me-1"></i> Inspección Devolución
+            </button>
+          ` : `<span class="small text-muted">Completado</span>`)}
+          </div>
+        </td>
+      </tr>
+    `;
+    }).join('');
   }
 
   async function updateRentalStatus(rentalId, newStatus) {
@@ -3260,10 +3302,7 @@ const App = (() => {
     } else if (viewName === 'client-dashboard') {
       loadClientRentals();
     } else if (viewName === 'provider-dashboard') {
-      loadProviderRequests();
-      setTimeout(() => {
-        if (typeof MapManager !== 'undefined' && MapManager.invalidateSize) MapManager.invalidateSize();
-      }, 200);
+      renderProviderDashboard();
     } else if (viewName === 'admin-dashboard') {
       loadAdminDashboard();
       setTimeout(() => {
@@ -3968,6 +4007,8 @@ const App = (() => {
     setNewToolAttachedImage,
     submitNewTool,
     logout,
+    renderProviderDashboard,
+    loadProviderRequests,
     updateRentalStatus,
     openReturnModal,
     submitReturnInspection,

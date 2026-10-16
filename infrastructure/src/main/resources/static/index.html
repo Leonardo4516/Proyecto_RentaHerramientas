@@ -594,9 +594,15 @@
             <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
               <div>
                 <strong class="text-dark"><i class="fa fa-map-pin text-success me-2"></i>Ubicación de Equipos y Cobertura en Bogotá</strong>
-                <div class="small text-muted">Explora la ubicación de la maquinaria en la ciudad y consulta tus equipos en arriendo</div>
+                <div class="small text-muted">El círculo azul delimita el radio de entrega desde tu obra real. Ubica tus equipos contratados y disponibles.</div>
               </div>
-              <div class="d-flex align-items-center gap-2 small">
+              <div class="d-flex align-items-center gap-2 small flex-wrap">
+                <button type="button" class="btn btn-sm btn-outline-info text-dark fw-bold px-3 py-1 shadow-sm" onclick="MapManager.requestRealLocation(true)" title="Solicitar permisos de ubicación y centrar el mapa en tu obra actual">
+                  <i class="fa fa-crosshairs text-info me-1"></i> Detectar mi ubicación real (GPS)
+                </button>
+                <span class="badge bg-info bg-opacity-10 text-dark border border-info border-opacity-25 py-1 px-2">
+                  <i class="fa fa-circle text-info me-1 small"></i> Círculo Azul: Tu Obra y Radio
+                </span>
                 <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 py-1 px-2">
                   <i class="fa fa-circle text-success me-1 small"></i> A tu disposición (Arriendo activo)
                 </span>
