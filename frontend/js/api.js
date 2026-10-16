@@ -119,7 +119,8 @@ const API = (() => {
           method: 'POST',
           body: JSON.stringify(rentalData)
         }),
-      getAll: () => request('/api/v1/rentals'),
+      getAll: (params = '') => request('/api/v1/rentals' + (params ? (params.startsWith('?') ? params : '?' + params) : '')),
+      getMyRentals: () => request('/api/v1/rentals/my-rentals'),
       getByToolId: (toolId) => request(`/api/v1/rentals/tool/${toolId}`),
       checkAvailability: (toolId, startDate, endDate) =>
         request(`/api/v1/rentals/check-availability?toolId=${encodeURIComponent(toolId)}&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`),

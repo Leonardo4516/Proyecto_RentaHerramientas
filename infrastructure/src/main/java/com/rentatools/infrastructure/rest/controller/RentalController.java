@@ -22,6 +22,10 @@ import com.rentatools.infrastructure.persistence.user.SpringDataClientRepository
 import com.rentatools.infrastructure.persistence.user.SpringDataProviderRepository;
 import com.rentatools.infrastructure.persistence.user.SpringDataUserRepository;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import com.rentatools.domain.common.exception.UnauthorizedException;
+
 import java.time.LocalDate;
 import java.util.List;
 @RestController
@@ -75,12 +79,75 @@ public class RentalController {
     }
 
     @GetMapping
-    @Operation(summary = "Listar todas las reservas", description = "Retorna el historial completo de alquileres para el cliente o proveedor con datos de contacto enriquecidos")
-    public ResponseEntity<List<RentalResponse>> getAllRentals() {
-        List<RentalResponse> rentals = rentalRepository.findAll().stream()
+    @Operation(summary = "Listar todas las reservas", description = "Retorna el historial de alquileres con aislamiento automático de privacidad para clientes y proveedores")
+    public ResponseEntity<List<RentalResponse>> getAllRentals(
+            @RequestParam(required = false) Long providerId,
+            @RequestParam(required = false) Long clientId,
+            Authentication authentication
+    ) {
+        List<RentalBooking> bookings;
+
+        if (authentication != null && authentication.isAuthenticated() && !"anonymousUser".equals(authentication.getName())) {
+            String username = authentication.getName();
+            boolean isAdmin = authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+            boolean isProvider = authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_PROVEEDOR"));
+            boolean isClient = authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_CLIENTE"));
+
+            if (isAdmin) {
+                if (providerId != null) {
+                    var toolIds = toolJpaRepository.findByProviderId(providerId).stream().map(t -> t.getId()).toList();
+                    bookings = rentalRepository.findAll().stream().filter(r -> toolIds.contains(r.getToolId())).toList();
+                } else if (clientId != null) {
+                    bookings = rentalRepository.findByClientId(clientId);
+                } else {
+                    bookings = rentalRepository.findAll();
+                }
+            } else if (isProvider) {
+                // Proveedor: Solo ve alquileres de maquinaria que le pertenece
+                var userOpt = userRepository.findByUsername(username);
+                Long resolvedProviderId = null;
+                if (userOpt.isPresent()) {
+                    var provOpt = providerRepository.findByUserId(userOpt.get().getId());
+                    if (provOpt.isPresent()) {
+                        resolvedProviderId = provOpt.get().getId();
+                    }
+                }
+                if (resolvedProviderId != null) {
+                    var toolIds = toolJpaRepository.findByProviderId(resolvedProviderId).stream().map(t -> t.getId()).toList();
+                    bookings = rentalRepository.findAll().stream().filter(r -> toolIds.contains(r.getToolId())).toList();
+                } else {
+                    bookings = List.of();
+                }
+            } else if (isClient) {
+                // Cliente: Solo ve sus propios alquileres contratados
+                var userOpt = userRepository.findByUsername(username);
+                Long resolvedClientId = null;
+                if (userOpt.isPresent()) {
+                    var clientOpt = clientRepository.findByUserId(userOpt.get().getId());
+                    resolvedClientId = clientOpt.map(c -> c.getId()).orElse(userOpt.get().getId());
+                }
+                if (resolvedClientId != null) {
+                    bookings = rentalRepository.findByClientId(resolvedClientId);
+                } else {
+                    bookings = List.of();
+                }
+            } else {
+                bookings = rentalRepository.findAll();
+            }
+        } else {
+            bookings = rentalRepository.findAll();
+        }
+
+        List<RentalResponse> rentals = bookings.stream()
                 .map(this::enrichRental)
                 .toList();
         return ResponseEntity.ok(rentals);
+    }
+
+    @GetMapping("/my-rentals")
+    @Operation(summary = "Listar reservas exclusivas del usuario autenticado (Cliente o Proveedor)")
+    public ResponseEntity<List<RentalResponse>> getMyRentals(Authentication authentication) {
+        return getAllRentals(null, null, authentication);
     }
 
     @GetMapping("/tool/{toolId}")
@@ -172,13 +239,19 @@ public class RentalController {
     }
 
     @PutMapping("/{id}/status")
+    @PreAuthorize("hasAnyAuthority('ROLE_PROVEEDOR', 'ROLE_ADMIN')")
     @Operation(summary = "Cambiar estado de una reserva (Aprobar, Rechazar, Iniciar, Cancelar)")
     public ResponseEntity<RentalResponse> updateStatus(
             @PathVariable Long id,
             @RequestParam(required = false) BookingStatus newStatus,
             @RequestParam(required = false) String reason,
-            @RequestBody(required = false) java.util.Map<String, String> body
+            @RequestBody(required = false) java.util.Map<String, String> body,
+            Authentication authentication
     ) {
+        if (authentication != null && !authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+            validateProviderOwnership(id, authentication.getName());
+        }
+
         BookingStatus targetStatus = newStatus;
         if (targetStatus == null && body != null && body.containsKey("status")) {
             targetStatus = BookingStatus.valueOf(body.get("status").toUpperCase());
@@ -191,12 +264,40 @@ public class RentalController {
     }
 
     @PostMapping("/{id}/return")
+    @PreAuthorize("hasAnyAuthority('ROLE_PROVEEDOR', 'ROLE_ADMIN')")
     @Operation(summary = "Registrar devolución de maquinaria e inspección de daños")
     public ResponseEntity<RentalResponse> returnRental(
             @PathVariable Long id,
-            @RequestBody(required = false) java.util.Map<String, Object> returnData
+            @RequestBody(required = false) java.util.Map<String, Object> returnData,
+            Authentication authentication
     ) {
+        if (authentication != null && !authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+            validateProviderOwnership(id, authentication.getName());
+        }
+
         RentalResponse updated = changeRentalStatusUseCase.execute(id, BookingStatus.COMPLETADA, "Devolución e inspección registrada");
         return ResponseEntity.ok(updated);
+    }
+
+    private void validateProviderOwnership(Long rentalId, String username) {
+        var userOpt = userRepository.findByUsername(username);
+        if (userOpt.isEmpty()) {
+            throw new UnauthorizedException("Usuario autenticado no válido.");
+        }
+        var provOpt = providerRepository.findByUserId(userOpt.get().getId());
+        if (provOpt.isEmpty()) {
+            throw new UnauthorizedException("El usuario no tiene un perfil de proveedor asociado.");
+        }
+        Long myProviderId = provOpt.get().getId();
+
+        var rentalOpt = rentalRepository.findById(rentalId);
+        if (rentalOpt.isEmpty()) {
+            throw new com.rentatools.domain.common.EntityNotFoundException("Alquiler no encontrado con ID: " + rentalId);
+        }
+
+        var toolOpt = toolJpaRepository.findById(rentalOpt.get().getToolId());
+        if (toolOpt.isPresent() && !myProviderId.equals(toolOpt.get().getProviderId())) {
+            throw new UnauthorizedException("No tienes autorización para gestionar reservas de maquinaria perteneciente a otra empresa.");
+        }
     }
 }

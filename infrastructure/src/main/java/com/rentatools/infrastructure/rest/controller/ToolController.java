@@ -19,6 +19,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.rentatools.infrastructure.persistence.user.SpringDataUserRepository;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+
 import java.math.BigDecimal;
 import java.util.List;
 @RestController
@@ -32,19 +36,22 @@ public class ToolController {
     private final FindNearbyToolsUseCase findNearbyToolsUseCase;
     private final ToolCategoryRepository categoryRepository;
     private final SpringDataProviderRepository providerRepository;
+    private final SpringDataUserRepository userRepository;
 
     public ToolController(ListToolsUseCase listToolsUseCase,
                           GetToolByIdUseCase getToolByIdUseCase,
                           RegisterToolUseCase registerToolUseCase,
                           FindNearbyToolsUseCase findNearbyToolsUseCase,
                           ToolCategoryRepository categoryRepository,
-                          SpringDataProviderRepository providerRepository) {
+                          SpringDataProviderRepository providerRepository,
+                          SpringDataUserRepository userRepository) {
         this.listToolsUseCase = listToolsUseCase;
         this.getToolByIdUseCase = getToolByIdUseCase;
         this.registerToolUseCase = registerToolUseCase;
         this.findNearbyToolsUseCase = findNearbyToolsUseCase;
         this.categoryRepository = categoryRepository;
         this.providerRepository = providerRepository;
+        this.userRepository = userRepository;
     }
 
     @GetMapping({"", "/public"})
@@ -114,9 +121,38 @@ public class ToolController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyAuthority('ROLE_PROVEEDOR', 'ROLE_ADMIN')")
     @Operation(summary = "Registrar nueva herramienta en el inventario (Rol: Proveedor)")
-    public ResponseEntity<ToolResponse> registerTool(@Valid @RequestBody RegisterToolCommand command) {
-        ToolResponse created = registerToolUseCase.execute(command);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    public ResponseEntity<ToolResponse> registerTool(
+            @Valid @RequestBody RegisterToolCommand command,
+            Authentication authentication
+    ) {
+        RegisterToolCommand effectiveCommand = command;
+        if (authentication != null && !authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+            String username = authentication.getName();
+            var userOpt = userRepository.findByUsername(username);
+            if (userOpt.isPresent()) {
+                var provOpt = providerRepository.findByUserId(userOpt.get().getId());
+                if (provOpt.isPresent()) {
+                    Long authProviderId = provOpt.get().getId();
+                    effectiveCommand = new RegisterToolCommand(
+                            authProviderId,
+                            command.categoryId(),
+                            command.code(),
+                            command.name(),
+                            command.brand(),
+                            command.model(),
+                            command.dailyPrice(),
+                            command.depositAmount(),
+                            command.latitude(),
+                            command.longitude(),
+                            command.imageUrls(),
+                            command.specifications()
+                    );
+                }
+            }
+        }
+        ToolResponse created = registerToolUseCase.execute(effectiveCommand);
+        return ResponseEntity.status(HttpStatus.CREATED).body(enrichTool(created));
     }
 }
