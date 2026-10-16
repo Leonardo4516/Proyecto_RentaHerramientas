@@ -5,6 +5,11 @@ import java.util.Optional;
 public interface ToolRepository {
     Tool save(Tool tool);
     Optional<Tool> findById(Long id);
+
+    default Optional<Tool> findByIdWithLock(Long id) {
+        return findById(id);
+    }
+
     Optional<Tool> findByCode(String code);
     List<Tool> findAll();
     List<Tool> findByCategoryId(Long categoryId);

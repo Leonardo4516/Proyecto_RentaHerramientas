@@ -26,6 +26,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import com.rentatools.domain.common.exception.UnauthorizedException;
 
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDate;
 import java.util.List;
 @RestController
@@ -61,10 +64,36 @@ public class RentalController {
     }
 
     @PostMapping
-    @Operation(summary = "Crear solicitud de reserva de alquiler", description = "Valida que no existan reservas activas en ese rango de fechas")
-    public ResponseEntity<RentalResponse> createRental(@Valid @RequestBody CreateRentalCommand command) {
-        RentalResponse response = createRentalBookingUseCase.execute(command);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    @Transactional(isolation = Isolation.REPEATABLE_READ)
+    @Operation(summary = "Crear solicitud de reserva de alquiler", description = "Valida que no existan reservas activas en ese rango de fechas de forma atómica y concurrente")
+    public ResponseEntity<RentalResponse> createRental(
+            @Valid @RequestBody CreateRentalCommand command,
+            Authentication authentication
+    ) {
+        CreateRentalCommand effectiveCommand = command;
+        if (authentication != null && authentication.isAuthenticated() && !"anonymousUser".equals(authentication.getName())) {
+            String username = authentication.getName();
+            boolean isClient = authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_CLIENTE"));
+            if (isClient && (command.clientId() == null || command.clientId() <= 0)) {
+                var userOpt = userRepository.findByUsername(username);
+                if (userOpt.isPresent()) {
+                    var clientOpt = clientRepository.findByUserId(userOpt.get().getId());
+                    Long resolvedClientId = clientOpt.map(c -> c.getId()).orElse(userOpt.get().getId());
+                    effectiveCommand = new CreateRentalCommand(
+                            resolvedClientId,
+                            command.toolId(),
+                            command.startDate(),
+                            command.endDate(),
+                            command.deliveryAddress(),
+                            command.notes()
+                    );
+                }
+            }
+        }
+        RentalResponse response = createRentalBookingUseCase.execute(effectiveCommand);
+        var createdBooking = rentalRepository.findById(response.id());
+        RentalResponse finalResponse = createdBooking.map(this::enrichRental).orElse(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(finalResponse);
     }
 
     @GetMapping("/check-availability")

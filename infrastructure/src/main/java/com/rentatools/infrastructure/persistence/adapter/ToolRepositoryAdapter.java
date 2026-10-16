@@ -85,6 +85,12 @@ public class ToolRepositoryAdapter implements ToolRepository {
     }
 
     @Override
+    @Transactional
+    public Optional<Tool> findByIdWithLock(Long id) {
+        return toolJpaRepository.findByIdWithPessimisticLock(id).map(this::toDomain);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public Optional<Tool> findByCode(String code) {
         return toolJpaRepository.findByCode(code).map(this::toDomain);

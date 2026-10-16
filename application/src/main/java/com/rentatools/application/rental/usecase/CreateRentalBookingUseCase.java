@@ -21,7 +21,7 @@ public class CreateRentalBookingUseCase {
     }
 
     public RentalResponse execute(CreateRentalCommand command) {
-        Tool tool = toolRepository.findById(command.toolId())
+        Tool tool = toolRepository.findByIdWithLock(command.toolId())
                 .orElseThrow(() -> new EntityNotFoundException("Herramienta no encontrada con ID: " + command.toolId()));
 
         if (tool.getStatus() == ToolStatus.EN_MANTENIMIENTO || tool.getStatus() == ToolStatus.DE_BAJA) {
