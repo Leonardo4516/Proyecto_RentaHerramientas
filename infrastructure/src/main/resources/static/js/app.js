@@ -58,6 +58,52 @@ const App = (() => {
   let cachedRentals = [];
   let currentView = 'catalog';
 
+  // Paginación por secciones en catálogo
+  let currentCatalogSection = 1;
+  const CATALOG_PAGE_SIZE = 6;
+  let lastRenderedTools = [];
+
+  // Mapeo oficial de proveedores certificados (Seeds DB V2)
+  const knownProvidersMap = {
+    1: 'Maquinaria Andina SAS',
+    2: 'Equipos del Valle Ltda',
+    3: 'Rentas de Occidente SAS',
+    4: 'ConstruAlquiler Caribe',
+    5: 'Maquinaria Pesada del Este',
+    6: 'Herramientas Industriales Sur',
+    7: 'MegaEquipos Colombia',
+    8: 'Equipos y Andamios Eje',
+    9: 'Constructora & Rentas Tolima',
+    10: 'Alquiler Maquinaria Huila',
+    11: 'RentaMaq Boyacá',
+    12: 'Logística y Equipos Llanos',
+    13: 'Suministros Mineros & Obras',
+    14: 'Equipos del Sinú',
+    15: 'Alquileres Cesar SAS',
+    16: 'Maquinaria del Café',
+    17: 'Rentas Civiles Pereira',
+    18: 'Equipos Industriales Cúcuta',
+    19: 'ConstruSoluciones Sabana',
+    20: 'HeavyEquipment Bogotá'
+  };
+
+  function getToolProviderName(tool) {
+    if (!tool) return 'Proveedor Aliado Certificado';
+    if (tool.providerName) return tool.providerName;
+    if (tool.provider && (tool.provider.companyName || tool.provider.name)) {
+      return tool.provider.companyName || tool.provider.name;
+    }
+    const pid = Number(tool.providerId);
+    if (knownProvidersMap[pid]) {
+      return knownProvidersMap[pid];
+    }
+    const user = API.getUser();
+    if (user && (user.role === 'PROVEEDOR' || user.role === 'ROLE_PROVEEDOR')) {
+      return user.providerProfile?.companyName || user.fullName || 'Proveedor Aliado Certificado';
+    }
+    return 'Proveedor Aliado Certificado';
+  }
+
   async function init() {
     setupEventListeners();
     checkAuthStatus();
@@ -68,6 +114,7 @@ const App = (() => {
     initHeroWidgetDates();
 
     try {
+      populateNavIndustriesDropdown();
       await Promise.all([loadCategories(), loadTools()]);
       initScrollUnfoldObserver();
     } catch (e) {
@@ -324,6 +371,7 @@ const App = (() => {
         renderCategoryPills(categories);
         renderCategoryDirectory(categories);
         populateAddToolCategories(categories);
+        populateNavCategoriesDropdown(categories);
         enrichToolsWithCategories();
       }
     } catch (e) {
@@ -332,13 +380,82 @@ const App = (() => {
   }
 
   function enrichToolsWithCategories() {
-    if (!categories || categories.length === 0 || !allTools || allTools.length === 0) return;
+    if (!allTools || allTools.length === 0) return;
     allTools.forEach(t => {
-      const cat = categories.find(c => c.id === t.categoryId);
-      if (cat) {
-        t.categoryName = cat.name;
+      if (categories && categories.length > 0) {
+        const cat = categories.find(c => c.id === t.categoryId);
+        if (cat) {
+          t.categoryName = cat.name;
+        }
       }
+      t.providerName = getToolProviderName(t);
     });
+  }
+
+  function populateNavCategoriesDropdown(cats) {
+    const dropdown = document.getElementById('nav-categories-dropdown');
+    if (!dropdown || !cats || cats.length === 0) return;
+
+    const iconMap = {
+      'Excavación y Movimiento de Tierras': 'fa-truck-pickup',
+      'Concreto y Mezclado': 'fa-cube',
+      'Trabajo en Altura y Andamios': 'fa-layer-group',
+      'Demolición y Rotura': 'fa-hammer',
+      'Generación de Energía y Plantas Eléctricas': 'fa-bolt',
+      'Corte y Perforación de Suelos': 'fa-circle-notch',
+      'Compactación de Terreno': 'fa-compress-arrows-alt',
+      'Bombeo y Evacuación de Agua': 'fa-water',
+      'Compresores y Aire Comprimido': 'fa-wind',
+      'Elevación y Montacargas': 'fa-arrow-up',
+      'Soldadura Industrial': 'fa-fire',
+      'Iluminación de Obras Nocturnas': 'fa-lightbulb',
+      'Herramienta Eléctrica de Taller': 'fa-tools',
+      'Jardinería y Descapote de Terreno': 'fa-leaf',
+      'Carga y Transporte Ligero': 'fa-dolly',
+      'Formaletas y Encofrados Metálicos': 'fa-square',
+      'Seguridad y Señalización Vial': 'fa-traffic-light',
+      'Limpieza y Lavado a Presión': 'fa-soap',
+      'Topografía y Medición Láser': 'fa-ruler-combined',
+      'Cerrajería y Estructuras Metálicas': 'fa-door-closed'
+    };
+
+    dropdown.innerHTML = cats.map(cat => {
+      const icon = iconMap[cat.name] || 'fa-tag';
+      return `
+        <li>
+          <a class="dropdown-item" href="#" onclick="App.filterByCategory('${cat.name}'); return false;">
+            <i class="fa ${icon} text-success me-2" style="width: 16px; text-align: center;"></i>
+            <span>${cat.name}</span>
+          </a>
+        </li>
+      `;
+    }).join('');
+  }
+
+  function populateNavIndustriesDropdown() {
+    const dropdown = document.getElementById('nav-industries-dropdown');
+    if (!dropdown) return;
+
+    const indIcons = {
+      'construccion-civil': 'fa-hard-hat',
+      'infraestructura-vial': 'fa-road',
+      'mineria-agregados': 'fa-mountain',
+      'energia-utilities': 'fa-bolt',
+      'eventos-montajes': 'fa-warehouse',
+      'agroindustria': 'fa-tractor'
+    };
+
+    dropdown.innerHTML = Object.entries(industriesMap).map(([key, data]) => {
+      const icon = indIcons[key] || 'fa-industry';
+      return `
+        <li>
+          <a class="dropdown-item" href="#" onclick="App.filterByIndustry('${key}'); const catSec = document.getElementById('section-catalog'); if (catSec) catSec.scrollIntoView({ behavior: 'smooth' }); return false;">
+            <i class="fa ${icon} text-success me-2" style="width: 16px; text-align: center;"></i>
+            <span>${data.name}</span>
+          </a>
+        </li>
+      `;
+    }).join('');
   }
 
   function populateAddToolCategories(cats) {
@@ -414,6 +531,7 @@ const App = (() => {
 
   function filterByCategory(catName) {
     selectedCategory = catName;
+    currentCatalogSection = 1;
     const container = document.getElementById('category-pills-container');
     if (container) {
       container.querySelectorAll('.category-pill').forEach(p => {
@@ -498,6 +616,7 @@ const App = (() => {
   }
 
   function filterTools(query = '') {
+    currentCatalogSection = 1;
     const q = query.trim().toLowerCase();
     filteredTools = allTools.filter(tool => {
       const toolCat = (tool.categoryName || tool.category || '').toLowerCase();
@@ -846,6 +965,7 @@ const App = (() => {
     if (!indData) return;
 
     activeIndustryKey = industryKey;
+    currentCatalogSection = 1;
 
     // Resaltar tarjeta visualmente en sección de industrias
     document.querySelectorAll('.sb-industry-card').forEach(card => {
@@ -920,6 +1040,7 @@ const App = (() => {
 
   function clearIndustryFilter() {
     activeIndustryKey = null;
+    currentCatalogSection = 1;
     document.querySelectorAll('.sb-industry-card').forEach(card => card.classList.remove('active-industry-card'));
     const banner = document.getElementById('industry-active-banner');
     if (banner) banner.style.setProperty('display', 'none', 'important');
@@ -1007,7 +1128,7 @@ const App = (() => {
             <div class="company-info">
               <strong>Sede Central & Patios Operativos:</strong><br>
               Bogotá D.C. & Sabana (Chía, Cajicá, Mosquera, Tocancipá)<br>
-              Línea Obras: (601) 745-9000 &bull; WhatsApp: 310 999 8888<br>
+              Línea Obras: (601) 745-9000 &bull; WhatsApp: 316 8598300<br>
               Portal: www.rentatools.com &bull; Correo: operaciones@rentatools.com
             </div>
           </div>
@@ -1661,29 +1782,41 @@ const App = (() => {
   }
 
   function renderTools(tools) {
+    lastRenderedTools = tools || [];
     const counterEl = document.getElementById('tools-counter-num');
     if (counterEl) {
-      counterEl.textContent = tools.length;
+      counterEl.textContent = lastRenderedTools.length;
     }
 
     const grid = document.getElementById('tools-grid');
     if (!grid) return;
 
-    if (tools.length === 0) {
+    const paginationEl = document.getElementById('tools-pagination');
+
+    if (lastRenderedTools.length === 0) {
       grid.innerHTML = `
         <div class="col-12 text-center py-5 bg-white rounded-3 border">
           <i class="fa fa-search fa-3x text-secondary mb-3"></i>
           <h5 class="text-dark fw-bold">No encontramos maquinaria con los filtros seleccionados</h5>
           <p class="text-muted">Prueba ampliando el radio de búsqueda o cambiando de categoría.</p>
         </div>`;
+      if (paginationEl) paginationEl.innerHTML = '';
       return;
     }
 
-    grid.innerHTML = tools.map(t => {
+    const totalSections = Math.ceil(lastRenderedTools.length / CATALOG_PAGE_SIZE) || 1;
+    if (currentCatalogSection > totalSections) {
+      currentCatalogSection = 1;
+    }
+
+    grid.innerHTML = lastRenderedTools.map((t, index) => {
+      const sectionNum = Math.floor(index / CATALOG_PAGE_SIZE) + 1;
+      const isVisible = (sectionNum === currentCatalogSection);
       const daily = t.dailyRate || 0;
       const weekly = Math.round(daily * 3.5);
       const monthly = Math.round(daily * 12);
       const catClass = `RT-${String(t.id).padStart(4, '0')}`;
+      const providerName = getToolProviderName(t);
       
       let specsHtml = '';
       if (t.specifications && Array.isArray(t.specifications) && t.specifications.length > 0) {
@@ -1693,7 +1826,7 @@ const App = (() => {
       }
 
       return `
-        <div class="sb-tool-card mb-3">
+        <div class="sb-tool-card mb-3" data-catalog-section="${sectionNum}" style="${isVisible ? '' : 'display: none !important;'}">
           <!-- Columna 1: Imagen y Badge de Estado -->
           <div class="sb-tool-img-wrap position-relative">
             <img src="${getToolImageUrl(t)}" alt="${t.name}" onerror="handleToolImageError(this);">
@@ -1706,8 +1839,10 @@ const App = (() => {
           <div class="sb-tool-info-col">
             <div class="sb-tool-cat-class">CAT CLASS: ${catClass} | ${t.categoryName || t.category || 'Maquinaria'}</div>
             <h4 class="sb-tool-name">${t.name}</h4>
+            <div class="text-muted small mb-2"><i class="fa fa-building text-success me-1"></i><strong>Proveedor:</strong> <span class="text-dark fw-semibold">${providerName}</span></div>
             <div class="sb-tool-specs-header">ESPECIFICACIONES TÉCNICAS</div>
             <ul class="sb-tool-specs-list">
+              <li><strong>Proveedor:</strong> <span class="badge bg-light text-dark border"><i class="fa fa-building text-success me-1"></i>${providerName}</span></li>
               <li><strong>Marca / Modelo:</strong> ${t.brand || 'Industrial'} ${t.model || ''}</li>
               ${specsHtml}
               <li><strong>Garantía retornable:</strong> ${API.formatCurrency(t.depositAmount)}</li>
@@ -1746,6 +1881,71 @@ const App = (() => {
         </div>
       `;
     }).join('');
+
+    renderCatalogPagination(totalSections, lastRenderedTools.length);
+  }
+
+  function renderCatalogPagination(totalSections, totalToolsCount) {
+    const paginationEl = document.getElementById('tools-pagination');
+    if (!paginationEl) return;
+
+    if (totalSections <= 1) {
+      paginationEl.innerHTML = `
+        <div class="w-100 text-center text-muted small mt-2">
+          Mostrando ${totalToolsCount} maquinarias disponibles
+        </div>`;
+      return;
+    }
+
+    let buttonsHtml = `
+      <button class="sb-page-btn" ${currentCatalogSection === 1 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''} onclick="App.goToCatalogSection(${currentCatalogSection - 1})">
+        <i class="fa fa-chevron-left me-1"></i> Anterior
+      </button>
+    `;
+
+    for (let s = 1; s <= totalSections; s++) {
+      const activeClass = (s === currentCatalogSection) ? 'active' : '';
+      buttonsHtml += `
+        <button class="sb-page-num ${activeClass}" onclick="App.goToCatalogSection(${s})">
+          Sección ${s}
+        </button>
+      `;
+    }
+
+    buttonsHtml += `
+      <button class="sb-page-btn" ${currentCatalogSection === totalSections ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''} onclick="App.goToCatalogSection(${currentCatalogSection + 1})">
+        Siguiente <i class="fa fa-chevron-right ms-1"></i>
+      </button>
+      <div class="w-100 text-center text-muted small mt-2">
+        Mostrando sección ${currentCatalogSection} de ${totalSections} (${totalToolsCount} maquinarias en total &bull; 6 por sección)
+      </div>
+    `;
+
+    paginationEl.innerHTML = buttonsHtml;
+  }
+
+  function goToCatalogSection(sectionNum) {
+    const totalSections = Math.ceil(lastRenderedTools.length / CATALOG_PAGE_SIZE) || 1;
+    if (sectionNum < 1) sectionNum = 1;
+    if (sectionNum > totalSections) sectionNum = totalSections;
+    currentCatalogSection = sectionNum;
+
+    const cards = document.querySelectorAll('#tools-grid .sb-tool-card');
+    cards.forEach(card => {
+      const cardSec = Number(card.getAttribute('data-catalog-section'));
+      if (cardSec === currentCatalogSection) {
+        card.style.removeProperty('display');
+      } else {
+        card.style.setProperty('display', 'none', 'important');
+      }
+    });
+
+    renderCatalogPagination(totalSections, lastRenderedTools.length);
+
+    const catalogSec = document.getElementById('section-catalog');
+    if (catalogSec) {
+      catalogSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   }
 
   // --- MOTOR DE DISPONIBILIDAD Y GESTIÓN DE RESERVAS ---
@@ -1910,6 +2110,10 @@ const App = (() => {
 
     activeToolForBooking = tool;
     document.getElementById('book-tool-name').textContent = tool.name;
+    const providerEl = document.getElementById('book-tool-provider');
+    if (providerEl) {
+      providerEl.textContent = getToolProviderName(tool);
+    }
     document.getElementById('book-tool-rate').textContent = `${API.formatCurrency(tool.dailyRate)} / día`;
     document.getElementById('book-tool-deposit').textContent = API.formatCurrency(tool.depositAmount);
     const bookImg = document.getElementById('book-tool-img');
@@ -3654,7 +3858,7 @@ const App = (() => {
             </div>
             <div class="d-flex align-items-center gap-2">
               <i class="fab fa-whatsapp text-success fa-lg"></i>
-              <div><strong>WhatsApp Inmediato:</strong> +57 310 999 8888</div>
+              <div><strong>WhatsApp Inmediato:</strong> +57 316 8598300</div>
             </div>
           </div>
           <p class="small text-muted mb-0">¿Necesitas despacho prioritario en cama baja o asesoría técnica para tu obra? Chatea con nosotros.</p>
@@ -3667,7 +3871,7 @@ const App = (() => {
       cancelButtonColor: '#59636E'
     }).then((result) => {
       if (result.isConfirmed) {
-        window.open('https://wa.me/573109998888?text=Hola,%20necesito%20cotizar%20maquinaria%20en%20RentaTools', '_blank');
+        window.open('https://wa.me/573168598300?text=Hola,%20quisiera%20reportar%20un%20insidente%20con%20la%20pagina%20y/o%20con%20mi%20producto.%20Muchas%20gracias!!', '_blank');
       }
     });
   }
@@ -3705,6 +3909,7 @@ const App = (() => {
     clearIndustryFilter,
     downloadCatalogPdf,
     filterByCategory,
+    goToCatalogSection,
     toggleMapSection,
     navigateToSection,
     scrollCategoryPills,

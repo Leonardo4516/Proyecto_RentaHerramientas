@@ -42,8 +42,8 @@
           <i class="fa fa-phone-alt text-warning me-1"></i> <span class="d-none d-xxl-inline">Línea Obras: </span><strong>(601) 745-9000</strong>
         </a>
         <span class="d-none d-lg-inline text-white-50">|</span>
-        <a href="https://wa.me/573109998888?text=Hola%20RentaTools,%20deseo%20cotizar%20maquinaria%20pesada%20para%20obra" target="_blank" rel="noopener" class="d-none d-lg-inline-flex sb-whatsapp-btn text-nowrap" title="Chatear con asesor técnico por WhatsApp">
-          <i class="fab fa-whatsapp me-1"></i> WhatsApp: <strong>310 999 8888</strong>
+        <a href="https://wa.me/573168598300?text=Hola,%20quisiera%20reportar%20un%20insidente%20con%20la%20pagina%20y/o%20con%20mi%20producto.%20Muchas%20gracias!!" target="_blank" rel="noopener" class="d-none d-lg-inline-flex sb-whatsapp-btn text-nowrap" title="Chatear con asesor técnico por WhatsApp">
+          <i class="fab fa-whatsapp me-1"></i> WhatsApp: <strong>316 8598300</strong>
         </a>
       </div>
       <div class="d-flex align-items-center gap-2 gap-md-3 text-nowrap">
@@ -112,7 +112,7 @@
           </div>
 
           <!-- Botón rápido Añadir Maquinaria para Proveedor -->
-          <button class="btn btn-sb-green btn-sm d-none" id="nav-add-tool-btn" style="display: none !important;" onclick="App.openAddToolModal()">
+          <button class="sb-nav-add-tool-pill d-none" id="nav-add-tool-btn" style="display: none !important;" onclick="App.openAddToolModal()">
             <i class="fa fa-plus-circle me-1"></i> Añadir Maquinaria
           </button>
 
@@ -189,8 +189,14 @@
       <div class="container-xl">
         <ul class="sb-subnav-list">
           <li><a href="#" class="sb-subnav-link active" onclick="App.navigateToSection('section-catalog'); return false;"><i class="fa fa-th-large me-1"></i> Catálogo Completo</a></li>
-          <li><a href="#" class="sb-subnav-link" onclick="App.navigateToSection('section-directory'); return false;"><i class="fa fa-layer-group me-1"></i> Categorías ⌵</a></li>
-          <li><a href="#" class="sb-subnav-link" onclick="App.navigateToSection('section-industries'); return false;"><i class="fa fa-hard-hat me-1"></i> Industrias ⌵</a></li>
+          <li class="sb-nav-hover-dropdown dropdown position-relative">
+            <a href="#" class="sb-subnav-link" onclick="App.navigateToSection('section-directory'); return false;"><i class="fa fa-layer-group me-1"></i> Categorías ⌵</a>
+            <ul class="dropdown-menu sb-nav-hover-menu shadow-lg" id="nav-categories-dropdown"></ul>
+          </li>
+          <li class="sb-nav-hover-dropdown dropdown position-relative">
+            <a href="#" class="sb-subnav-link" onclick="App.navigateToSection('section-industries'); return false;"><i class="fa fa-hard-hat me-1"></i> Industrias ⌵</a>
+            <ul class="dropdown-menu sb-nav-hover-menu shadow-lg" id="nav-industries-dropdown"></ul>
+          </li>
           <li><a href="#" class="sb-subnav-link" onclick="App.navigateToSection('section-experience'); return false;"><i class="fa fa-shield-alt me-1"></i> Seguridad & Servicio</a></li>
           <li><a href="#" class="sb-subnav-link text-success fw-bold" onclick="App.navigateToSection('section-map'); return false;"><i class="fa fa-map-marked-alt me-1"></i> Mapa en Vivo</a></li>
           <li id="nav-client-tab-link" style="display: none;"><a href="#" class="sb-subnav-link" onclick="App.switchView('client-dashboard'); return false;">Mis Alquileres</a></li>
@@ -608,6 +614,9 @@
         <div class="sb-tools-container" id="tools-grid">
           <!-- Renderizado dinámicamente con JavaScript -->
         </div>
+
+        <!-- Paginación del Catálogo -->
+        <div id="tools-pagination" class="sb-pagination-wrapper d-flex justify-content-center align-items-center gap-2 mt-4 mb-3 flex-wrap"></div>
       </section>
 
       <!-- ==================== 11. BANNER DE FIDELIZACIÓN ("RENT, MANAGE, PAY") ==================== -->
@@ -847,6 +856,9 @@
             <div class="col-md-5">
               <img id="book-tool-img" src="" class="img-fluid rounded-3 mb-3 border" style="width: 100%; height: 180px; object-fit: contain; background: #f8fafc;" alt="Equipo" onerror="this.onerror=null; this.src=window.TOOL_FALLBACK_IMG;">
               <h5 id="book-tool-name" class="fw-bold text-dark mb-1">Nombre</h5>
+              <div class="mb-2 p-2 rounded bg-light border small">
+                <i class="fa fa-building text-success me-1"></i> <strong>Proveedor Aliado:</strong> <span id="book-tool-provider" class="text-dark fw-bold"></span>
+              </div>
               <div class="text-muted small mb-1">Tarifa base diaria: <strong id="book-tool-rate" class="text-success"></strong></div>
               <div class="text-muted small mb-3">Garantía retornable: <strong id="book-tool-deposit" class="text-dark"></strong></div>
               <div class="p-2 rounded bg-light border text-muted small">
