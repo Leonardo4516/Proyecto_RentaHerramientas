@@ -788,7 +788,7 @@ const App = (() => {
 
   function handleAddToolAccess() {
     const user = API.getUser();
-    if (user && (user.role === 'ROLE_PROVEEDOR' || user.role === 'ROLE_ADMIN')) {
+    if (user && (user.role === 'ROLE_PROVEEDOR' || user.role === 'PROVEEDOR')) {
       openAddToolModal();
     } else {
       Swal.fire({
@@ -2743,6 +2743,7 @@ const App = (() => {
       }
 
       // Rol verificado y permisos
+      const isStrictProvider = !!(user && (user.role === 'ROLE_PROVEEDOR' || user.role === 'PROVEEDOR'));
       const isProvider = (user.role === 'ROLE_PROVEEDOR' || user.role === 'ROLE_ADMIN');
       const isAdmin = (user.role === 'ROLE_ADMIN');
       const isClient = (user.role === 'ROLE_CLIENTE' || user.role === 'ROLE_ADMIN');
@@ -2778,14 +2779,40 @@ const App = (() => {
       // Enlaces del menú desplegable del usuario:
       // Mis Alquileres visible para Cliente y Admin
       if (clientDropdownItem) clientDropdownItem.style.display = isClient ? 'block' : 'none';
-      // Gestión Proveedor y Añadir Maquinaria estrictamente ocultos para ROLE_CLIENTE
+      // Gestión Proveedor
       if (providerDropdownItem) providerDropdownItem.style.display = isProvider ? 'block' : 'none';
-      if (dropdownAddToolItem) dropdownAddToolItem.style.display = isProvider ? 'block' : 'none';
+      // Añadir Maquinaria estrictamente visible SOLO para rol PROVEEDOR
+      if (dropdownAddToolItem) dropdownAddToolItem.style.display = isStrictProvider ? 'block' : 'none';
       if (adminDropdownItem) adminDropdownItem.style.display = isAdmin ? 'block' : 'none';
 
-      // Botón rápido en la barra superior para añadir maquinaria (Solo PROVEEDOR o ADMIN, estrictamente oculto para ROLE_CLIENTE)
+      // Botón rápido en la barra superior para añadir maquinaria (SOLO rol PROVEEDOR estricto)
       const navAddToolBtn = document.getElementById('nav-add-tool-btn');
-      if (navAddToolBtn) navAddToolBtn.style.display = isProvider ? 'inline-flex' : 'none';
+      if (navAddToolBtn) {
+        if (isStrictProvider) {
+          navAddToolBtn.classList.remove('d-none');
+          navAddToolBtn.style.setProperty('display', 'inline-flex', 'important');
+        } else {
+          navAddToolBtn.classList.add('d-none');
+          navAddToolBtn.style.setProperty('display', 'none', 'important');
+        }
+      }
+
+      // Visibilidad reactiva para elementos exclusivos de usuarios sin sesión (Guest)
+      const heroLoginPrompt = document.getElementById('sb-hero-login-prompt');
+      if (heroLoginPrompt) {
+        heroLoginPrompt.classList.add('d-none');
+        heroLoginPrompt.style.setProperty('display', 'none', 'important');
+        const widgetFooter = heroLoginPrompt.closest('.sb-widget-footer');
+        if (widgetFooter) {
+          widgetFooter.classList.add('d-none');
+          widgetFooter.style.setProperty('display', 'none', 'important');
+        }
+      }
+      const accountBannerCta = document.getElementById('sb-account-banner-cta');
+      if (accountBannerCta) {
+        accountBannerCta.classList.add('d-none');
+        accountBannerCta.style.setProperty('display', 'none', 'important');
+      }
     } else {
       if (guestNav) {
         guestNav.style.setProperty('display', 'flex', 'important');
@@ -2812,7 +2839,10 @@ const App = (() => {
       if (adminDropdownItem) adminDropdownItem.style.display = 'none';
 
       const navAddToolBtn = document.getElementById('nav-add-tool-btn');
-      if (navAddToolBtn) navAddToolBtn.style.display = 'none';
+      if (navAddToolBtn) {
+        navAddToolBtn.classList.add('d-none');
+        navAddToolBtn.style.setProperty('display', 'none', 'important');
+      }
       if (dropdownAddToolItem) dropdownAddToolItem.style.display = 'none';
 
       const clientNavLabel = document.getElementById('nav-client-dashboard-label');
@@ -2821,6 +2851,23 @@ const App = (() => {
       if (clientNavLabel) clientNavLabel.textContent = 'Mis Alquileres';
       if (clientDropdownLabel) clientDropdownLabel.textContent = 'Mis Alquileres & Facturas';
       if (clientHeaderTitle) clientHeaderTitle.textContent = 'Mis Alquileres & Facturación';
+
+      // Visibilidad reactiva para elementos exclusivos de usuarios sin sesión (Guest)
+      const heroLoginPrompt = document.getElementById('sb-hero-login-prompt');
+      if (heroLoginPrompt) {
+        heroLoginPrompt.classList.remove('d-none');
+        heroLoginPrompt.style.setProperty('display', 'block', 'important');
+        const widgetFooter = heroLoginPrompt.closest('.sb-widget-footer');
+        if (widgetFooter) {
+          widgetFooter.classList.remove('d-none');
+          widgetFooter.style.setProperty('display', 'block', 'important');
+        }
+      }
+      const accountBannerCta = document.getElementById('sb-account-banner-cta');
+      if (accountBannerCta) {
+        accountBannerCta.classList.remove('d-none');
+        accountBannerCta.style.setProperty('display', 'block', 'important');
+      }
     }
 
     // Cargar notificaciones persistentes del usuario activo o limpiar para invitado
@@ -3007,7 +3054,7 @@ const App = (() => {
 
   function openAddToolModal() {
     const user = API.getUser();
-    if (!user || (user.role !== 'ROLE_PROVEEDOR' && user.role !== 'ROLE_ADMIN')) {
+    if (!user || (user.role !== 'ROLE_PROVEEDOR' && user.role !== 'PROVEEDOR')) {
       Swal.fire({
         icon: 'warning',
         title: 'Acceso Restringido',

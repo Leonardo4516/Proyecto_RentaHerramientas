@@ -267,7 +267,7 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 0.875rem !important;
   transition: all 0.2s ease !important;
   text-decoration: none !important;
-  display: inline-flex !important;
+  display: inline-flex;
   align-items: center !important;
   gap: 6px !important;
 }
@@ -286,7 +286,7 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 700 !important;
   font-size: 0.9375rem !important;
   transition: all 0.2s ease !important;
-  display: inline-flex !important;
+  display: inline-flex;
   align-items: center !important;
   justify-content: center !important;
   gap: 8px !important;
@@ -594,6 +594,7 @@ h1, h2, h3, h4, h5, h6 {
   gap: 8px;
   font-weight: 600;
   transition: all 0.2s ease;
+  width: fit-content;
 }
 .sb-widget-footer a:hover {
   background: rgba(16, 24, 32, 0.95);

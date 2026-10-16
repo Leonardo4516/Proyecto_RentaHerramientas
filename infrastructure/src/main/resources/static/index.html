@@ -112,7 +112,7 @@
           </div>
 
           <!-- Botón rápido Añadir Maquinaria para Proveedor -->
-          <button class="btn btn-sb-green btn-sm" id="nav-add-tool-btn" style="display: none;" onclick="App.openAddToolModal()">
+          <button class="btn btn-sb-green btn-sm d-none" id="nav-add-tool-btn" style="display: none !important;" onclick="App.openAddToolModal()">
             <i class="fa fa-plus-circle me-1"></i> Añadir Maquinaria
           </button>
 
@@ -288,7 +288,7 @@
 
             <!-- Sub-enlace a obras guardadas (Alineado a la izquierda como Sunbelt Rentals) -->
             <div class="sb-widget-footer text-start">
-              <a href="#" onclick="App.openAuthModal('login'); return false;">
+              <a href="#" id="sb-hero-login-prompt" onclick="App.openAuthModal('login'); return false;">
                 <i class="fa fa-user-circle"></i> Inicia sesión para usar tus obras y contratos guardados
               </a>
             </div>
@@ -611,7 +611,7 @@
       </section>
 
       <!-- ==================== 11. BANNER DE FIDELIZACIÓN ("RENT, MANAGE, PAY") ==================== -->
-      <section class="sb-account-banner">
+      <section class="sb-account-banner" id="sb-account-banner-cta">
         <div class="row align-items-center">
           <div class="col-12 col-md-6 mb-4 mb-md-0">
             <h2 class="sb-account-title">
@@ -1498,6 +1498,6 @@
   <script src="js/api.js?v=5"></script>
   <script src="js/websocket.js?v=5"></script>
   <script src="js/map.js?v=5"></script>
-  <script src="js/app.js?v=5"></script>
+  <script src="js/app.js?v=6"></script>
 </body>
 </html>
