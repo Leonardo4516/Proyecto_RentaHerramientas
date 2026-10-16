@@ -29,6 +29,9 @@ function getToolImageUrl(tool) {
   let url = tool.imageUrl || (tool.images && tool.images[0]) || tool.coverImageUrl;
   if (url && typeof url === 'string' && url.trim().length > 0) {
     url = url.trim();
+    if (url.startsWith('data:')) {
+      return url;
+    }
     if (url.endsWith('.svg')) {
       return window.TOOL_FALLBACK_IMG;
     }
@@ -1134,7 +1137,7 @@ const App = (() => {
     if (modalBadgeEl) modalBadgeEl.textContent = count;
   }
 
-  function addToCart(toolId, daysCount = 3) {
+  function addToCart(toolId, daysCount = 3, customStart = null, customEnd = null) {
     const tool = allTools.find(t => String(t.id) === String(toolId));
     if (!tool) return;
 
@@ -1157,14 +1160,19 @@ const App = (() => {
       return;
     }
 
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const end = new Date(tomorrow);
-    end.setDate(end.getDate() + daysCount);
-
-    const startStr = tomorrow.toISOString().split('T')[0];
-    const endStr = end.toISOString().split('T')[0];
+    let startStr, endStr;
+    if (customStart && customEnd) {
+      startStr = customStart;
+      endStr = customEnd;
+    } else {
+      const today = new Date();
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const end = new Date(tomorrow);
+      end.setDate(end.getDate() + daysCount);
+      startStr = tomorrow.toISOString().split('T')[0];
+      endStr = end.toISOString().split('T')[0];
+    }
     const daily = Number(tool.dailyPrice || tool.dailyRate || tool.pricePerDay || 0);
     const subtotal = daily * daysCount;
     const iva = Math.round(subtotal * 0.19);
