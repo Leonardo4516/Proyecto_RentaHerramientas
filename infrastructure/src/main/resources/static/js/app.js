@@ -1137,13 +1137,28 @@ const App = (() => {
     if (modalBadgeEl) modalBadgeEl.textContent = count;
   }
 
-  function addToCart(toolId, daysCount = 3, customStart = null, customEnd = null) {
+  async function addToCart(toolId, daysCount = 3, customStart = null, customEnd = null) {
     const tool = allTools.find(t => String(t.id) === String(toolId));
     if (!tool) return;
+
+    let activeBookings = [];
+    try {
+      const toolRentals = await API.rentals.getByToolId(tool.id);
+      if (Array.isArray(toolRentals)) {
+        activeBookings = toolRentals.filter(r => 
+          r && ['PENDIENTE', 'CONFIRMADA', 'EN_CURSO'].includes(r.status)
+        );
+      }
+    } catch (_) {
+      activeBookings = [];
+    }
 
     const existing = cart.find(item => String(item.toolId) === String(toolId));
     if (existing) {
       existing.days = Math.min(60, existing.days + 1);
+      const freeRange = findNextAvailableRange(existing.startDate, existing.days, activeBookings);
+      existing.startDate = freeRange.startDate;
+      existing.endDate = freeRange.endDate;
       recalculateCartItem(existing);
       saveCartToStorage();
       if (document.getElementById('cartModal')?.classList.contains('show')) {
@@ -1160,19 +1175,20 @@ const App = (() => {
       return;
     }
 
-    let startStr, endStr;
-    if (customStart && customEnd) {
-      startStr = customStart;
-      endStr = customEnd;
-    } else {
-      const today = new Date();
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const end = new Date(tomorrow);
-      end.setDate(end.getDate() + daysCount);
-      startStr = tomorrow.toISOString().split('T')[0];
-      endStr = end.toISOString().split('T')[0];
-    }
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+    const preferredStart = customStart && customStart >= tomorrowStr ? customStart : tomorrowStr;
+    const freeRange = findNextAvailableRange(preferredStart, daysCount, activeBookings);
+    const startStr = customStart && customEnd && !findCollidingBooking(customStart, customEnd, activeBookings)
+      ? customStart
+      : freeRange.startDate;
+    const endStr = customStart && customEnd && !findCollidingBooking(customStart, customEnd, activeBookings)
+      ? customEnd
+      : freeRange.endDate;
+
     const daily = Number(tool.dailyPrice || tool.dailyRate || tool.pricePerDay || 0);
     const subtotal = daily * daysCount;
     const iva = Math.round(subtotal * 0.19);
@@ -1265,7 +1281,7 @@ const App = (() => {
     item.total = item.subtotal + item.iva + item.deposit;
   }
 
-  function changeCartDays(toolId, delta) {
+  async function changeCartDays(toolId, delta) {
     const item = cart.find(c => String(c.toolId) === String(toolId));
     if (!item) return;
     const newDays = item.days + delta;
@@ -1274,6 +1290,23 @@ const App = (() => {
       return;
     }
     item.days = Math.min(60, newDays);
+
+    let activeBookings = [];
+    try {
+      const toolRentals = await API.rentals.getByToolId(item.toolId);
+      if (Array.isArray(toolRentals)) {
+        activeBookings = toolRentals.filter(r => 
+          r && ['PENDIENTE', 'CONFIRMADA', 'EN_CURSO'].includes(r.status)
+        );
+      }
+    } catch (_) {
+      activeBookings = [];
+    }
+
+    const freeRange = findNextAvailableRange(item.startDate, item.days, activeBookings);
+    item.startDate = freeRange.startDate;
+    item.endDate = freeRange.endDate;
+
     recalculateCartItem(item);
     saveCartToStorage();
     renderCartModal();
@@ -1299,6 +1332,21 @@ const App = (() => {
     if (cartModal) cartModal.hide();
 
     openBookingModal(toolId);
+  }
+
+  function formatCartDateRange(startStr, endStr, days) {
+    if (!startStr || !endStr) return `${days || 1} días`;
+    const formatD = (s) => {
+      if (!s) return '';
+      const parts = s.split('T')[0].split('-');
+      if (parts.length === 3) {
+        const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        const mIdx = parseInt(parts[1], 10) - 1;
+        return `${parseInt(parts[2], 10)} ${months[mIdx] || parts[1]}`;
+      }
+      return s;
+    };
+    return `${formatD(startStr)} al ${formatD(endStr)} (${days || 1}d)`;
   }
 
   function checkoutCartAll() {
@@ -1358,7 +1406,7 @@ const App = (() => {
         const itemsList = activeCartCheckout.map((item, idx) => `
           <div class="d-flex justify-content-between align-items-center py-1 border-bottom small">
             <span class="text-truncate text-start" style="max-width: 250px;">
-              <strong>${idx + 1}. ${item.name}</strong> (${item.days} días)
+              <strong>${idx + 1}. ${item.name}</strong> (${item.days} días | ${formatCartDateRange(item.startDate, item.endDate, item.days)})
             </span>
             <span class="text-success fw-bold text-end">${API.formatCurrency(item.total)}</span>
           </div>
@@ -1429,24 +1477,31 @@ const App = (() => {
         grandTotal += item.total;
 
         itemsHtml += `
-          <div class="sb-cart-item d-flex align-items-center justify-content-between gap-2">
-            <div class="d-flex align-items-center gap-2">
-              <img src="${item.imageUrl}" class="sb-cart-item-img" alt="${item.name}" onerror="handleToolImageError(this);">
-              <div>
-                <h6 class="fw-bold text-dark mb-0 fs-6">${item.name}</h6>
+          <div class="sb-cart-item d-flex align-items-center justify-content-between gap-3 p-2 mb-2 bg-white rounded border">
+            <div class="d-flex align-items-center gap-2" style="min-width: 0; flex: 1;">
+              <div class="position-relative flex-shrink-0" style="width: 68px; height: 68px; min-width: 68px; max-width: 68px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 2px;">
+                <img src="${item.imageUrl}" class="sb-cart-item-img" alt="${item.name}" onerror="handleToolImageError(this);" style="width: 64px !important; height: 64px !important; min-width: 64px !important; max-width: 64px !important; max-height: 64px !important; object-fit: contain !important; display: block; border: 0 !important; padding: 0 !important;">
+              </div>
+              <div style="min-width: 0; flex: 1;">
+                <h6 class="fw-bold text-dark mb-0 fs-6 text-truncate" title="${item.name}">${item.name}</h6>
                 <div class="text-muted small">${item.category} | ${API.formatCurrency(item.pricePerDay)}/día</div>
-                <div class="d-flex align-items-center gap-1 mt-1">
-                  <button type="button" class="sb-cart-qty-btn" onclick="App.changeCartDays('${item.toolId}', -1)" title="Reducir días">-</button>
-                  <span class="small fw-bold px-2 text-dark">${item.days} d</span>
-                  <button type="button" class="sb-cart-qty-btn" onclick="App.changeCartDays('${item.toolId}', 1)" title="Aumentar días">+</button>
+                <div class="d-flex align-items-center flex-wrap gap-2 mt-1">
+                  <div class="d-flex align-items-center gap-1">
+                    <button type="button" class="sb-cart-qty-btn" onclick="App.changeCartDays('${item.toolId}', -1)" title="Reducir días">-</button>
+                    <span class="small fw-bold px-2 text-dark">${item.days} d</span>
+                    <button type="button" class="sb-cart-qty-btn" onclick="App.changeCartDays('${item.toolId}', 1)" title="Aumentar días">+</button>
+                  </div>
+                  <span class="badge bg-light text-dark border small" style="font-size: 0.72rem;">
+                    <i class="fa fa-calendar-alt text-success me-1"></i>${formatCartDateRange(item.startDate, item.endDate, item.days)}
+                  </span>
                 </div>
               </div>
             </div>
-            <div class="text-end">
+            <div class="text-end flex-shrink-0">
               <div class="fw-bold text-success fs-6">${API.formatCurrency(item.total)}</div>
-              <div class="small text-muted mb-1">Subtotal: ${API.formatCurrency(item.subtotal)}</div>
+              <div class="small text-muted mb-1" style="font-size: 0.75rem;">Subtotal: ${API.formatCurrency(item.subtotal)}</div>
               <div class="d-flex gap-1 justify-content-end">
-                <button type="button" class="btn btn-sm btn-sb-green py-0 px-2" style="font-size: 0.75rem;" onclick="App.checkoutCartItem('${item.toolId}')" title="Cotizar y reservar">
+                <button type="button" class="btn btn-sm btn-sb-green py-0 px-2" style="font-size: 0.75rem;" onclick="App.checkoutCartItem('${item.toolId}')" title="Cotizar individualmente">
                   <i class="fa fa-calendar-check me-1"></i> Cotizar
                 </button>
                 <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size: 0.75rem;" onclick="App.removeFromCart('${item.toolId}')" title="Eliminar del carrito">
@@ -1466,16 +1521,21 @@ const App = (() => {
       grandTotal = q.total;
 
       itemsHtml = `
-        <div class="sb-cart-item d-flex align-items-center justify-content-between gap-2">
-          <div class="d-flex align-items-center gap-2">
-            <img src="${getToolImageUrl(tool)}" class="sb-cart-item-img" alt="${tool.name}" onerror="handleToolImageError(this);">
-            <div>
+        <div class="sb-cart-item d-flex align-items-center justify-content-between gap-3 p-2 mb-2 bg-white rounded border">
+          <div class="d-flex align-items-center gap-2" style="min-width: 0; flex: 1;">
+            <div class="position-relative flex-shrink-0" style="width: 68px; height: 68px; min-width: 68px; max-width: 68px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 2px;">
+              <img src="${getToolImageUrl(tool)}" class="sb-cart-item-img" alt="${tool.name}" onerror="handleToolImageError(this);" style="width: 64px !important; height: 64px !important; min-width: 64px !important; max-width: 64px !important; max-height: 64px !important; object-fit: contain !important; display: block; border: 0 !important; padding: 0 !important;">
+            </div>
+            <div style="min-width: 0; flex: 1;">
               <span class="badge bg-success mb-1 small"><i class="fa fa-clock me-1"></i> Cotización en Curso</span>
-              <h6 class="fw-bold text-dark mb-0">${tool.name}</h6>
+              <h6 class="fw-bold text-dark mb-0 text-truncate">${tool.name}</h6>
               <div class="text-muted small">${tool.categoryName || tool.category || 'Maquinaria'} | ${q.days} días</div>
+              <span class="badge bg-light text-dark border small mt-1" style="font-size: 0.72rem;">
+                <i class="fa fa-calendar-alt text-success me-1"></i>${formatCartDateRange(q.startDate, q.endDate, q.days)}
+              </span>
             </div>
           </div>
-          <div class="text-end">
+          <div class="text-end flex-shrink-0">
             <div class="fw-bold text-success fs-6">${API.formatCurrency(q.total)}</div>
             <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2 mt-1" style="font-size: 0.75rem;" onclick="App.clearCart()">
               <i class="fa fa-trash-alt"></i>
@@ -2271,16 +2331,30 @@ const App = (() => {
             ? `Alquiler Consolidado - ${item.name} | Cama baja: ${item.bookingDetails.camaBajaNotes}`
             : `Alquiler Consolidado Carrito - ${item.name}`;
 
+          // Consultar reservas en tiempo real para garantizar fechas 100% libres de conflicto
+          let currentBookings = [];
+          try {
+            const toolRentals = await API.rentals.getByToolId(item.toolId);
+            if (Array.isArray(toolRentals)) {
+              currentBookings = toolRentals.filter(r => 
+                r && ['PENDIENTE', 'CONFIRMADA', 'EN_CURSO'].includes(r.status)
+              );
+            }
+          } catch (_) {
+            currentBookings = [];
+          }
+
           const today = new Date();
           const tomorrow = new Date(today);
           tomorrow.setDate(tomorrow.getDate() + 1);
-          const fallbackStart = tomorrow.toISOString().split('T')[0];
-          const fallbackEndObj = new Date(tomorrow);
-          fallbackEndObj.setDate(fallbackEndObj.getDate() + (item.days || 3));
-          const fallbackEnd = fallbackEndObj.toISOString().split('T')[0];
-
-          const startDate = item.startDate || fallbackStart;
-          const endDate = item.endDate || fallbackEnd;
+          const tomorrowStr = tomorrow.toISOString().split('T')[0];
+          const preferredStart = item.startDate && item.startDate >= tomorrowStr ? item.startDate : tomorrowStr;
+          const duration = Math.max(1, Number(item.days) || 3);
+          const freeRange = findNextAvailableRange(preferredStart, duration, currentBookings);
+          const startDate = freeRange.startDate;
+          const endDate = freeRange.endDate;
+          item.startDate = startDate;
+          item.endDate = endDate;
 
           // a) Crear Reserva
           const rental = await API.rentals.create({
@@ -3337,11 +3411,19 @@ const App = (() => {
       if (dataUrl) {
         previewImg.src = dataUrl;
         previewImg.style.display = 'block';
-        if (placeholder) placeholder.style.display = 'none';
+        if (placeholder) {
+          placeholder.classList.add('d-none');
+          placeholder.classList.remove('d-flex');
+          placeholder.style.setProperty('display', 'none', 'important');
+        }
       } else {
         previewImg.src = '';
         previewImg.style.display = 'none';
-        if (placeholder) placeholder.style.display = 'flex';
+        if (placeholder) {
+          placeholder.classList.remove('d-none');
+          placeholder.classList.add('d-flex');
+          placeholder.style.removeProperty('display');
+        }
       }
     }
   }

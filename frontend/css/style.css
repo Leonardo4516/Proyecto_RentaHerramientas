@@ -551,13 +551,16 @@ label.text-muted {
   gap: 10px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  padding: 8px 4px 14px;
-  scrollbar-width: none;
+  padding: 8px 4px 10px;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
   max-width: 100%;
 }
 
 .category-pills::-webkit-scrollbar {
-  display: none;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 .category-pill {
