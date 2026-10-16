@@ -173,7 +173,7 @@ const App = (() => {
         if (mapToggleChevron) mapToggleChevron.classList.add('rotate-180');
         if (typeof MapManager !== 'undefined' && MapManager) {
           MapManager.init();
-          MapManager.updateToolsOnMap(filteredTools);
+          MapManager.updateToolsOnMap(filteredTools, cachedRentals);
           setTimeout(() => {
             if (MapManager.invalidateSize) MapManager.invalidateSize();
           }, 150);
@@ -607,8 +607,19 @@ const App = (() => {
       enrichToolsWithCategories();
       filteredTools = [...allTools];
       renderTools(filteredTools);
+
+      const user = API.getUser();
+      if (user && API.rentals && API.rentals.getAll) {
+        try {
+          const rList = await API.rentals.getAll();
+          if (rList && Array.isArray(rList)) {
+            cachedRentals = rList;
+          }
+        } catch (_) {}
+      }
+
       if (typeof MapManager !== 'undefined' && MapManager.updateToolsOnMap) {
-        MapManager.updateToolsOnMap(filteredTools);
+        MapManager.updateToolsOnMap(filteredTools, cachedRentals);
       }
     } catch (err) {
       console.error('Error cargando maquinaria:', err);
@@ -633,7 +644,7 @@ const App = (() => {
     });
     renderTools(filteredTools);
     if (typeof MapManager !== 'undefined' && MapManager.updateToolsOnMap) {
-      MapManager.updateToolsOnMap(filteredTools);
+      MapManager.updateToolsOnMap(filteredTools, cachedRentals);
     }
   }
 
@@ -1006,7 +1017,7 @@ const App = (() => {
 
     renderTools(filteredTools);
     if (typeof MapManager !== 'undefined' && MapManager.updateToolsOnMap) {
-      MapManager.updateToolsOnMap(filteredTools);
+      MapManager.updateToolsOnMap(filteredTools, cachedRentals);
     }
 
     // Mostrar Banner Informativo arriba del catálogo
@@ -1049,7 +1060,7 @@ const App = (() => {
     filteredTools = [...allTools];
     renderTools(filteredTools);
     if (typeof MapManager !== 'undefined' && MapManager.updateToolsOnMap) {
-      MapManager.updateToolsOnMap(filteredTools);
+      MapManager.updateToolsOnMap(filteredTools, cachedRentals);
     }
   }
 
@@ -2915,6 +2926,21 @@ const App = (() => {
     try {
       const rentals = await API.rentals.getAll();
       cachedRentals = rentals || [];
+
+      // Renderizar Mapa de Flota del Proveedor
+      const user = API.getUser();
+      const currentProviderId = user ? (user.providerId || user.id) : null;
+      let providerTools = allTools;
+      if (currentProviderId) {
+        const matching = allTools.filter(t => String(t.providerId) === String(currentProviderId));
+        if (matching.length > 0) {
+          providerTools = matching;
+        }
+      }
+      if (typeof MapManager !== 'undefined' && MapManager.renderProviderMap) {
+        MapManager.renderProviderMap('provider-map-container', providerTools, cachedRentals);
+      }
+
       if (!rentals || rentals.length === 0) {
         container.innerHTML = `<tr><td colspan="7" class="text-center text-slate-300 py-4"><i class="fa fa-inbox me-2 text-warning"></i>No hay solicitudes de alquiler registradas actualmente</td></tr>`;
         return;
@@ -3153,8 +3179,49 @@ const App = (() => {
           </li>
         `).join('');
       }
+
+      // Renderizar Centro de Control Geoespacial (Mapa Admin)
+      try {
+        const [tools, rentals] = await Promise.all([
+          allTools.length > 0 ? Promise.resolve(allTools) : API.tools.getAll(),
+          cachedRentals.length > 0 ? Promise.resolve(cachedRentals) : API.rentals.getAll()
+        ]);
+        if (tools) allTools = tools;
+        if (rentals) cachedRentals = rentals;
+
+        const activeRentalsList = (cachedRentals || []).filter(r => ['CONFIRMADA', 'EN_CURSO', 'ACTIVO'].includes(r.status));
+        const rentedToolIds = new Set(activeRentalsList.map(r => String(r.toolId)));
+        
+        const countAll = (allTools || []).length;
+        const countRented = (allTools || []).filter(t => rentedToolIds.has(String(t.id))).length;
+        const countAvail = Math.max(0, countAll - countRented);
+
+        const elAll = document.getElementById('admin-map-count-all');
+        const elAvail = document.getElementById('admin-map-count-avail');
+        const elRented = document.getElementById('admin-map-count-rented');
+        if (elAll) elAll.textContent = countAll;
+        if (elAvail) elAvail.textContent = countAvail;
+        if (elRented) elRented.textContent = countRented;
+
+        if (typeof MapManager !== 'undefined' && MapManager.renderAdminMap) {
+          MapManager.renderAdminMap('admin-map-container', allTools, cachedRentals, 'ALL');
+        }
+      } catch (errAdminMap) {
+        console.warn('Error inicializando mapa global admin:', errAdminMap);
+      }
     } catch (e) {
       console.warn('Error cargando KPIs admin:', e);
+    }
+  }
+
+  function filterAdminMap(filterType) {
+    document.querySelectorAll('[id^="btn-admin-map-"]').forEach(b => b.classList.remove('active'));
+    if (filterType === 'ALL') document.getElementById('btn-admin-map-all')?.classList.add('active');
+    if (filterType === 'DISPONIBLE') document.getElementById('btn-admin-map-avail')?.classList.add('active');
+    if (filterType === 'ALQUILADO') document.getElementById('btn-admin-map-rented')?.classList.add('active');
+
+    if (typeof MapManager !== 'undefined' && MapManager.filterAdminMap) {
+      MapManager.filterAdminMap(filterType);
     }
   }
 
@@ -3194,8 +3261,14 @@ const App = (() => {
       loadClientRentals();
     } else if (viewName === 'provider-dashboard') {
       loadProviderRequests();
+      setTimeout(() => {
+        if (typeof MapManager !== 'undefined' && MapManager.invalidateSize) MapManager.invalidateSize();
+      }, 200);
     } else if (viewName === 'admin-dashboard') {
       loadAdminDashboard();
+      setTimeout(() => {
+        if (typeof MapManager !== 'undefined' && MapManager.invalidateSize) MapManager.invalidateSize();
+      }, 200);
     }
   }
 
@@ -3804,7 +3877,7 @@ const App = (() => {
       // Recargar catálogo y mapa
       await loadTools();
       if (typeof MapManager !== 'undefined' && MapManager.updateToolsOnMap) {
-        MapManager.updateToolsOnMap(filteredTools);
+        MapManager.updateToolsOnMap(filteredTools, cachedRentals);
       }
 
       Swal.fire({
@@ -3927,7 +4000,8 @@ const App = (() => {
     modifyBookingFromCart,
     clearCart,
     downloadInvoicePdfForRental,
-    openChatSupport
+    openChatSupport,
+    filterAdminMap
   };
 })();
 

@@ -10,6 +10,8 @@ import com.rentatools.application.tool.usecase.ListToolsUseCase;
 import com.rentatools.application.tool.usecase.RegisterToolUseCase;
 import com.rentatools.domain.tool.ToolCategoryRepository;
 import com.rentatools.domain.tool.ToolStatus;
+import com.rentatools.infrastructure.persistence.user.ProviderJpaEntity;
+import com.rentatools.infrastructure.persistence.user.SpringDataProviderRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -29,17 +31,20 @@ public class ToolController {
     private final RegisterToolUseCase registerToolUseCase;
     private final FindNearbyToolsUseCase findNearbyToolsUseCase;
     private final ToolCategoryRepository categoryRepository;
+    private final SpringDataProviderRepository providerRepository;
 
     public ToolController(ListToolsUseCase listToolsUseCase,
                           GetToolByIdUseCase getToolByIdUseCase,
                           RegisterToolUseCase registerToolUseCase,
                           FindNearbyToolsUseCase findNearbyToolsUseCase,
-                          ToolCategoryRepository categoryRepository) {
+                          ToolCategoryRepository categoryRepository,
+                          SpringDataProviderRepository providerRepository) {
         this.listToolsUseCase = listToolsUseCase;
         this.getToolByIdUseCase = getToolByIdUseCase;
         this.registerToolUseCase = registerToolUseCase;
         this.findNearbyToolsUseCase = findNearbyToolsUseCase;
         this.categoryRepository = categoryRepository;
+        this.providerRepository = providerRepository;
     }
 
     @GetMapping({"", "/public"})
@@ -48,14 +53,44 @@ public class ToolController {
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) ToolStatus status
     ) {
-        List<ToolResponse> tools = listToolsUseCase.execute(categoryId, status);
+        List<ToolResponse> tools = listToolsUseCase.execute(categoryId, status).stream()
+                .map(this::enrichTool)
+                .toList();
         return ResponseEntity.ok(tools);
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Obtener detalle de una herramienta por ID")
     public ResponseEntity<ToolResponse> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(getToolByIdUseCase.execute(id));
+        ToolResponse res = getToolByIdUseCase.execute(id);
+        return ResponseEntity.ok(enrichTool(res));
+    }
+
+    private ToolResponse enrichTool(ToolResponse t) {
+        if (t == null) return null;
+        if (providerRepository == null || t.providerId() == null) return t;
+        String pName = providerRepository.findById(t.providerId())
+                .map(ProviderJpaEntity::getCompanyName)
+                .orElse("Proveedor Verificado");
+        return new ToolResponse(
+                t.id(),
+                t.providerId(),
+                t.categoryId(),
+                t.code(),
+                t.name(),
+                t.brand(),
+                t.model(),
+                t.dailyPrice(),
+                t.depositAmount(),
+                t.status(),
+                t.accumulatedRentalDays(),
+                t.latitude(),
+                t.longitude(),
+                t.createdAt(),
+                t.images(),
+                t.specifications(),
+                pName
+        );
     }
 
     @GetMapping("/nearby")

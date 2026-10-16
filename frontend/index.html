@@ -591,9 +591,19 @@
         <!-- Contenedor Desplegable del Mapa -->
         <div class="collapse mb-4" id="map-collapse-container">
           <div class="bg-white p-3 rounded-3 border shadow-sm">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <strong class="text-dark"><i class="fa fa-map-pin text-success me-2"></i>Ubicación de Equipos y Cobertura en Bogotá</strong>
-              <small class="text-muted">Círculo verde representa tu radio de entrega</small>
+            <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+              <div>
+                <strong class="text-dark"><i class="fa fa-map-pin text-success me-2"></i>Ubicación de Equipos y Cobertura en Bogotá</strong>
+                <div class="small text-muted">Explora la ubicación de la maquinaria en la ciudad y consulta tus equipos en arriendo</div>
+              </div>
+              <div class="d-flex align-items-center gap-2 small">
+                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 py-1 px-2">
+                  <i class="fa fa-circle text-success me-1 small"></i> A tu disposición (Arriendo activo)
+                </span>
+                <span class="badge bg-warning bg-opacity-10 text-warning text-dark border border-warning border-opacity-25 py-1 px-2">
+                  <i class="fa fa-circle text-warning me-1 small"></i> Disponible para cotizar
+                </span>
+              </div>
             </div>
             <div id="map-container" style="height: 380px; border-radius: 8px;"></div>
           </div>
@@ -709,6 +719,29 @@
         </div>
       </div>
 
+      <!-- MAPA GEOESPACIAL DE FLOTA DEL PROVEEDOR -->
+      <div class="bg-white border rounded-3 p-3 mb-4 shadow-sm provider-map-card">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <div>
+            <h5 class="fw-bold text-dark mb-1">
+              <i class="fa fa-map-marked-alt text-success me-2"></i>Mapa de Flota y Dispersión en Obra
+            </h5>
+            <p class="text-muted small mb-0">
+              Ubicación de tu maquinaria. Equipos en verde están en patio listos para renta; equipos en naranja están alquilados en obra (haz clic sobre ellos para ver los datos completos del cliente que los alquiló).
+            </p>
+          </div>
+          <div class="d-flex align-items-center gap-2 small flex-wrap">
+            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 py-1 px-2">
+              <i class="fa fa-circle text-success me-1 small"></i> En Patio / Disponible
+            </span>
+            <span class="badge bg-warning bg-opacity-10 text-warning text-dark border border-warning border-opacity-25 py-1 px-2">
+              <i class="fa fa-circle text-warning me-1 small"></i> En Obra / Alquilada (Clic para ver Cliente)
+            </span>
+          </div>
+        </div>
+        <div id="provider-map-container" style="height: 420px; border-radius: 8px; z-index: 1;"></div>
+      </div>
+
       <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
           <thead class="table-light">
@@ -771,10 +804,34 @@
             <div class="h3 fw-bold text-info mb-1" id="admin-total-users">45</div>
             <span class="small text-muted">Clientes y Proveedores</span>
           </div>
-        </div>
       </div>
 
-      <div class="p-3 border rounded-3">
+      <!-- MAPA GLOBAL DE TELEMETRÍA Y CONTROL DE FLOTA (ADMIN) -->
+      <div class="bg-white border rounded-3 p-3 mb-4 shadow-sm admin-map-card">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <div>
+            <h5 class="fw-bold text-dark mb-1">
+              <i class="fa fa-satellite-dish text-primary me-2"></i>Centro de Control Geoespacial & Monitoreo Global de Flota
+            </h5>
+            <p class="text-muted small mb-0">
+              Supervisión en tiempo real del 100% de la maquinaria en el país, estado de disponibilidad, asignación de proveedores y clientes en obra.
+            </p>
+          </div>
+          <!-- Filtros de Marcadores del Admin -->
+          <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-dark active" id="btn-admin-map-all" onclick="App.filterAdminMap('ALL')">
+              <i class="fa fa-border-all me-1"></i> Todas (<span id="admin-map-count-all">0</span>)
+            </button>
+            <button type="button" class="btn btn-outline-success" id="btn-admin-map-avail" onclick="App.filterAdminMap('DISPONIBLE')">
+              <i class="fa fa-check-circle me-1"></i> En Patio (<span id="admin-map-count-avail">0</span>)
+            </button>
+            <button type="button" class="btn btn-outline-danger" id="btn-admin-map-rented" onclick="App.filterAdminMap('ALQUILADO')">
+              <i class="fa fa-truck-moving me-1"></i> En Obra (<span id="admin-map-count-rented">0</span>)
+            </button>
+          </div>
+        </div>
+        <div id="admin-map-container" style="height: 460px; border-radius: 8px; z-index: 1;"></div>
+      </div>
         <h5 class="fw-bold text-dark mb-3"><i class="fa fa-history text-success me-2"></i>Flujo de Actividades del Marketplace</h5>
         <ul class="list-group list-group-flush" id="admin-activities-list">
           <!-- Renderizado dinámicamente -->

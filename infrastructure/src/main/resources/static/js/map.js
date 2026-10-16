@@ -1,108 +1,524 @@
+/**
+ * MapManager - Gestión Geoespacial Multi-Rol de Maquinaria y Cobertura (Leaflet.js)
+ * Soporta vistas diferenciadas para:
+ * 1. Cliente (Catálogo): Identifica herramientas a su disposición (verde brillante) vs disponibles para cotizar (ámbar).
+ * 2. Proveedor: Proyecta su flota exclusiva (activas en patio vs utilizadas en obra con datos completos del cliente).
+ * 3. Administrador: Telemetría 360° global de la flota (proveedores, estado de renta, clientes activos).
+ */
 const MapManager = (() => {
-  let map = null;
-  let markersLayer = null;
+  // Instancias independientes de mapas
+  let clientMap = null;
+  let clientMarkersLayer = null;
   let userCircle = null;
-  let userLocation = { lat: 4.6500, lng: -74.0800 }; // Coordenadas centrales por defecto (Bogotá)
 
-  function init() {
-    const container = document.getElementById('map-container');
-    if (!container || map) return;
+  let providerMap = null;
+  let providerMarkersLayer = null;
 
-    // Crear mapa centrado en coordenadas industriales
-    map = L.map('map-container', {
-      zoomControl: true,
-      attributionControl: false
-    }).setView([userLocation.lat, userLocation.lng], 12);
+  let adminMap = null;
+  let adminMarkersLayer = null;
+  let adminCurrentFilter = 'ALL';
 
-    // Capa de mosaicos oficial OpenStreetMap (100% abierta y sin API Key)
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
+  let cachedAllTools = [];
+  let cachedAllRentals = [];
 
-    markersLayer = L.layerGroup().addTo(map);
+  // Coordenadas base (Bogotá D.C.)
+  const DEFAULT_LOCATION = { lat: 4.6500, lng: -74.0800 };
+  let userLocation = { ...DEFAULT_LOCATION };
 
-    // Intentar geolocalización real del navegador
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-          map.setView([userLocation.lat, userLocation.lng], 13);
-          drawUserLocation(userLocation);
-        },
-        () => {
-          drawUserLocation(userLocation);
-        }
-      );
-    } else {
-      drawUserLocation(userLocation);
+  // Dispersión determinista para herramientas sin lat/lng
+  const BOGOTA_ZONES = [
+    { lat: 4.6534, lng: -74.0836, name: 'Patio Central Cra 68' },
+    { lat: 4.6782, lng: -74.1354, name: 'Zona Industrial Fontibón' },
+    { lat: 4.6923, lng: -74.0921, name: 'Patio Calle 80' },
+    { lat: 4.7450, lng: -74.0430, name: 'Zona Norte Toberín' },
+    { lat: 4.6097, lng: -74.1082, name: 'Corredor Puente Aranda' },
+    { lat: 4.5820, lng: -74.1620, name: 'Parque Industrial Sur' },
+    { lat: 4.7110, lng: -74.1480, name: 'Engativá Álamos' },
+    { lat: 4.8210, lng: -74.0530, name: 'Chía / Autopista Norte' }
+  ];
+
+  function resolveCoordinates(tool) {
+    if (tool.latitude && tool.longitude && !isNaN(tool.latitude) && !isNaN(tool.longitude)) {
+      return { lat: parseFloat(tool.latitude), lng: parseFloat(tool.longitude) };
     }
+    if (tool.lat && tool.lng && !isNaN(tool.lat) && !isNaN(tool.lng)) {
+      return { lat: parseFloat(tool.lat), lng: parseFloat(tool.lng) };
+    }
+    // Asignación determinista por ID de herramienta
+    const hash = Math.abs(parseInt(tool.id || 1, 10)) % BOGOTA_ZONES.length;
+    const base = BOGOTA_ZONES[hash];
+    // Variación sutil para evitar colisión exacta de pines en el mismo punto
+    const offsetLat = ((tool.id * 37) % 20 - 10) * 0.0008;
+    const offsetLng = ((tool.id * 53) % 20 - 10) * 0.0008;
+    return { lat: base.lat + offsetLat, lng: base.lng + offsetLng };
+  }
+
+  // ==========================================
+  // 1. MAPA DEL CLIENTE (Storefront / Catálogo)
+  // ==========================================
+  function initClientMap() {
+    const container = document.getElementById('map-container');
+    if (!container) return;
+
+    if (!clientMap) {
+      clientMap = L.map('map-container', {
+        zoomControl: true,
+        attributionControl: false
+      }).setView([userLocation.lat, userLocation.lng], 12);
+
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(clientMap);
+
+      clientMarkersLayer = L.layerGroup().addTo(clientMap);
+
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            clientMap.setView([userLocation.lat, userLocation.lng], 13);
+            drawUserLocation(userLocation);
+          },
+          () => drawUserLocation(userLocation)
+        );
+      } else {
+        drawUserLocation(userLocation);
+      }
+    }
+
+    setTimeout(() => {
+      if (clientMap) clientMap.invalidateSize();
+    }, 150);
   }
 
   function drawUserLocation(loc) {
-    if (userCircle) map.removeLayer(userCircle);
+    if (!clientMap) return;
+    if (userCircle) clientMap.removeLayer(userCircle);
 
-    // Radio de proximidad con brillo cian
     userCircle = L.circle([loc.lat, loc.lng], {
-      color: '#06b6d4',
-      fillColor: '#06b6d4',
-      fillOpacity: 0.12,
-      radius: 12000 // 12 km
-    }).addTo(map);
+      color: '#078443',
+      fillColor: '#078443',
+      fillOpacity: 0.10,
+      radius: 12000
+    }).addTo(clientMap);
 
-    // Marcador de la obra del usuario
     const userIcon = L.divIcon({
       className: 'user-pin-icon',
-      html: '<div style="background: #06b6d4; width: 18px; height: 18px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 15px #06b6d4;"></div>',
-      iconSize: [20, 20],
-      iconAnchor: [10, 10]
+      html: `
+        <div style="background: #078443; width: 22px; height: 22px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 12px rgba(7, 132, 67, 0.8); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px;">
+          <i class="fa fa-user"></i>
+        </div>
+      `,
+      iconSize: [22, 22],
+      iconAnchor: [11, 11]
     });
 
     L.marker([loc.lat, loc.lng], { icon: userIcon })
-      .bindPopup('<strong style="color: #38bdf8;"><img src="assets/img/icons/icon-location.svg" width="16" height="16" style="vertical-align: -3px; margin-right: 5px;">Ubicación de tu Obra / Proyecto</strong>')
-      .addTo(map);
+      .bindPopup('<strong style="color: #075C35;"><i class="fa fa-map-marker-alt me-1 text-success"></i>Tu Ubicación / Obra Principal</strong>')
+      .addTo(clientMap);
   }
 
-  function updateToolsOnMap(tools) {
-    if (!map || !markersLayer) return;
-    markersLayer.clearLayers();
+  function updateToolsOnMap(tools, activeRentals = []) {
+    initClientMap();
+    if (!clientMap || !clientMarkersLayer) return;
+
+    clientMarkersLayer.clearLayers();
+    cachedAllTools = tools || [];
+
+    const user = (typeof API !== 'undefined' && API.getUser) ? API.getUser() : null;
+    const clientRentals = (activeRentals || []).filter(r => {
+      if (!user) return false;
+      const isClientOwner = String(r.clientId) === String(user.clientId || user.id);
+      const isActiveStatus = ['CONFIRMADA', 'EN_CURSO', 'ACTIVO', 'PENDIENTE'].includes(r.status);
+      return isClientOwner && isActiveStatus;
+    });
+
+    // Mapeo de alquileres activos por toolId
+    const activeRentalsByToolId = new Map();
+    clientRentals.forEach(r => activeRentalsByToolId.set(String(r.toolId), r));
+
+    const bounds = [];
 
     tools.forEach(tool => {
-      if (tool.latitude && tool.longitude) {
-        const toolIcon = L.divIcon({
-          className: 'machinery-pin-icon',
-          html: `<div style="background: #f59e0b; color: #0b0f19; width: 34px; height: 34px; border-radius: 50%; border: 2px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: bold; box-shadow: 0 0 18px rgba(245, 158, 11, 0.7);"><i class="fa fa-truck-pickup"></i></div>`,
-          iconSize: [36, 36],
-          iconAnchor: [18, 18]
-        });
+      const coords = resolveCoordinates(tool);
+      const isAtClientDisposal = activeRentalsByToolId.has(String(tool.id));
+      const rentalInfo = activeRentalsByToolId.get(String(tool.id));
 
-        const popupContent = `
-          <div style="min-width: 200px;">
-            <img src="${(window.getToolImageUrl ? window.getToolImageUrl(tool) : tool.imageUrl) || window.TOOL_FALLBACK_IMG}" style="width: 100%; height: 95px; object-fit: cover; border-radius: 6px; margin-bottom: 8px;" onerror="if (window.handleToolImageError) window.handleToolImageError(this); else { this.onerror=null; this.src=window.TOOL_FALLBACK_IMG; }">
-            <h6 style="color: #fbbf24; margin: 0 0 4px 0; font-weight: bold;">${tool.name}</h6>
-            <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 6px;"><img src="assets/img/icons/icon-location.svg" width="14" height="14" style="vertical-align: -2px; margin-right: 4px;">${tool.locationName || 'Bogotá'}</div>
-            <div style="font-size: 0.85rem; font-weight: bold; color: #f8fafc; margin-bottom: 8px;">Tarifa: ${API.formatCurrency(tool.dailyRate)}/día</div>
-            <button class="btn btn-sm btn-neu-amber w-100 py-1" onclick="App.openBookingModal('${tool.id}')">
-              <i class="fa fa-calendar-check me-1"></i> Cotizar
-            </button>
+      let iconHtml = '';
+      let popupContent = '';
+
+      const toolImg = (window.getToolImageUrl ? window.getToolImageUrl(tool) : tool.imageUrl) || (window.TOOL_FALLBACK_IMG || 'assets/img/machinery/placeholder-tool.svg');
+
+      if (isAtClientDisposal) {
+        // Herramienta a disposición del cliente (Verde Esmeralda con pulso)
+        iconHtml = `
+          <div style="position: relative; width: 40px; height: 40px;">
+            <div style="position: absolute; top: -4px; left: -4px; width: 48px; height: 48px; border-radius: 50%; background: rgba(16, 185, 129, 0.35); animation: mapPulse 1.8s infinite ease-in-out;"></div>
+            <div style="position: relative; z-index: 2; background: #10b981; color: #ffffff; width: 40px; height: 40px; border-radius: 50%; border: 3px solid #ffffff; display: flex; align-items: center; justify-content: center; font-size: 16px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.7);">
+              <i class="fa fa-check-circle"></i>
+            </div>
           </div>
         `;
 
-        L.marker([tool.latitude, tool.longitude], { icon: toolIcon })
-          .bindPopup(popupContent)
-          .addTo(markersLayer);
+        popupContent = `
+          <div style="min-width: 250px; font-family: inherit;">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="badge" style="background: #10b981; color: #fff;"><i class="fa fa-shield-alt me-1"></i> A TU DISPOSICIÓN</span>
+              <span class="badge bg-dark">#${rentalInfo.id}</span>
+            </div>
+            <img src="${toolImg}" style="width: 100%; height: 95px; object-fit: cover; border-radius: 6px; margin-bottom: 8px;" onerror="if (window.handleToolImageError) window.handleToolImageError(this); else { this.onerror=null; this.src='assets/img/machinery/placeholder-tool.svg'; }">
+            <h6 style="color: #075C35; margin: 0 0 4px 0; font-weight: bold;">${tool.name}</h6>
+            <div class="small text-muted mb-2"><i class="fa fa-building text-secondary me-1"></i> ${tool.providerName || rentalInfo.providerName || 'Proveedor Aliado'}</div>
+            
+            <div class="p-2 rounded-2 border bg-light small mb-2">
+              <div class="text-dark fw-bold mb-1"><i class="fa fa-calendar-check text-success me-1"></i> Arriendo Activo:</div>
+              <div><strong>Periodo:</strong> ${rentalInfo.startDate} al ${rentalInfo.endDate}</div>
+              <div><strong>Destino:</strong> ${rentalInfo.deliveryAddress || 'Tu Obra Registrada'}</div>
+              <div><strong>Estado:</strong> <span class="badge bg-success">${rentalInfo.status}</span></div>
+            </div>
+
+            <button class="btn btn-sm btn-outline-success w-100 py-1" onclick="App.switchView('client-dashboard')">
+              <i class="fa fa-file-invoice me-1"></i> Ver en Mis Alquileres
+            </button>
+          </div>
+        `;
+      } else {
+        // Herramienta disponible en catálogo (Ámbar industrial)
+        iconHtml = `
+          <div style="background: #f59e0b; color: #0b0f19; width: 34px; height: 34px; border-radius: 50%; border: 2.5px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.6);">
+            <i class="fa fa-truck-pickup"></i>
+          </div>
+        `;
+
+        popupContent = `
+          <div style="min-width: 220px; font-family: inherit;">
+            <img src="${toolImg}" style="width: 100%; height: 95px; object-fit: cover; border-radius: 6px; margin-bottom: 8px;" onerror="if (window.handleToolImageError) window.handleToolImageError(this); else { this.onerror=null; this.src='assets/img/machinery/placeholder-tool.svg'; }">
+            <h6 style="color: #d97706; margin: 0 0 4px 0; font-weight: bold;">${tool.name}</h6>
+            <div class="small text-muted mb-1"><i class="fa fa-building text-secondary me-1"></i> ${tool.providerName || 'Proveedor Verificado'}</div>
+            <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 6px;"><i class="fa fa-map-marker-alt text-danger me-1"></i> ${tool.locationName || 'Bogotá D.C.'}</div>
+            <div style="font-size: 0.85rem; font-weight: bold; color: #075C35; margin-bottom: 8px;">Tarifa: ${API.formatCurrency(tool.dailyPrice || tool.dailyRate)}/día</div>
+            <button class="btn btn-sm btn-sb-green w-100 py-1" onclick="App.openBookingModal('${tool.id}')">
+              <i class="fa fa-calendar-check me-1"></i> Cotizar / Reservar
+            </button>
+          </div>
+        `;
       }
+
+      const toolIcon = L.divIcon({
+        className: 'tool-pin-icon',
+        html: iconHtml,
+        iconSize: isAtClientDisposal ? [40, 40] : [34, 34],
+        iconAnchor: isAtClientDisposal ? [20, 20] : [17, 17]
+      });
+
+      const marker = L.marker([coords.lat, coords.lng], { icon: toolIcon })
+        .bindPopup(popupContent)
+        .addTo(clientMarkersLayer);
+
+      bounds.push([coords.lat, coords.lng]);
     });
+
+    if (bounds.length > 0 && clientMap) {
+      clientMap.fitBounds(bounds, { padding: [50, 50], maxZoom: 13 });
+    }
   }
 
+  // ==========================================
+  // 2. MAPA DEL PROVEEDOR (Portal Proveedor)
+  // ==========================================
+  function renderProviderMap(containerId, providerTools, allRentals) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    if (!providerMap) {
+      providerMap = L.map(containerId, {
+        zoomControl: true,
+        attributionControl: false
+      }).setView([DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lng], 12);
+
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(providerMap);
+
+      providerMarkersLayer = L.layerGroup().addTo(providerMap);
+    } else {
+      providerMarkersLayer.clearLayers();
+    }
+
+    const bounds = [];
+    const rentalsList = allRentals || [];
+
+    (providerTools || []).forEach(tool => {
+      const coords = resolveCoordinates(tool);
+      // Buscar si tiene alquiler activo
+      const activeRental = rentalsList.find(r => 
+        String(r.toolId) === String(tool.id) && 
+        ['CONFIRMADA', 'EN_CURSO', 'ACTIVO'].includes(r.status)
+      );
+
+      const isRented = !!activeRental;
+      const toolImg = (window.getToolImageUrl ? window.getToolImageUrl(tool) : tool.imageUrl) || (window.TOOL_FALLBACK_IMG || 'assets/img/machinery/placeholder-tool.svg');
+
+      let iconHtml = '';
+      let popupContent = '';
+
+      if (isRented) {
+        // En obra / Utilizada: Naranja Fuego (#f97316)
+        iconHtml = `
+          <div style="background: #ea580c; color: #ffffff; width: 38px; height: 38px; border-radius: 50%; border: 3px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 15px; box-shadow: 0 4px 14px rgba(234, 88, 12, 0.7);">
+            <i class="fa fa-hard-hat"></i>
+          </div>
+        `;
+
+        popupContent = `
+          <div style="min-width: 270px; max-width: 320px; font-family: inherit;">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="badge bg-warning text-dark"><i class="fa fa-hard-hat me-1"></i> EN OBRA / ALQUILADA</span>
+              <span class="badge bg-dark">#${activeRental.id}</span>
+            </div>
+            
+            <h6 class="fw-bold text-dark mb-1">${tool.name}</h6>
+            <div class="small text-muted mb-2">Código: ${tool.code || 'N/A'} | Modelo: ${tool.model || 'N/A'}</div>
+
+            <!-- Ficha completa del cliente -->
+            <div class="p-2.5 rounded-3 bg-light border mb-2" style="font-size: 0.85rem;">
+              <div class="fw-bold text-dark mb-1"><i class="fa fa-user-circle text-primary me-1"></i> Cliente que la alquiló:</div>
+              <div class="text-dark fw-bold fs-6">${activeRental.clientName || 'Cliente Constructora'}</div>
+              ${activeRental.clientDocument ? `<div class="text-muted small mb-1"><i class="fa fa-id-card me-1 text-secondary"></i> ${activeRental.clientDocument}</div>` : ''}
+              
+              <div class="mt-2 pt-1 border-top">
+                <a href="tel:${activeRental.clientPhone || '+573200000023'}" class="text-success text-decoration-none d-block small fw-bold mb-1">
+                  <i class="fa fa-phone-alt me-1"></i> ${activeRental.clientPhone || '+57 320 000 0023'}
+                </a>
+                <a href="mailto:${activeRental.clientEmail || 'cliente@constructora.com'}" class="text-primary text-decoration-none d-block small">
+                  <i class="fa fa-envelope me-1"></i> ${activeRental.clientEmail || 'cliente@constructora.com'}
+                </a>
+              </div>
+            </div>
+
+            <div class="small text-secondary mb-2" style="font-size: 0.82rem;">
+              <div><i class="fa fa-map-marker-alt text-danger me-1"></i> <strong>Destino Obra:</strong> ${activeRental.deliveryAddress || 'Sector Obra Norte'}</div>
+              <div><i class="fa fa-calendar-alt text-primary me-1"></i> <strong>Periodo:</strong> ${activeRental.startDate} al ${activeRental.endDate} (${activeRental.days || activeRental.totalDays || 1} días)</div>
+              <div><i class="fa fa-coins text-warning me-1"></i> <strong>Total Liquidado:</strong> ${API.formatCurrency(activeRental.subtotal || activeRental.total)}</div>
+            </div>
+
+            <button class="btn btn-sm btn-outline-primary w-100 py-1" onclick="App.openReturnModal('${activeRental.id}')">
+              <i class="fa fa-clipboard-check me-1"></i> Inspección / Devolución
+            </button>
+          </div>
+        `;
+      } else {
+        // En Patio / Disponible: Verde Esmeralda (#10b981)
+        iconHtml = `
+          <div style="background: #10b981; color: #ffffff; width: 36px; height: 36px; border-radius: 50%; border: 3px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.6);">
+            <i class="fa fa-warehouse"></i>
+          </div>
+        `;
+
+        popupContent = `
+          <div style="min-width: 220px; font-family: inherit;">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="badge bg-success"><i class="fa fa-check me-1"></i> EN PATIO / DISPONIBLE</span>
+              <span class="badge bg-light text-dark border">${tool.code || 'ACT-01'}</span>
+            </div>
+            <img src="${toolImg}" style="width: 100%; height: 95px; object-fit: cover; border-radius: 6px; margin-bottom: 8px;" onerror="if (window.handleToolImageError) window.handleToolImageError(this); else { this.onerror=null; this.src='assets/img/machinery/placeholder-tool.svg'; }">
+            <h6 class="fw-bold text-dark mb-1">${tool.name}</h6>
+            <div class="small text-muted mb-2">Marca: ${tool.brand || 'N/A'} | Modelo: ${tool.model || 'N/A'}</div>
+            <div class="small fw-bold text-success mb-1">Tarifa pública: ${API.formatCurrency(tool.dailyPrice)}/día</div>
+            <div class="small text-secondary mb-2">Días acumulados en obra: <strong>${tool.accumulatedRentalDays || 0} d</strong></div>
+            <div class="alert alert-light border py-1 px-2 mb-0 text-center small text-muted">
+              Equipo listo y verificado para despacho
+            </div>
+          </div>
+        `;
+      }
+
+      const icon = L.divIcon({
+        className: 'provider-tool-pin',
+        html: iconHtml,
+        iconSize: [38, 38],
+        iconAnchor: [19, 19]
+      });
+
+      L.marker([coords.lat, coords.lng], { icon })
+        .bindPopup(popupContent)
+        .addTo(providerMarkersLayer);
+
+      bounds.push([coords.lat, coords.lng]);
+    });
+
+    if (bounds.length > 0 && providerMap) {
+      providerMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 13 });
+    }
+
+    setTimeout(() => {
+      if (providerMap) providerMap.invalidateSize();
+    }, 150);
+  }
+
+  // ==========================================
+  // 3. MAPA DEL ADMINISTRADOR (Portal Admin)
+  // ==========================================
+  function renderAdminMap(containerId, allTools, allRentals, filter = 'ALL') {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    adminCurrentFilter = filter;
+    cachedAllTools = allTools || [];
+    cachedAllRentals = allRentals || [];
+
+    if (!adminMap) {
+      adminMap = L.map(containerId, {
+        zoomControl: true,
+        attributionControl: false
+      }).setView([DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lng], 11);
+
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(adminMap);
+
+      adminMarkersLayer = L.layerGroup().addTo(adminMap);
+    } else {
+      adminMarkersLayer.clearLayers();
+    }
+
+    const bounds = [];
+    const rentalsList = cachedAllRentals;
+
+    let displayTools = cachedAllTools;
+    if (filter === 'DISPONIBLE') {
+      displayTools = cachedAllTools.filter(t => {
+        const active = rentalsList.find(r => String(r.toolId) === String(t.id) && ['CONFIRMADA', 'EN_CURSO', 'ACTIVO'].includes(r.status));
+        return !active;
+      });
+    } else if (filter === 'ALQUILADO') {
+      displayTools = cachedAllTools.filter(t => {
+        const active = rentalsList.find(r => String(r.toolId) === String(t.id) && ['CONFIRMADA', 'EN_CURSO', 'ACTIVO'].includes(r.status));
+        return !!active;
+      });
+    }
+
+    displayTools.forEach(tool => {
+      const coords = resolveCoordinates(tool);
+      const activeRental = rentalsList.find(r => 
+        String(r.toolId) === String(tool.id) && 
+        ['CONFIRMADA', 'EN_CURSO', 'ACTIVO'].includes(r.status)
+      );
+
+      const isRented = !!activeRental;
+      const toolImg = (window.getToolImageUrl ? window.getToolImageUrl(tool) : tool.imageUrl) || (window.TOOL_FALLBACK_IMG || 'assets/img/machinery/placeholder-tool.svg');
+
+      let iconHtml = '';
+      let popupContent = '';
+
+      if (isRented) {
+        // Rentada: Naranja / Ámbar oscuro
+        iconHtml = `
+          <div style="background: #ea580c; color: #fff; width: 36px; height: 36px; border-radius: 50%; border: 2.5px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; box-shadow: 0 4px 12px rgba(234, 88, 12, 0.6);">
+            <i class="fa fa-truck-moving"></i>
+          </div>
+        `;
+
+        popupContent = `
+          <div style="min-width: 280px; max-width: 330px; font-family: inherit;">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="badge bg-danger"><i class="fa fa-circle me-1 small"></i> ALQUILADA EN OBRA</span>
+              <span class="badge bg-dark">Tool #${tool.id}</span>
+            </div>
+            <h6 class="fw-bold text-dark mb-1">${tool.name}</h6>
+            <div class="small text-muted mb-2">Activo: ${tool.code} | Tarifa: ${API.formatCurrency(tool.dailyPrice)}/d</div>
+
+            <!-- Datos del Proveedor -->
+            <div class="p-2 rounded bg-light border mb-2 small">
+              <div class="fw-bold text-primary"><i class="fa fa-building me-1"></i> Proveedor Propietario:</div>
+              <div class="text-dark fw-bold">${tool.providerName || activeRental.providerName || 'Proveedor Registrado'}</div>
+              <div class="text-muted">ID Proveedor: #${tool.providerId || '1'}</div>
+            </div>
+
+            <!-- Datos del Cliente Arrendatario -->
+            <div class="p-2 rounded bg-light border mb-2 small">
+              <div class="fw-bold text-success"><i class="fa fa-user-check me-1"></i> Cliente Arrendatario:</div>
+              <div class="text-dark fw-bold">${activeRental.clientName || 'Cliente Constructora'}</div>
+              <div><i class="fa fa-phone me-1 text-success"></i> ${activeRental.clientPhone || '+57 320 000 0023'}</div>
+              <div><i class="fa fa-envelope me-1 text-info"></i> ${activeRental.clientEmail || 'cliente@constructora.com'}</div>
+              <div><i class="fa fa-map-marker-alt me-1 text-danger"></i> Obra: ${activeRental.deliveryAddress || 'Sector Obra Central'}</div>
+              <div><i class="fa fa-calendar-alt me-1 text-primary"></i> ${activeRental.startDate} al ${activeRental.endDate}</div>
+              <div><i class="fa fa-coins me-1 text-warning"></i> Total: ${API.formatCurrency(activeRental.subtotal || activeRental.total)}</div>
+            </div>
+          </div>
+        `;
+      } else {
+        // Disponible: Verde Esmeralda
+        iconHtml = `
+          <div style="background: #10b981; color: #fff; width: 34px; height: 34px; border-radius: 50%; border: 2.5px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.5);">
+            <i class="fa fa-check"></i>
+          </div>
+        `;
+
+        popupContent = `
+          <div style="min-width: 250px; font-family: inherit;">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="badge bg-success"><i class="fa fa-check-circle me-1"></i> DISPONIBLE</span>
+              <span class="badge bg-light text-dark border">Tool #${tool.id}</span>
+            </div>
+            <img src="${toolImg}" style="width: 100%; height: 95px; object-fit: cover; border-radius: 6px; margin-bottom: 8px;" onerror="if (window.handleToolImageError) window.handleToolImageError(this); else { this.onerror=null; this.src='assets/img/machinery/placeholder-tool.svg'; }">
+            <h6 class="fw-bold text-dark mb-1">${tool.name}</h6>
+            <div class="small text-muted mb-2">Marca: ${tool.brand} | Modelo: ${tool.model}</div>
+            
+            <div class="p-2 rounded bg-light border mb-2 small">
+              <div class="fw-bold text-primary"><i class="fa fa-building me-1"></i> Proveedor:</div>
+              <div class="text-dark fw-bold">${tool.providerName || 'Proveedor Aliado'}</div>
+              <div class="text-muted">Tarifa: ${API.formatCurrency(tool.dailyPrice)}/día</div>
+              <div class="text-muted">Días acumulados: ${tool.accumulatedRentalDays || 0} d</div>
+            </div>
+
+            <div class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 w-100 py-1 text-center">
+              En bodega / Lista para renta
+            </div>
+          </div>
+        `;
+      }
+
+      const icon = L.divIcon({
+        className: 'admin-tool-pin',
+        html: iconHtml,
+        iconSize: [36, 36],
+        iconAnchor: [18, 18]
+      });
+
+      L.marker([coords.lat, coords.lng], { icon })
+        .bindPopup(popupContent)
+        .addTo(adminMarkersLayer);
+
+      bounds.push([coords.lat, coords.lng]);
+    });
+
+    if (bounds.length > 0 && adminMap) {
+      adminMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 12 });
+    }
+
+    setTimeout(() => {
+      if (adminMap) adminMap.invalidateSize();
+    }, 150);
+  }
+
+  function filterAdminMap(filterType) {
+    if (adminMap) {
+      renderAdminMap('admin-map-container', cachedAllTools, cachedAllRentals, filterType);
+    }
+  }
+
+  // Filtrado por radio de proximidad para el cliente
   function filterByRadius(radiusKm, allTools) {
     if (userCircle) {
       userCircle.setRadius(radiusKm * 1000);
     }
-    // Filtrar herramientas dentro del radio
-    return allTools.filter(t => {
-      if (!t.latitude || !t.longitude) return false;
-      const d = getDistanceFromLatLonInKm(userLocation.lat, userLocation.lng, t.latitude, t.longitude);
+    return (allTools || []).filter(t => {
+      const coords = resolveCoordinates(t);
+      const d = getDistanceFromLatLonInKm(userLocation.lat, userLocation.lng, coords.lat, coords.lng);
       return d <= radiusKm;
     });
   }
@@ -119,24 +535,54 @@ const MapManager = (() => {
     return R * c;
   }
 
-  // Recalcular tamaño de mapa en cambios de viewport
-  window.addEventListener('resize', () => {
-    if (map) {
-      map.invalidateSize();
-    }
-  });
-
+  // Invalida tamaño de todos los mapas activos al cambiar tamaño o pestaña
   function invalidateSize() {
-    if (map) {
-      map.invalidateSize();
-    }
+    if (clientMap) clientMap.invalidateSize();
+    if (providerMap) providerMap.invalidateSize();
+    if (adminMap) adminMap.invalidateSize();
   }
 
+  window.addEventListener('resize', invalidateSize);
+
   return {
-    init,
+    init: initClientMap,
+    initClientMap,
     updateToolsOnMap,
+    renderProviderMap,
+    renderAdminMap,
+    filterAdminMap,
     filterByRadius,
     invalidateSize,
     getUserLocation: () => userLocation
   };
+})();
+
+// Inyección de estilos de animación de pulso para Leaflet
+(function injectMapStyles() {
+  if (document.getElementById('rentatools-map-styles')) return;
+  const style = document.createElement('style');
+  style.id = 'rentatools-map-styles';
+  style.textContent = `
+    @keyframes mapPulse {
+      0% { transform: scale(0.9); opacity: 0.9; }
+      50% { transform: scale(1.4); opacity: 0.15; }
+      100% { transform: scale(0.9); opacity: 0.9; }
+    }
+    .leaflet-popup-content-wrapper {
+      border-radius: 10px !important;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+      padding: 4px !important;
+    }
+    .leaflet-popup-content {
+      margin: 12px !important;
+      line-height: 1.4 !important;
+    }
+    .provider-map-card, .admin-map-card {
+      transition: box-shadow 0.2s ease-out;
+    }
+    .provider-map-card:hover, .admin-map-card:hover {
+      box-shadow: 0 12px 28px rgba(0,0,0,0.08) !important;
+    }
+  `;
+  document.head.appendChild(style);
 })();

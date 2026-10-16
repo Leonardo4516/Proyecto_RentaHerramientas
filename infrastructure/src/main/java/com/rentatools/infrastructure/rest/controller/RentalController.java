@@ -16,6 +16,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.rentatools.domain.rental.RentalBooking;
+import com.rentatools.infrastructure.persistence.repository.ToolJpaRepository;
+import com.rentatools.infrastructure.persistence.user.SpringDataClientRepository;
+import com.rentatools.infrastructure.persistence.user.SpringDataProviderRepository;
+import com.rentatools.infrastructure.persistence.user.SpringDataUserRepository;
+
 import java.time.LocalDate;
 import java.util.List;
 @RestController
@@ -27,15 +33,27 @@ public class RentalController {
     private final CheckAvailabilityUseCase checkAvailabilityUseCase;
     private final ChangeRentalStatusUseCase changeRentalStatusUseCase;
     private final RentalRepository rentalRepository;
+    private final SpringDataClientRepository clientRepository;
+    private final SpringDataUserRepository userRepository;
+    private final ToolJpaRepository toolJpaRepository;
+    private final SpringDataProviderRepository providerRepository;
 
     public RentalController(CreateRentalBookingUseCase createRentalBookingUseCase,
                             CheckAvailabilityUseCase checkAvailabilityUseCase,
                             ChangeRentalStatusUseCase changeRentalStatusUseCase,
-                            RentalRepository rentalRepository) {
+                            RentalRepository rentalRepository,
+                            SpringDataClientRepository clientRepository,
+                            SpringDataUserRepository userRepository,
+                            ToolJpaRepository toolJpaRepository,
+                            SpringDataProviderRepository providerRepository) {
         this.createRentalBookingUseCase = createRentalBookingUseCase;
         this.checkAvailabilityUseCase = checkAvailabilityUseCase;
         this.changeRentalStatusUseCase = changeRentalStatusUseCase;
         this.rentalRepository = rentalRepository;
+        this.clientRepository = clientRepository;
+        this.userRepository = userRepository;
+        this.toolJpaRepository = toolJpaRepository;
+        this.providerRepository = providerRepository;
     }
 
     @PostMapping
@@ -57,10 +75,10 @@ public class RentalController {
     }
 
     @GetMapping
-    @Operation(summary = "Listar todas las reservas", description = "Retorna el historial completo de alquileres para el cliente o proveedor")
+    @Operation(summary = "Listar todas las reservas", description = "Retorna el historial completo de alquileres para el cliente o proveedor con datos de contacto enriquecidos")
     public ResponseEntity<List<RentalResponse>> getAllRentals() {
         List<RentalResponse> rentals = rentalRepository.findAll().stream()
-                .map(RentalResponse::fromDomain)
+                .map(this::enrichRental)
                 .toList();
         return ResponseEntity.ok(rentals);
     }
@@ -69,9 +87,88 @@ public class RentalController {
     @Operation(summary = "Listar reservas activas de una herramienta")
     public ResponseEntity<List<RentalResponse>> getToolRentals(@PathVariable Long toolId) {
         List<RentalResponse> rentals = rentalRepository.findByToolId(toolId).stream()
-                .map(RentalResponse::fromDomain)
+                .map(this::enrichRental)
                 .toList();
         return ResponseEntity.ok(rentals);
+    }
+
+    private RentalResponse enrichRental(RentalBooking r) {
+        String toolName = "Maquinaria #" + r.getToolId();
+        Long providerId = null;
+        String providerName = "Proveedor Verificado";
+
+        if (toolJpaRepository != null && r.getToolId() != null) {
+            var toolOpt = toolJpaRepository.findById(r.getToolId());
+            if (toolOpt.isPresent()) {
+                var tool = toolOpt.get();
+                if (tool.getName() != null) toolName = tool.getName();
+                providerId = tool.getProviderId();
+                if (providerRepository != null && providerId != null) {
+                    var provOpt = providerRepository.findById(providerId);
+                    if (provOpt.isPresent() && provOpt.get().getCompanyName() != null) {
+                        providerName = provOpt.get().getCompanyName();
+                    }
+                }
+            }
+        }
+
+        String clientName = "Cliente Constructora";
+        String clientPhone = "+57 320 000 0023";
+        String clientEmail = "cliente@constructora.com";
+        String clientDocument = "NIT 900.123.456-7";
+
+        if (clientRepository != null && r.getClientId() != null) {
+            var clientOpt = clientRepository.findById(r.getClientId());
+            if (clientOpt.isEmpty()) {
+                clientOpt = clientRepository.findByUserId(r.getClientId());
+            }
+            if (clientOpt.isPresent()) {
+                var client = clientOpt.get();
+                if (client.getDocumentNumber() != null) {
+                    clientDocument = (client.getDocumentType() != null ? client.getDocumentType() + " " : "") + client.getDocumentNumber();
+                }
+                if (userRepository != null && client.getUserId() != null) {
+                    var userOpt = userRepository.findById(client.getUserId());
+                    if (userOpt.isPresent()) {
+                        var u = userOpt.get();
+                        if (u.getFullName() != null) clientName = u.getFullName();
+                        if (u.getPhone() != null) clientPhone = u.getPhone();
+                        if (u.getEmail() != null) clientEmail = u.getEmail();
+                    }
+                }
+            } else if (userRepository != null) {
+                var userOpt = userRepository.findById(r.getClientId());
+                if (userOpt.isPresent()) {
+                    var u = userOpt.get();
+                    if (u.getFullName() != null) clientName = u.getFullName();
+                    if (u.getPhone() != null) clientPhone = u.getPhone();
+                    if (u.getEmail() != null) clientEmail = u.getEmail();
+                }
+            }
+        }
+
+        return new RentalResponse(
+                r.getId(),
+                r.getClientId(),
+                r.getToolId(),
+                r.getDateRange().startDate(),
+                r.getDateRange().endDate(),
+                r.getDateRange().totalDays(),
+                r.getDailyRate(),
+                r.getDepositAmount(),
+                r.getSubtotal(),
+                r.getStatus().name(),
+                r.getDeliveryAddress(),
+                r.getNotes(),
+                r.getCreatedAt(),
+                clientName,
+                clientPhone,
+                clientEmail,
+                clientDocument,
+                toolName,
+                providerId,
+                providerName
+        );
     }
 
     @PutMapping("/{id}/status")

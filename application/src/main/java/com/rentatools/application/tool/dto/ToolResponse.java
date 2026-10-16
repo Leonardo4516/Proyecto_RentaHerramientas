@@ -22,8 +22,30 @@ public record ToolResponse(
         BigDecimal longitude,
         Instant createdAt,
         List<String> images,
-        List<SpecDto> specifications
+        List<SpecDto> specifications,
+        String providerName
 ) {
+    public ToolResponse(
+            Long id,
+            Long providerId,
+            Long categoryId,
+            String code,
+            String name,
+            String brand,
+            String model,
+            BigDecimal dailyPrice,
+            BigDecimal depositAmount,
+            String status,
+            int accumulatedRentalDays,
+            BigDecimal latitude,
+            BigDecimal longitude,
+            Instant createdAt,
+            List<String> images,
+            List<SpecDto> specifications
+    ) {
+        this(id, providerId, categoryId, code, name, brand, model, dailyPrice, depositAmount, status, accumulatedRentalDays, latitude, longitude, createdAt, images, specifications, null);
+    }
+
     public record SpecDto(String key, String value) {}
 
     public static ToolResponse fromDomain(Tool tool) {
@@ -67,5 +89,9 @@ public record ToolResponse(
 
     public String getLocationName() {
         return "Bogotá D.C.";
+    }
+
+    public String getProviderName() {
+        return providerName != null && !providerName.isBlank() ? providerName : "Proveedor Verificado";
     }
 }
