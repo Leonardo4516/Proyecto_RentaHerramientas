@@ -24,7 +24,17 @@
 
   <!-- Estilos Base y Tema Sunbelt Rentals -->
   <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="css/sunbelt-theme.css">
+  <link rel="stylesheet" href="css/sunbelt-theme.css?v=2">
+
+  <!-- Three.js (Modelo 3D del Hero) vía Import Map -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+      }
+    }
+  </script>
 </head>
 <body>
 
@@ -209,111 +219,46 @@
   <!-- ==================== VISTA 1: CATÁLOGO Y HOME SUNBELT ==================== -->
   <div id="view-catalog" class="app-view">
 
-    <!-- ==================== 4. HERO SECTION CON WIDGET DE RESERVA INTEGRADO ==================== -->
-    <section class="sb-hero">
-      <div class="container-xl">
-        <div class="row align-items-center justify-content-center text-center">
-          <div class="col-12 col-xl-11 col-xxl-10">
-            <h1 class="sb-hero-title sb-unfold-down">Encuentra la Maquinaria y Herramientas Precisas para tu Proyecto</h1>
-            <p class="sb-hero-lead sb-unfold-lead mx-auto">Disponibilidad en tiempo real en Bogotá y Sabana, tarifas transparentes por día, semana y mes con facturación electrónica DIAN.</p>
+    <!-- ==================== 4. HERO A PANTALLA COMPLETA CON RETROEXCAVADORA 3D ==================== -->
+    <section class="sb-hero sb-hero-3d" id="sb-hero">
+      <!-- Fondo minimalista: degradado de marca + cuadrícula técnica tenue + halos de luz -->
+      <div class="sb-hero-bg" aria-hidden="true">
+        <span class="sb-hero-glow sb-hero-glow-green"></span>
+        <span class="sb-hero-glow sb-hero-glow-yellow"></span>
+      </div>
 
-            <!-- WIDGET DE RESERVA FLOTANTE (ESTILO SUNBELT) -->
-            <div class="sb-booking-widget sb-unfold-widget text-start">
-              <div class="sb-booking-widget-grid">
-                <!-- Segmento 1: Ubicación de Obra -->
-                <div class="sb-grid-col sb-grid-col-location">
-                  <div class="sb-widget-segment">
-                    <span class="sb-widget-label"><i class="fa fa-map-marker-alt"></i> Ubicación en Obra</span>
-                    <input type="text" id="hero-location-input" class="sb-widget-input" list="hero-location-suggestions" value="Bogotá D.C. & Sabana" placeholder="Ingresa localidad o municipio" autocomplete="off">
-                    <datalist id="hero-location-suggestions">
-                      <option value="Usaquén (Bogotá Norte)">
-                      <option value="Suba (Bogotá Noroccidente)">
-                      <option value="Fontibón (Bogotá Occidente)">
-                      <option value="Chía (Sabana Centro)">
-                      <option value="Cajicá (Sabana Centro)">
-                      <option value="Mosquera (Sabana Occidente)">
-                      <option value="Tocancipá (Parque Industrial)">
-                      <option value="Madrid (Sabana Occidente)">
-                    </datalist>
-                  </div>
-                </div>
+      <div class="container-xl sb-hero-container">
+        <div class="row align-items-center g-4 g-lg-5 sb-hero-row">
+          <!-- Columna izquierda: Título, texto y llamados a la acción -->
+          <div class="col-12 col-lg-6 sb-hero-copy">
+            <span class="sb-hero-eyebrow sb-unfold-down"><i class="fa fa-hard-hat me-2"></i>Alquiler de maquinaria en Bogotá &amp; Sabana</span>
+            <h1 class="sb-hero-title sb-unfold-down">Encuentra la Maquinaria y Herramientas <span class="sb-hero-highlight">Precisas</span> para tu Proyecto</h1>
+            <p class="sb-hero-lead sb-unfold-lead">Disponibilidad en tiempo real en Bogotá y Sabana, tarifas transparentes por día, semana y mes con facturación electrónica DIAN.</p>
 
-                <!-- Segmento 2: Fecha Inicio -->
-                <div class="sb-grid-col sb-grid-col-date">
-                  <div class="sb-widget-segment">
-                    <span class="sb-widget-label"><i class="fa fa-calendar-alt"></i> Fecha Inicio</span>
-                    <input type="date" id="hero-start-date" class="sb-widget-input">
-                  </div>
-                </div>
-
-                <!-- Segmento 3: Fecha Devolución -->
-                <div class="sb-grid-col sb-grid-col-date">
-                  <div class="sb-widget-segment">
-                    <span class="sb-widget-label"><i class="fa fa-calendar-check"></i> Devolución</span>
-                    <input type="date" id="hero-end-date" class="sb-widget-input">
-                  </div>
-                </div>
-
-                <!-- Segmento 4: Despacho / Retiro -->
-                <div class="sb-grid-col sb-grid-col-dispatch">
-                  <div class="sb-widget-segment sb-widget-segment-dispatch">
-                    <span class="sb-widget-label"><i class="fa fa-truck-moving"></i> Modalidad</span>
-                    <div class="sb-dispatch-toggle">
-                      <button type="button" class="sb-dispatch-btn active" id="btn-hero-delivery" onclick="App.setHeroDispatchMode('delivery')">
-                        <i class="fa fa-dot-circle me-1"></i> Despacho a Obra
-                      </button>
-                      <button type="button" class="sb-dispatch-btn" id="btn-hero-pickup" onclick="App.setHeroDispatchMode('pickup')">
-                        <i class="fa fa-circle me-1 text-muted"></i> Retiro en Patio
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Segmento 5: Botón Primario Cotizar Ahora -->
-                <div class="sb-grid-col sb-grid-col-action">
-                  <button type="button" class="sb-widget-submit-btn" id="btn-hero-quote" onclick="App.applyHeroBookingFilter()">
-                    <span>Cotizar Ahora</span>
-                    <i class="fa fa-arrow-right"></i>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Sugerencias Rápidas de Ubicación (Bogotá y Sabana) -->
-              <div class="hero-quick-locations pt-2 mt-2 d-flex align-items-center flex-wrap gap-1">
-                <span class="text-muted small fw-bold me-1"><i class="fa fa-compass text-success me-1"></i>Sugerencias Sabana:</span>
-                <button type="button" class="btn btn-sm location-chip rounded-pill" onclick="App.selectHeroLocation('Usaquén')">Usaquén</button>
-                <button type="button" class="btn btn-sm location-chip rounded-pill" onclick="App.selectHeroLocation('Suba')">Suba</button>
-                <button type="button" class="btn btn-sm location-chip rounded-pill" onclick="App.selectHeroLocation('Fontibón')">Fontibón</button>
-                <button type="button" class="btn btn-sm location-chip rounded-pill" onclick="App.selectHeroLocation('Chía')">Chía</button>
-                <button type="button" class="btn btn-sm location-chip rounded-pill" onclick="App.selectHeroLocation('Cajicá')">Cajicá</button>
-                <button type="button" class="btn btn-sm location-chip rounded-pill" onclick="App.selectHeroLocation('Mosquera')">Mosquera</button>
-                <button type="button" class="btn btn-sm location-chip rounded-pill" onclick="App.selectHeroLocation('Tocancipá')">Tocancipá</button>
-                <button type="button" class="btn btn-sm location-chip rounded-pill" onclick="App.selectHeroLocation('Madrid')">Madrid</button>
-              </div>
-            </div>
-
-            <!-- Sub-enlace a obras guardadas (Alineado a la izquierda como Sunbelt Rentals) -->
-            <div class="sb-widget-footer text-start">
-              <a href="#" id="sb-hero-login-prompt" onclick="App.openAuthModal('login'); return false;">
-                <i class="fa fa-user-circle"></i> Inicia sesión para usar tus obras y contratos guardados
+            <div class="sb-hero-actions sb-unfold-lead">
+              <a href="#section-catalog" class="sb-hero-btn sb-hero-btn-primary" onclick="App.navigateToSection('section-catalog'); return false;">
+                Explorar Catálogo <i class="fa fa-arrow-right ms-2"></i>
+              </a>
+              <a href="#section-directory" class="sb-hero-btn sb-hero-btn-outline" onclick="App.navigateToSection('section-directory'); return false;">
+                <i class="fa fa-layer-group me-2"></i>Ver Categorías
               </a>
             </div>
 
+            <ul class="sb-hero-trust sb-unfold-lead">
+              <li><i class="fa fa-check-circle"></i> Flota certificada</li>
+              <li><i class="fa fa-truck-moving"></i> Entrega el mismo día</li>
+              <li><i class="fa fa-file-invoice-dollar"></i> Factura DIAN</li>
+            </ul>
+          </div>
+
+          <!-- Columna derecha: Modelo 3D interactivo (Three.js) -->
+          <div class="col-12 col-lg-6 sb-hero-visual">
+            <div id="hero-3d-canvas" class="sb-hero-3d-stage" role="img" aria-label="Modelo 3D interactivo de una retroexcavadora"></div>
+            <span class="sb-hero-3d-hint" aria-hidden="true"><i class="fa fa-hand-pointer me-1"></i>Arrastra para girar</span>
           </div>
         </div>
       </div>
     </section>
-
-    <!-- ==================== 5. BANNER DE AVISO / ALERTA DE SERVICIO ==================== -->
-    <div class="sb-alert-banner sb-unfold-notice">
-      <div class="container-xl d-flex align-items-center justify-content-between flex-wrap gap-2">
-        <div class="d-flex align-items-center">
-          <i class="fa fa-info-circle fa-lg me-2"></i>
-          <span>Nuestro equipo logístico y flota de camas bajas están activos para <strong>despachos de emergencia y entregas el mismo día</strong> en Bogotá y Cundinamarca.</span>
-        </div>
-        <a href="#section-catalog" class="small">VER FLOTA DISPONIBLE &rarr;</a>
-      </div>
-    </div>
 
     <main class="container-xl my-5">
 
@@ -1587,6 +1532,7 @@
   <script src="js/api.js?v=5"></script>
   <script src="js/websocket.js?v=5"></script>
   <script src="js/map.js?v=5"></script>
-  <script src="js/app.js?v=6"></script>
+  <script src="js/app.js?v=7"></script>
+  <script type="module" src="js/hero3d.js?v=1"></script>
 </body>
 </html>

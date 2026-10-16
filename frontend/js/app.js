@@ -104,11 +104,29 @@ const App = (() => {
     return 'Proveedor Aliado Certificado';
   }
 
+  function updateHeroOffset() {
+    try {
+      const heroEl = document.querySelector('.sb-hero-3d') || document.querySelector('.sb-hero');
+      if (!heroEl) return;
+      const rect = heroEl.getBoundingClientRect();
+      const currentScrollY = window.scrollY || window.pageYOffset || 0;
+      const topOffset = Math.round(rect.top + currentScrollY);
+      if (topOffset > 0) {
+        document.documentElement.style.setProperty('--sb-hero-offset', `${topOffset}px`);
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
   async function init() {
     setupEventListeners();
     checkAuthStatus();
     RealtimeManager.init();
     loadCartFromStorage();
+    updateHeroOffset();
+    window.addEventListener('resize', updateHeroOffset);
+    window.addEventListener('orientationchange', updateHeroOffset);
 
     // Fechas por defecto para el widget Hero (mínimo mañana y +6 días)
     initHeroWidgetDates();
@@ -117,6 +135,7 @@ const App = (() => {
       populateNavIndustriesDropdown();
       await Promise.all([loadCategories(), loadTools()]);
       initScrollUnfoldObserver();
+      updateHeroOffset();
     } catch (e) {
       console.warn('Error al cargar catálogo inicial:', e);
       initScrollUnfoldObserver();
@@ -3374,6 +3393,14 @@ const App = (() => {
     }
 
     if (viewName === 'catalog') {
+      try {
+        if (typeof window !== 'undefined' && window.Hero3D && typeof window.Hero3D.resume === 'function') {
+          window.Hero3D.resume();
+        }
+      } catch (e) {
+        console.warn('Hero3D resume error:', e);
+      }
+      updateHeroOffset();
       setTimeout(() => {
         initScrollUnfoldObserver();
       }, 50);
@@ -3386,6 +3413,7 @@ const App = (() => {
           }
         }, 150);
       }
+<<<<<<< HEAD
     } else if (viewName === 'client-dashboard') {
       loadClientRentals();
     } else if (viewName === 'provider-dashboard') {
@@ -3395,6 +3423,23 @@ const App = (() => {
       setTimeout(() => {
         if (typeof MapManager !== 'undefined' && MapManager.invalidateSize) MapManager.invalidateSize();
       }, 200);
+=======
+    } else {
+      try {
+        if (typeof window !== 'undefined' && window.Hero3D && typeof window.Hero3D.pause === 'function') {
+          window.Hero3D.pause();
+        }
+      } catch (e) {
+        console.warn('Hero3D pause error:', e);
+      }
+      if (viewName === 'client-dashboard') {
+        loadClientRentals();
+      } else if (viewName === 'provider-dashboard') {
+        loadProviderRequests();
+      } else if (viewName === 'admin-dashboard') {
+        loadAdminDashboard();
+      }
+>>>>>>> c5d362a (feat(ui): implement full-screen hero with Three.js 3D excavator, minimalist background, and clean layout)
     }
   }
 

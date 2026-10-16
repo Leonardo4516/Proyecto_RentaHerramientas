@@ -369,10 +369,8 @@ h1, h2, h3, h4, h5, h6 {
    ========================================================================== */
 .sb-hero {
   position: relative;
-  background: linear-gradient(180deg, rgba(16, 24, 32, 0.70) 0%, rgba(16, 24, 32, 0.88) 100%),
-              url('../assets/img/machinery/Retroexcavadora-Oruga-CAT-320D.png') center/cover no-repeat;
   padding: 70px 0 90px;
-  color: #ffffff;
+  color: var(--sb-dark);
 }
 .sb-hero-title {
   font-size: 3rem;
@@ -380,16 +378,289 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: -0.03em;
   line-height: 1.15;
   margin-bottom: 16px;
-  color: #ffffff;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  color: var(--sb-dark);
 }
 .sb-hero-lead {
   font-size: 1.15rem;
-  color: #E2E8F0;
+  color: var(--sb-gray-text);
   max-width: 680px;
   margin-bottom: 32px;
   line-height: 1.5;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+/* --- Hero a pantalla completa con modelo 3D --- */
+.sb-hero.sb-hero-3d {
+  /* Ocupa exactamente el alto visible restante bajo la barra superior + navbar */
+  min-height: calc(100vh - var(--sb-hero-offset, 150px));
+  min-height: calc(100svh - var(--sb-hero-offset, 150px));
+  display: flex;
+  align-items: center;
+  padding: clamp(28px, 5vh, 64px) 0;
+  overflow: hidden;
+  isolation: isolate;
+  background: linear-gradient(135deg, #ffffff 0%, #f7faf8 45%, var(--sb-green-subtle) 100%);
+  border-bottom: 1px solid var(--sb-gray-border);
+}
+.sb-hero-bg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  /* Cuadrícula técnica tipo plano, muy tenue y desvanecida hacia los bordes */
+  background-image:
+    linear-gradient(rgba(0, 132, 61, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 132, 61, 0.07) 1px, transparent 1px);
+  background-size: 48px 48px;
+  background-position: center center;
+  -webkit-mask-image: radial-gradient(ellipse 85% 75% at 65% 50%, #000 30%, transparent 85%);
+          mask-image: radial-gradient(ellipse 85% 75% at 65% 50%, #000 30%, transparent 85%);
+}
+.sb-hero-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.55;
+}
+.sb-hero-glow-green {
+  width: 46vmax;
+  height: 46vmax;
+  right: -10vmax;
+  top: 50%;
+  transform: translateY(-50%);
+  background: radial-gradient(circle, rgba(0, 132, 61, 0.22) 0%, transparent 70%);
+}
+.sb-hero-glow-yellow {
+  width: 26vmax;
+  height: 26vmax;
+  right: 18%;
+  bottom: -8vmax;
+  background: radial-gradient(circle, rgba(255, 199, 44, 0.35) 0%, transparent 70%);
+}
+.sb-hero-container {
+  position: relative;
+  width: 100%;
+}
+.sb-hero-row {
+  min-height: 100%;
+}
+
+.sb-hero-copy {
+  text-align: left;
+}
+.sb-hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  margin-bottom: 18px;
+  border-radius: var(--sb-radius-pill);
+  background: var(--sb-green-light);
+  color: var(--sb-green-dark);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid rgba(0, 132, 61, 0.18);
+}
+.sb-hero-3d .sb-hero-title {
+  font-size: clamp(2rem, 1.2rem + 2.6vw, 3.4rem);
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+  color: var(--sb-dark);
+  text-shadow: none;
+  margin-bottom: 18px;
+  text-wrap: balance;
+}
+.sb-hero-highlight {
+  color: var(--sb-green);
+  position: relative;
+  white-space: nowrap;
+}
+.sb-hero-highlight::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.06em;
+  height: 0.22em;
+  background: var(--sb-yellow);
+  opacity: 0.55;
+  border-radius: 4px;
+  z-index: -1;
+}
+.sb-hero-3d .sb-hero-lead {
+  font-size: clamp(1rem, 0.92rem + 0.35vw, 1.15rem);
+  color: var(--sb-gray-text);
+  text-shadow: none;
+  max-width: 540px;
+  margin: 0 0 28px;
+  text-wrap: pretty;
+}
+.sb-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 26px;
+}
+.sb-hero-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 13px 26px;
+  border-radius: var(--sb-radius-pill);
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+.sb-hero-btn-primary {
+  background: var(--sb-green);
+  color: #ffffff;
+  border: 2px solid var(--sb-green);
+  box-shadow: 0 8px 20px rgba(0, 132, 61, 0.25);
+}
+.sb-hero-btn-primary:hover,
+.sb-hero-btn-primary:focus-visible {
+  background: var(--sb-green-dark);
+  border-color: var(--sb-green-dark);
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px rgba(0, 132, 61, 0.3);
+}
+.sb-hero-btn-outline {
+  background: #ffffff;
+  color: var(--sb-dark);
+  border: 2px solid var(--sb-gray-border-strong);
+}
+.sb-hero-btn-outline:hover,
+.sb-hero-btn-outline:focus-visible {
+  border-color: var(--sb-green);
+  color: var(--sb-green-dark);
+  transform: translateY(-2px);
+}
+.sb-hero-trust {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--sb-gray-text);
+}
+.sb-hero-trust li {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.sb-hero-trust i {
+  color: var(--sb-green);
+}
+
+/* Escenario del modelo 3D */
+.sb-hero-visual {
+  position: relative;
+}
+.sb-hero-3d-stage {
+  position: relative;
+  width: 100%;
+  height: clamp(320px, calc(100svh - var(--sb-hero-offset, 150px) - 120px), 600px);
+  cursor: grab;
+  touch-action: pan-y;
+}
+.sb-hero-3d-stage:active {
+  cursor: grabbing;
+}
+.sb-hero-3d-stage canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  outline: none;
+}
+.sb-hero-3d-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 7rem;
+  color: var(--sb-yellow);
+}
+.sb-hero-3d-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  transform: translateX(-50%);
+  padding: 5px 12px;
+  border-radius: var(--sb-radius-pill);
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid var(--sb-gray-border);
+  color: var(--sb-gray-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  backdrop-filter: blur(4px);
+}
+
+/* Tablet y móvil: se apila de forma estética (texto a la izquierda, modelo 3D abajo) */
+@media (max-width: 991.98px) {
+  .sb-hero.sb-hero-3d {
+    align-items: flex-start;
+    padding: 24px 0 32px 0;
+  }
+  .sb-hero-copy {
+    text-align: left !important;
+    margin-bottom: 12px;
+  }
+  .sb-hero-3d .sb-hero-title {
+    font-size: clamp(1.75rem, 5vw, 2.4rem);
+    margin-bottom: 12px;
+  }
+  .sb-hero-3d .sb-hero-lead {
+    font-size: 0.925rem;
+    line-height: 1.45;
+    margin-bottom: 16px;
+    max-width: 100%;
+  }
+  .sb-hero-actions {
+    justify-content: flex-start;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .sb-hero-trust {
+    justify-content: flex-start;
+    gap: 14px;
+    font-size: 0.8125rem;
+  }
+  .sb-hero-3d-stage {
+    height: clamp(260px, 46vw, 360px);
+    margin-top: 8px;
+  }
+  .sb-hero-glow-green {
+    top: auto;
+    bottom: -14vmax;
+    right: -14vmax;
+    transform: none;
+  }
+}
+@media (max-width: 575.98px) {
+  .sb-hero-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  .sb-hero-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .sb-hero-eyebrow {
+    font-size: 0.72rem;
+    padding: 4px 10px;
+    margin-bottom: 12px;
+  }
+  .sb-hero-3d-stage {
+    height: 250px;
+  }
 }
 
 /* Widget Flotante de Reserva (Estilo Exacto Sunbelt Rentals) */
