@@ -60,25 +60,38 @@ class ChangeRentalStatusUseCaseTest {
         when(rentalRepository.findById(1L)).thenReturn(Optional.of(booking));
         when(rentalRepository.save(any(RentalBooking.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        RentalResponse response = changeRentalStatusUseCase.execute(1L, BookingStatus.CONFIRMADA, null);
+        RentalResponse response = changeRentalStatusUseCase.execute(1L, BookingStatus.CONFIRMADA, null, "admin_user");
 
         assertNotNull(response);
         assertEquals("CONFIRMADA", response.status());
         verify(rentalRepository).save(booking);
+        verify(rentalRepository).recordTimelineEvent(argThat(event ->
+                event.rentalId().equals(1L) &&
+                "PENDIENTE".equals(event.previousStatus()) &&
+                "CONFIRMADA".equals(event.newStatus()) &&
+                "admin_user".equals(event.changedBy())
+        ));
     }
 
     @Test
-    @DisplayName("Debe rechazar una reserva pendiente con motivo especificado")
+    @DisplayName("Debe rechazar una reserva pendiente con motivo especificado y registrar auditoría")
     void shouldRejectPendingRentalWithReason() {
         RentalBooking booking = createSampleBooking(2L, BookingStatus.PENDIENTE);
         when(rentalRepository.findById(2L)).thenReturn(Optional.of(booking));
         when(rentalRepository.save(any(RentalBooking.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        RentalResponse response = changeRentalStatusUseCase.execute(2L, BookingStatus.RECHAZADA, "Maquinaria en calibración técnica");
+        RentalResponse response = changeRentalStatusUseCase.execute(2L, BookingStatus.RECHAZADA, "Maquinaria en calibración técnica", "proveedor_valle");
 
         assertNotNull(response);
         assertEquals("RECHAZADA", response.status());
         verify(rentalRepository).save(booking);
+        verify(rentalRepository).recordTimelineEvent(argThat(event ->
+                event.rentalId().equals(2L) &&
+                "PENDIENTE".equals(event.previousStatus()) &&
+                "RECHAZADA".equals(event.newStatus()) &&
+                "proveedor_valle".equals(event.changedBy()) &&
+                "Maquinaria en calibración técnica".equals(event.reason())
+        ));
     }
 
     @Test

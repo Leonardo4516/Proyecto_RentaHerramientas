@@ -15,4 +15,10 @@ public interface RentalRepository {
      * Verifica si existen reservas activas que se solapen con el rango solicitado.
      */
     boolean hasOverlappingBookings(Long toolId, LocalDate startDate, LocalDate endDate);
+
+    default void recordTimelineEvent(RentalTimelineEvent event) {}
+
+    default List<RentalTimelineEvent> findTimelineByRentalId(Long rentalId) {
+        return List.of();
+    }
 }

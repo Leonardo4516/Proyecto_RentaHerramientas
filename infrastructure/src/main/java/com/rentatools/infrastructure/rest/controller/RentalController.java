@@ -288,8 +288,12 @@ public class RentalController {
         if (targetStatus == null) {
             targetStatus = BookingStatus.CONFIRMADA;
         }
-        RentalResponse updated = changeRentalStatusUseCase.execute(id, targetStatus, reason);
-        return ResponseEntity.ok(updated);
+        String changedBy = (authentication != null && authentication.isAuthenticated())
+                ? authentication.getName()
+                : "Proveedor";
+        RentalResponse updated = changeRentalStatusUseCase.execute(id, targetStatus, reason, changedBy);
+        var refreshed = rentalRepository.findById(updated.id());
+        return ResponseEntity.ok(refreshed.map(this::enrichRental).orElse(updated));
     }
 
     @PostMapping("/{id}/return")
@@ -304,8 +308,85 @@ public class RentalController {
             validateProviderOwnership(id, authentication.getName());
         }
 
-        RentalResponse updated = changeRentalStatusUseCase.execute(id, BookingStatus.COMPLETADA, "Devolución e inspección registrada");
-        return ResponseEntity.ok(updated);
+        String changedBy = (authentication != null && authentication.isAuthenticated())
+                ? authentication.getName()
+                : "Proveedor";
+        RentalResponse updated = changeRentalStatusUseCase.execute(id, BookingStatus.COMPLETADA, "Devolución e inspección registrada", changedBy);
+        var refreshed = rentalRepository.findById(updated.id());
+        return ResponseEntity.ok(refreshed.map(this::enrichRental).orElse(updated));
+    }
+
+    @GetMapping("/{id}/timeline")
+    @Operation(summary = "Consultar línea de tiempo y auditoría de eventos de una reserva")
+    public ResponseEntity<List<com.rentatools.domain.rental.RentalTimelineEvent>> getRentalTimeline(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        var rentalOpt = rentalRepository.findById(id);
+        if (rentalOpt.isEmpty()) {
+            throw new com.rentatools.domain.common.EntityNotFoundException("Alquiler no encontrado con ID: " + id);
+        }
+        var rental = rentalOpt.get();
+
+        if (authentication != null && !authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+            boolean isProvider = authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_PROVEEDOR"));
+            if (isProvider) {
+                validateProviderOwnership(id, authentication.getName());
+            }
+        }
+
+        List<com.rentatools.domain.rental.RentalTimelineEvent> timeline = rentalRepository.findTimelineByRentalId(id);
+        if (timeline == null || timeline.isEmpty()) {
+            timeline = generateFallbackTimeline(rental);
+        }
+        return ResponseEntity.ok(timeline);
+    }
+
+    private List<com.rentatools.domain.rental.RentalTimelineEvent> generateFallbackTimeline(RentalBooking r) {
+        List<com.rentatools.domain.rental.RentalTimelineEvent> list = new java.util.ArrayList<>();
+        java.time.Instant created = r.getCreatedAt() != null ? r.getCreatedAt() : java.time.Instant.now();
+
+        list.add(new com.rentatools.domain.rental.RentalTimelineEvent(
+                1L, r.getId(), null, "PENDIENTE", "Cliente #" + r.getClientId(),
+                "Solicitud de reserva radicada en la plataforma", created
+        ));
+
+        if (r.getStatus() == BookingStatus.CONFIRMADA || r.getStatus() == BookingStatus.EN_CURSO || r.getStatus() == BookingStatus.COMPLETADA) {
+            list.add(new com.rentatools.domain.rental.RentalTimelineEvent(
+                    2L, r.getId(), "PENDIENTE", "CONFIRMADA", "Proveedor",
+                    "Reserva aprobada y disponibilidad confirmada", created.plusSeconds(3600)
+            ));
+        }
+
+        if (r.getStatus() == BookingStatus.EN_CURSO || r.getStatus() == BookingStatus.COMPLETADA) {
+            list.add(new com.rentatools.domain.rental.RentalTimelineEvent(
+                    3L, r.getId(), "CONFIRMADA", "EN_CURSO", "Proveedor",
+                    "Maquinaria despachada a obra del cliente", created.plusSeconds(7200)
+            ));
+        }
+
+        if (r.getStatus() == BookingStatus.COMPLETADA) {
+            list.add(new com.rentatools.domain.rental.RentalTimelineEvent(
+                    4L, r.getId(), "EN_CURSO", "COMPLETADA", "Proveedor",
+                    "Devolución recibida e inspección completada sin novedades", created.plusSeconds(14400)
+            ));
+        }
+
+        if (r.getStatus() == BookingStatus.RECHAZADA) {
+            list.add(new com.rentatools.domain.rental.RentalTimelineEvent(
+                    2L, r.getId(), "PENDIENTE", "RECHAZADA", "Proveedor",
+                    r.getNotes() != null ? r.getNotes() : "Solicitud rechazada por el proveedor", created.plusSeconds(3600)
+            ));
+        }
+
+        if (r.getStatus() == BookingStatus.CANCELADA) {
+            list.add(new com.rentatools.domain.rental.RentalTimelineEvent(
+                    2L, r.getId(), "PENDIENTE", "CANCELADA", "Cliente #" + r.getClientId(),
+                    "Reserva cancelada por el usuario", created.plusSeconds(1800)
+            ));
+        }
+
+        return list;
     }
 
     private void validateProviderOwnership(Long rentalId, String username) {

@@ -51,6 +51,15 @@ public class CreateRentalBookingUseCase {
         );
 
         RentalBooking saved = rentalRepository.save(booking);
+
+        rentalRepository.recordTimelineEvent(com.rentatools.domain.rental.RentalTimelineEvent.create(
+                saved.getId(),
+                null,
+                saved.getStatus().name(),
+                "Cliente #" + saved.getClientId(),
+                "Solicitud de reserva radicada en la plataforma"
+        ));
+
         return RentalResponse.fromDomain(saved);
     }
 }

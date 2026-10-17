@@ -8,6 +8,9 @@ import com.rentatools.infrastructure.persistence.entity.RentalEntity;
 import com.rentatools.infrastructure.persistence.repository.RentalJpaRepository;
 import com.rentatools.infrastructure.persistence.user.ClientJpaEntity;
 import com.rentatools.infrastructure.persistence.user.SpringDataClientRepository;
+import com.rentatools.domain.rental.RentalTimelineEvent;
+import com.rentatools.infrastructure.persistence.entity.RentalAuditLogEntity;
+import com.rentatools.infrastructure.persistence.repository.RentalAuditLogJpaRepository;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -18,10 +21,14 @@ public class RentalRepositoryAdapter implements RentalRepository {
 
     private final RentalJpaRepository rentalJpaRepository;
     private final SpringDataClientRepository clientRepository;
+    private final RentalAuditLogJpaRepository auditLogRepository;
 
-    public RentalRepositoryAdapter(RentalJpaRepository rentalJpaRepository, SpringDataClientRepository clientRepository) {
+    public RentalRepositoryAdapter(RentalJpaRepository rentalJpaRepository,
+                                  SpringDataClientRepository clientRepository,
+                                  RentalAuditLogJpaRepository auditLogRepository) {
         this.rentalJpaRepository = rentalJpaRepository;
         this.clientRepository = clientRepository;
+        this.auditLogRepository = auditLogRepository;
     }
 
     private Long resolveClientId(Long id) {
@@ -84,6 +91,41 @@ public class RentalRepositoryAdapter implements RentalRepository {
     @Override
     public boolean hasOverlappingBookings(Long toolId, LocalDate startDate, LocalDate endDate) {
         return rentalJpaRepository.existsOverlappingBooking(toolId, startDate, endDate);
+    }
+
+    @Override
+    public void recordTimelineEvent(RentalTimelineEvent event) {
+        if (event == null || event.rentalId() == null) return;
+        try {
+            RentalAuditLogEntity entity = new RentalAuditLogEntity(
+                    event.rentalId(),
+                    event.previousStatus(),
+                    event.newStatus(),
+                    event.changedBy() != null ? event.changedBy() : "Sistema",
+                    event.reason()
+            );
+            if (event.createdAt() != null) {
+                entity.setCreatedAt(event.createdAt());
+            }
+            auditLogRepository.save(entity);
+        } catch (Exception ignored) {
+            // No interrumpir la transacción principal en caso de error de logging
+        }
+    }
+
+    @Override
+    public List<RentalTimelineEvent> findTimelineByRentalId(Long rentalId) {
+        return auditLogRepository.findByRentalIdOrderByCreatedAtAsc(rentalId).stream()
+                .map(e -> new RentalTimelineEvent(
+                        e.getId(),
+                        e.getRentalId(),
+                        e.getPreviousStatus(),
+                        e.getNewStatus(),
+                        e.getChangedBy(),
+                        e.getReason(),
+                        e.getCreatedAt()
+                ))
+                .toList();
     }
 
     private RentalBooking toDomain(RentalEntity e) {

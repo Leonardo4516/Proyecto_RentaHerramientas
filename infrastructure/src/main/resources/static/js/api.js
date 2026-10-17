@@ -133,7 +133,8 @@ const API = (() => {
         request(`/api/v1/rentals/${id}/return`, {
           method: 'POST',
           body: JSON.stringify({ notes, damageDetected, damageCost })
-        })
+        }),
+      getTimeline: (id) => request(`/api/v1/rentals/${id}/timeline`)
     },
 
     invoices: {
