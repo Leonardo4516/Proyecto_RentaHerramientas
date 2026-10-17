@@ -268,7 +268,7 @@ public class RentalController {
     }
 
     @PutMapping("/{id}/status")
-    @PreAuthorize("hasAnyAuthority('ROLE_PROVEEDOR', 'ROLE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_PROVEEDOR', 'ROLE_ADMIN', 'ROLE_CLIENTE')")
     @Operation(summary = "Cambiar estado de una reserva (Aprobar, Rechazar, Iniciar, Cancelar)")
     public ResponseEntity<RentalResponse> updateStatus(
             @PathVariable Long id,
@@ -278,7 +278,12 @@ public class RentalController {
             Authentication authentication
     ) {
         if (authentication != null && !authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
-            validateProviderOwnership(id, authentication.getName());
+            boolean isClient = authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_CLIENTE"));
+            if (isClient) {
+                validateClientOwnership(id, authentication.getName());
+            } else {
+                validateProviderOwnership(id, authentication.getName());
+            }
         }
 
         BookingStatus targetStatus = newStatus;
@@ -408,6 +413,25 @@ public class RentalController {
         var toolOpt = toolJpaRepository.findById(rentalOpt.get().getToolId());
         if (toolOpt.isPresent() && !myProviderId.equals(toolOpt.get().getProviderId())) {
             throw new UnauthorizedException("No tienes autorización para gestionar reservas de maquinaria perteneciente a otra empresa.");
+        }
+    }
+
+    private void validateClientOwnership(Long rentalId, String username) {
+        var userOpt = userRepository.findByUsername(username);
+        if (userOpt.isEmpty()) {
+            throw new UnauthorizedException("Usuario autenticado no válido.");
+        }
+        var rentalOpt = rentalRepository.findById(rentalId);
+        if (rentalOpt.isEmpty()) {
+            throw new com.rentatools.domain.common.EntityNotFoundException("Alquiler no encontrado con ID: " + rentalId);
+        }
+        Long userId = userOpt.get().getId();
+        Long rentalClientId = rentalOpt.get().getClientId();
+
+        var clientOpt = clientRepository.findByUserId(userId);
+        boolean isOwner = clientOpt.isPresent() && clientOpt.get().getId().equals(rentalClientId);
+        if (!isOwner && !userId.equals(rentalClientId)) {
+            throw new UnauthorizedException("No tienes autorización para gestionar reservas de otro cliente.");
         }
     }
 }
