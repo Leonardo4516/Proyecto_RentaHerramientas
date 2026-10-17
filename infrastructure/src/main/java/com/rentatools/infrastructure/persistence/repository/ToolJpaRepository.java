@@ -30,4 +30,18 @@ public interface ToolJpaRepository extends JpaRepository<ToolEntity, Long> {
 
     @EntityGraph(attributePaths = {"category"})
     List<ToolEntity> findAll();
+
+    @EntityGraph(attributePaths = {"category"})
+    @Query("""
+        SELECT t FROM ToolEntity t
+        WHERE t.lat IS NOT NULL AND t.lng IS NOT NULL
+          AND t.lat BETWEEN :minLat AND :maxLat
+          AND t.lng BETWEEN :minLng AND :maxLng
+    """)
+    List<ToolEntity> findWithinBoundingBox(
+            @Param("minLat") java.math.BigDecimal minLat,
+            @Param("maxLat") java.math.BigDecimal maxLat,
+            @Param("minLng") java.math.BigDecimal minLng,
+            @Param("maxLng") java.math.BigDecimal maxLng
+    );
 }

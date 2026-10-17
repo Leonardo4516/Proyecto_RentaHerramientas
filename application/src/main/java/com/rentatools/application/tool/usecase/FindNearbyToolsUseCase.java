@@ -17,10 +17,26 @@ public class FindNearbyToolsUseCase {
     }
 
     public List<NearbyToolResponse> execute(BigDecimal clientLat, BigDecimal clientLng, double radiusKm) {
-        GeoCoordinates clientPos = new GeoCoordinates(clientLat, clientLng);
-        List<Tool> allTools = toolRepository.findAll();
+        if (clientLat == null || clientLng == null) {
+            return List.of();
+        }
 
-        return allTools.stream()
+        GeoCoordinates clientPos = new GeoCoordinates(clientLat, clientLng);
+
+        // Bounding Box para poda temprana a nivel de base de datos
+        double deltaLat = radiusKm / 111.03;
+        double radLat = Math.toRadians(clientLat.doubleValue());
+        double cosLat = Math.cos(radLat);
+        double deltaLng = radiusKm / (111.03 * (Math.abs(cosLat) < 0.0001 ? 0.0001 : Math.abs(cosLat)));
+
+        BigDecimal minLat = clientLat.subtract(BigDecimal.valueOf(deltaLat));
+        BigDecimal maxLat = clientLat.add(BigDecimal.valueOf(deltaLat));
+        BigDecimal minLng = clientLng.subtract(BigDecimal.valueOf(deltaLng));
+        BigDecimal maxLng = clientLng.add(BigDecimal.valueOf(deltaLng));
+
+        List<Tool> candidateTools = toolRepository.findWithinBoundingBox(minLat, maxLat, minLng, maxLng);
+
+        return candidateTools.stream()
                 .filter(t -> t.getCoordinates() != null)
                 .map(t -> {
                     double dist = clientPos.distanceToKm(t.getCoordinates());
@@ -44,7 +60,9 @@ public class FindNearbyToolsUseCase {
                             t.getCoordinates().latitude(),
                             t.getCoordinates().longitude(),
                             Math.round(dist * 100.0) / 100.0,
-                            cover
+                            cover,
+                            t.getProviderId(),
+                            null
                     );
                 })
                 .filter(dto -> dto.distanceKm() <= radiusKm)

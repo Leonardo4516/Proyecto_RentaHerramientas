@@ -108,7 +108,21 @@ public class ToolController {
             @RequestParam(defaultValue = "30.0") double radiusKm
     ) {
         List<NearbyToolResponse> nearby = findNearbyToolsUseCase.execute(lat, lng, radiusKm);
-        return ResponseEntity.ok(nearby);
+        List<NearbyToolResponse> enriched = nearby.stream().map(dto -> {
+            if (dto.providerId() != null && providerRepository != null) {
+                var pOpt = providerRepository.findById(dto.providerId());
+                if (pOpt.isPresent() && pOpt.get().getCompanyName() != null) {
+                    return new NearbyToolResponse(
+                            dto.id(), dto.code(), dto.name(), dto.brand(), dto.model(),
+                            dto.dailyPrice(), dto.depositAmount(), dto.status(),
+                            dto.latitude(), dto.longitude(), dto.distanceKm(), dto.coverImageUrl(),
+                            dto.providerId(), pOpt.get().getCompanyName()
+                    );
+                }
+            }
+            return dto;
+        }).toList();
+        return ResponseEntity.ok(enriched);
     }
 
     @GetMapping("/categories")

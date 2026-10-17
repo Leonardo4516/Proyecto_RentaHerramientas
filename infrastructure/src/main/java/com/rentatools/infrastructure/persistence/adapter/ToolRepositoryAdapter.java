@@ -120,6 +120,14 @@ public class ToolRepositoryAdapter implements ToolRepository {
         return toolJpaRepository.findByStatus(status.name()).stream().map(this::toDomain).toList();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<Tool> findWithinBoundingBox(BigDecimal minLat, BigDecimal maxLat, BigDecimal minLng, BigDecimal maxLng) {
+        return toolJpaRepository.findWithinBoundingBox(minLat, maxLat, minLng, maxLng).stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
     private Tool toDomain(ToolEntity e) {
         GeoCoordinates coords = (e.getLat() != null && e.getLng() != null)
                 ? new GeoCoordinates(e.getLat(), e.getLng())
