@@ -3413,17 +3413,6 @@ const App = (() => {
           }
         }, 150);
       }
-<<<<<<< HEAD
-    } else if (viewName === 'client-dashboard') {
-      loadClientRentals();
-    } else if (viewName === 'provider-dashboard') {
-      renderProviderDashboard();
-    } else if (viewName === 'admin-dashboard') {
-      loadAdminDashboard();
-      setTimeout(() => {
-        if (typeof MapManager !== 'undefined' && MapManager.invalidateSize) MapManager.invalidateSize();
-      }, 200);
-=======
     } else {
       try {
         if (typeof window !== 'undefined' && window.Hero3D && typeof window.Hero3D.pause === 'function') {
@@ -3435,11 +3424,13 @@ const App = (() => {
       if (viewName === 'client-dashboard') {
         loadClientRentals();
       } else if (viewName === 'provider-dashboard') {
-        loadProviderRequests();
+        renderProviderDashboard();
       } else if (viewName === 'admin-dashboard') {
         loadAdminDashboard();
+        setTimeout(() => {
+          if (typeof MapManager !== 'undefined' && MapManager.invalidateSize) MapManager.invalidateSize();
+        }, 200);
       }
->>>>>>> c5d362a (feat(ui): implement full-screen hero with Three.js 3D excavator, minimalist background, and clean layout)
     }
   }
 
@@ -3847,8 +3838,11 @@ const App = (() => {
     const fileInput = document.getElementById('add-tool-image-file');
     if (fileInput) fileInput.value = '';
 
-    const modal = new bootstrap.Modal(document.getElementById('addToolModal'));
-    modal.show();
+    const modalEl = document.getElementById('addToolModal');
+    if (modalEl) {
+      const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+      modal.show();
+    }
   }
 
   function setNewToolAttachedImage(dataUrl) {
