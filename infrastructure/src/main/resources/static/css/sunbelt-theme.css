@@ -439,13 +439,13 @@ h1, h2, h3, h4, h5, h6 {
 .sb-hero-container {
   position: relative;
   width: 100%;
+  z-index: 2;
+  pointer-events: none;
 }
-.sb-hero-row {
-  min-height: 100%;
-}
-
 .sb-hero-copy {
   text-align: left;
+  max-width: 540px;
+  pointer-events: auto;
 }
 .sb-hero-eyebrow {
   display: inline-flex;
@@ -557,15 +557,17 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--sb-green);
 }
 
-/* Escenario del modelo 3D */
-.sb-hero-visual {
-  position: relative;
-}
+/* Escenario del modelo 3D: integrado en sección única fluida (sin partición en columnas) */
 .sb-hero-3d-stage {
-  position: relative;
-  width: 100%;
-  height: clamp(320px, calc(100svh - var(--sb-hero-offset, 150px) - 120px), 600px);
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 70%;
+  height: 100%;
+  z-index: 1;
   cursor: grab;
+  user-select: none;
   touch-action: pan-y;
 }
 .sb-hero-3d-stage:active {
@@ -588,14 +590,15 @@ h1, h2, h3, h4, h5, h6 {
 }
 .sb-hero-3d-hint {
   position: absolute;
-  left: 50%;
-  bottom: 4px;
-  transform: translateX(-50%);
-  padding: 5px 12px;
+  right: clamp(24px, 4vw, 48px);
+  bottom: 24px;
+  z-index: 3;
+  padding: 6px 14px;
   border-radius: var(--sb-radius-pill);
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid var(--sb-gray-border);
-  color: var(--sb-gray-muted);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  color: var(--sb-gray-text);
   font-size: 0.75rem;
   font-weight: 600;
   white-space: nowrap;
@@ -603,14 +606,21 @@ h1, h2, h3, h4, h5, h6 {
   backdrop-filter: blur(4px);
 }
 
-/* Tablet y móvil: se apila de forma estética (texto a la izquierda, modelo 3D abajo) */
+/* Tablet y móvil: flujo natural de sección única (texto arriba, modelo 3D abajo) */
 @media (max-width: 991.98px) {
   .sb-hero.sb-hero-3d {
-    align-items: flex-start;
-    padding: 24px 0 32px 0;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: 24px 0 20px 0;
+    min-height: auto;
+  }
+  .sb-hero-container {
+    pointer-events: auto;
   }
   .sb-hero-copy {
     text-align: left !important;
+    max-width: 100%;
     margin-bottom: 12px;
   }
   .sb-hero-3d .sb-hero-title {
@@ -634,8 +644,19 @@ h1, h2, h3, h4, h5, h6 {
     font-size: 0.8125rem;
   }
   .sb-hero-3d-stage {
-    height: clamp(260px, 46vw, 360px);
+    position: relative;
+    right: auto;
+    top: auto;
+    bottom: auto;
+    width: 100%;
+    height: clamp(280px, 48vw, 380px);
     margin-top: 8px;
+  }
+  .sb-hero-3d-hint {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    bottom: 8px;
   }
   .sb-hero-glow-green {
     top: auto;

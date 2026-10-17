@@ -85,8 +85,8 @@ function initHero3D() {
   controls.minPolarAngle = Math.PI * 0.15;
   controls.maxPolarAngle = Math.PI * 0.48; // Nunca mirar desde debajo del piso
   controls.autoRotate = true;
-  controls.autoRotateSpeed = 0.75;
-  controls.target.set(0, 1.1, 0.3);
+  controls.autoRotateSpeed = 0.55;
+  controls.target.set(0, 0.95, 0.1);
 
   controls.addEventListener('start', () => {
     userInteracting = true;
@@ -98,7 +98,7 @@ function initHero3D() {
     userInteracting = false;
     userInteractionTimeout = setTimeout(() => {
       if (!userInteracting) controls.autoRotate = true;
-    }, 2500);
+    }, 800);
   });
 
   // 5. Iluminación de Estudio Industrial
@@ -148,12 +148,19 @@ function initHero3D() {
 
 function updateCameraDistance() {
   const width = container ? container.clientWidth : window.innerWidth;
+  const height = container ? container.clientHeight : window.innerHeight;
+  const aspect = width / (height || 1);
+
   if (width < 576) {
-    camera.position.set(6.8, 3.8, 6.8);
+    camera.position.set(8.4, 4.5, 8.4);
   } else if (width < 992) {
-    camera.position.set(5.8, 3.3, 5.8);
+    camera.position.set(7.6, 4.0, 7.6);
   } else {
-    camera.position.set(5.1, 2.9, 5.1);
+    const d = aspect > 1.3 ? 7.4 : 7.9;
+    camera.position.set(d, d * 0.5, d);
+  }
+  if (controls) {
+    controls.target.set(0, 0.95, 0.1);
   }
 }
 
@@ -163,6 +170,7 @@ function handleResize() {
   const h = container.clientHeight;
   if (w === 0 || h === 0) return;
   camera.aspect = w / h;
+  updateCameraDistance();
   camera.updateProjectionMatrix();
   renderer.setSize(w, h, false);
 }
@@ -253,6 +261,7 @@ function setupMaterials() {
 
 function buildExcavator() {
   excavatorRoot = new THREE.Group();
+  excavatorRoot.rotation.y = -0.35;
   scene.add(excavatorRoot);
 
   // -------------------------------------------------------------
@@ -615,17 +624,27 @@ function animate() {
   const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   if (!prefersReduced && excavatorRoot) {
+    // 1. Respiración / suspensión sutil de la maquinaria (vibración y cadencia continua)
+    excavatorRoot.position.y = Math.sin(elapsedTime * 0.7) * 0.02;
+
+    // 2. Giro suave y sutil de la torreta (exploración industrial suave)
     if (upperstructure) {
-      upperstructure.rotation.y = Math.sin(elapsedTime * 0.45) * 0.18;
+      upperstructure.rotation.y = Math.sin(elapsedTime * 0.35) * 0.07;
     }
+
+    // 3. Flexión cadenciosa del aguilón / pluma (boom)
     if (boomGroup) {
-      boomGroup.rotation.x = Math.sin(elapsedTime * 0.6) * 0.1 - 0.05;
+      boomGroup.rotation.x = Math.sin(elapsedTime * 0.5) * 0.04 - 0.02;
     }
+
+    // 4. Oscilación sutil del balancín (stick)
     if (stickGroup) {
-      stickGroup.rotation.x = Math.cos(elapsedTime * 0.6 + 0.4) * 0.14 + 0.05;
+      stickGroup.rotation.x = Math.cos(elapsedTime * 0.5 + 0.3) * 0.05 + 0.02;
     }
+
+    // 5. Pequeña articulación de excavación del cucharón (bucket)
     if (bucketGroup) {
-      bucketGroup.rotation.x = Math.sin(elapsedTime * 0.6 + 0.8) * 0.22 - 0.1;
+      bucketGroup.rotation.x = Math.sin(elapsedTime * 0.5 + 0.7) * 0.08 - 0.03;
     }
   }
 
