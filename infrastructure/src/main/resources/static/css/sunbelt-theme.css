@@ -393,6 +393,11 @@ h1, h2, h3, h4, h5, h6 {
   overflow-x: auto;
   white-space: nowrap;
   gap: 4px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.sb-subnav-list::-webkit-scrollbar {
+  display: none;
 }
 .sb-subnav-link {
   display: inline-block;
@@ -404,10 +409,13 @@ h1, h2, h3, h4, h5, h6 {
   border-bottom: 3px solid transparent;
   transition: all 0.2s ease;
 }
-.sb-subnav-link:hover,
-.sb-subnav-link.active {
+.sb-subnav-link:hover {
   color: var(--sb-green);
   border-bottom-color: var(--sb-green);
+}
+.sb-subnav-link.active {
+  color: var(--sb-green) !important;
+  border-bottom: 3px solid var(--sb-green) !important;
 }
 
 /* ==========================================================================
@@ -1743,8 +1751,9 @@ h1, h2, h3, h4, h5, h6 {
   background: #ffffff !important;
   color: var(--sb-dark) !important;
   border: 1px solid var(--sb-gray-border) !important;
-  border-radius: var(--sb-radius-md) !important;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.16) !important;
+  overflow: hidden !important;
 }
 .leaflet-popup-tip {
   background: #ffffff !important;
@@ -1752,6 +1761,65 @@ h1, h2, h3, h4, h5, h6 {
 .leaflet-popup-content {
   color: var(--sb-dark) !important;
   font-family: var(--sb-font-main) !important;
+  margin: 12px 14px !important;
+  line-height: 1.4 !important;
+}
+.leaflet-popup-close-button {
+  top: 8px !important;
+  right: 8px !important;
+  width: 22px !important;
+  height: 22px !important;
+  border-radius: 50% !important;
+  background: #f1f5f9 !important;
+  color: #64748b !important;
+  font-size: 14px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s ease !important;
+  z-index: 20 !important;
+  text-decoration: none !important;
+}
+.leaflet-popup-close-button:hover {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+/* Ficha emergente de flota del proveedor (Responsive y Estética) */
+.provider-fleet-popup {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 260px;
+  max-width: 295px;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+.provider-fleet-popup .popup-header {
+  padding-right: 26px; /* Espacio de cortesía para no colisionar con el botón X */
+  margin-bottom: 8px;
+}
+.provider-fleet-popup .client-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  font-size: 0.8125rem;
+  box-sizing: border-box;
+}
+.provider-fleet-popup .client-card a {
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 576px) {
+  .leaflet-popup-content {
+    margin: 10px 12px !important;
+    max-width: calc(100vw - 64px) !important;
+  }
+  .provider-fleet-popup {
+    min-width: auto;
+    max-width: 100%;
+  }
 }
 
 .swal2-popup {

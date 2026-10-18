@@ -198,19 +198,19 @@
     <div class="sb-subnav">
       <div class="container-xl">
         <ul class="sb-subnav-list">
-          <li><a href="#" class="sb-subnav-link active" onclick="App.navigateToSection('section-catalog'); return false;"><i class="fa fa-th-large me-1"></i> Catálogo Completo</a></li>
+          <li><a href="#" class="sb-subnav-link active" data-nav="section-catalog" onclick="App.navigateToSection('section-catalog'); return false;"><i class="fa fa-th-large me-1"></i> Catálogo Completo</a></li>
           <li class="sb-nav-hover-dropdown dropdown position-relative">
-            <a href="#" class="sb-subnav-link" onclick="App.navigateToSection('section-directory'); return false;"><i class="fa fa-layer-group me-1"></i> Categorías ⌵</a>
+            <a href="#" class="sb-subnav-link" data-nav="section-directory" onclick="App.navigateToSection('section-directory'); return false;"><i class="fa fa-layer-group me-1"></i> Categorías ⌵</a>
             <ul class="dropdown-menu sb-nav-hover-menu shadow-lg" id="nav-categories-dropdown"></ul>
           </li>
           <li class="sb-nav-hover-dropdown dropdown position-relative">
-            <a href="#" class="sb-subnav-link" onclick="App.navigateToSection('section-industries'); return false;"><i class="fa fa-hard-hat me-1"></i> Industrias ⌵</a>
+            <a href="#" class="sb-subnav-link" data-nav="section-industries" onclick="App.navigateToSection('section-industries'); return false;"><i class="fa fa-hard-hat me-1"></i> Industrias ⌵</a>
             <ul class="dropdown-menu sb-nav-hover-menu shadow-lg" id="nav-industries-dropdown"></ul>
           </li>
-          <li><a href="#" class="sb-subnav-link" onclick="App.navigateToSection('section-experience'); return false;"><i class="fa fa-shield-alt me-1"></i> Seguridad & Servicio</a></li>
-          <li><a href="#" class="sb-subnav-link text-success fw-bold" onclick="App.navigateToSection('section-map'); return false;"><i class="fa fa-map-marked-alt me-1"></i> Mapa en Vivo</a></li>
-          <li id="nav-client-tab-link" style="display: none;"><a href="#" class="sb-subnav-link" onclick="App.switchView('client-dashboard'); return false;">Mis Alquileres</a></li>
-          <li id="nav-provider-tab-link" style="display: none;"><a href="#" class="sb-subnav-link text-warning fw-bold" onclick="App.switchView('provider-dashboard'); return false;">Portal Proveedor</a></li>
+          <li><a href="#" class="sb-subnav-link" data-nav="section-experience" onclick="App.navigateToSection('section-experience'); return false;"><i class="fa fa-shield-alt me-1"></i> Seguridad & Servicio</a></li>
+          <li><a href="#" class="sb-subnav-link text-success fw-bold" data-nav="section-map" onclick="App.navigateToSection('section-map'); return false;"><i class="fa fa-map-marked-alt me-1"></i> Mapa en Vivo</a></li>
+          <li id="nav-client-tab-link" style="display: none;"><a href="#" class="sb-subnav-link" data-nav="client-dashboard" onclick="App.switchView('client-dashboard'); return false;">Mis Alquileres</a></li>
+          <li id="nav-provider-tab-link"><a href="#" class="sb-subnav-link fw-bold" data-nav="provider-dashboard" onclick="App.switchView('provider-dashboard'); return false;"><i class="fa fa-dolly-flatbed me-1"></i> Portal Proveedor</a></li>
         </ul>
       </div>
     </div>
@@ -233,9 +233,9 @@
       <!-- Contenedor del contenido textual alineado a la izquierda -->
       <div class="container-xl sb-hero-container">
         <div class="sb-hero-copy">
-          <span class="sb-hero-eyebrow sb-unfold-down"><i class="fa fa-hard-hat me-2"></i>Alquiler de maquinaria en Bogotá &amp; Sabana</span>
+          <span class="sb-hero-eyebrow sb-unfold-down"><i class="fa fa-hard-hat me-2"></i>Alquiler de maquinaria en Colombia</span>
           <h1 class="sb-hero-title sb-unfold-down">Encuentra la Maquinaria y Herramientas <span class="sb-hero-highlight">Precisas</span> para tu Proyecto</h1>
-          <p class="sb-hero-lead sb-unfold-lead">Disponibilidad en tiempo real en Bogotá y Sabana, tarifas transparentes por día, semana y mes con facturación electrónica DIAN.</p>
+          <p class="sb-hero-lead sb-unfold-lead">Disponibilidad en tiempo real en toda Colombia, tarifas transparentes por día, semana y mes con facturación electrónica DIAN.</p>
 
           <div class="sb-hero-actions sb-unfold-lead">
             <a href="#section-catalog" class="sb-hero-btn sb-hero-btn-primary" onclick="App.navigateToSection('section-catalog'); return false;">

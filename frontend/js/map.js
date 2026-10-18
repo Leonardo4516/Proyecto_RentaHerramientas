@@ -438,137 +438,167 @@ const MapManager = (() => {
     const bounds = [];
     const rentalsList = allRentals || [];
     const toolsList = (providerTools && providerTools.length > 0) ? providerTools : cachedAllTools;
-    const providerToolIds = new Set(toolsList.map(t => String(t.id)));
 
-    // Extraer TODOS los alquileres activos de la maquinaria de este proveedor
-    const activeProviderRentals = rentalsList.filter(r => 
-      (providerToolIds.has(String(r.toolId)) || !providerTools || providerTools.length === 0) && 
-      ['CONFIRMADA', 'EN_CURSO', 'ACTIVO', 'PENDIENTE'].includes(r.status)
-    );
-
-    const rentedToolIds = new Set(activeProviderRentals.map(r => String(r.toolId)));
-
-    // 1. DIBUJAR CADA UNO DE LOS ALQUILERES ACTIVOS (EN OBRA / ALQUILADA: Naranja Fuego con datos del cliente)
-    activeProviderRentals.forEach((activeRental, rIdx) => {
-      const tool = toolsList.find(t => String(t.id) === String(activeRental.toolId)) || {
-        id: activeRental.toolId,
-        name: activeRental.toolName || `Maquinaria #${activeRental.toolId}`,
-        code: 'OBRA-ACT',
-        model: 'En Operación'
-      };
-
-      const baseCoords = resolveCoordinates(tool);
-      const coords = applyCoordinateJitter(baseCoords, rIdx, Math.max(activeProviderRentals.length, 2));
-      bounds.push([coords.lat, coords.lng]);
-
-      const iconHtml = `
-        <div style="background: #ea580c; color: #ffffff; width: 38px; height: 38px; border-radius: 50%; border: 3px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 15px; box-shadow: 0 4px 14px rgba(234, 88, 12, 0.75);">
-          <i class="fa fa-hard-hat"></i>
-        </div>
-      `;
-
-      const popupContent = `
-        <div style="min-width: 270px; max-width: 320px; font-family: inherit;">
-          <div class="d-flex align-items-center justify-content-between mb-2">
-            <span class="badge bg-warning text-dark"><i class="fa fa-hard-hat me-1"></i> EN OBRA / ALQUILADA</span>
-            <span class="badge bg-dark">#${activeRental.id}</span>
-          </div>
-          
-          <h6 class="fw-bold text-dark mb-1">${tool.name}</h6>
-          <div class="small text-muted mb-2">Código: ${tool.code || 'N/A'} | Modelo: ${tool.model || 'N/A'}</div>
-
-          <!-- Ficha completa del cliente -->
-          <div class="p-2.5 rounded-3 bg-light border mb-2" style="font-size: 0.85rem;">
-            <div class="fw-bold text-dark mb-1"><i class="fa fa-user-circle text-primary me-1"></i> Cliente que la alquiló:</div>
-            <div class="text-dark fw-bold fs-6">${activeRental.clientName || 'Cliente Constructora'}</div>
-            ${activeRental.clientDocument ? `<div class="text-muted small mb-1"><i class="fa fa-id-card me-1 text-secondary"></i> ${activeRental.clientDocument}</div>` : ''}
-            
-            <div class="mt-2 pt-1 border-top">
-              <a href="tel:${activeRental.clientPhone || '+573204451023'}" class="text-success text-decoration-none d-block small fw-bold mb-1">
-                <i class="fa fa-phone-alt me-1"></i> ${activeRental.clientPhone || '+57 320 445 1023'}
-              </a>
-              <a href="mailto:${activeRental.clientEmail || 'compras@constructora.com'}" class="text-primary text-decoration-none d-block small">
-                <i class="fa fa-envelope me-1"></i> ${activeRental.clientEmail || 'compras@constructora.com'}
-              </a>
-            </div>
-          </div>
-
-          <div class="small text-secondary mb-2" style="font-size: 0.82rem;">
-            <div><i class="fa fa-map-marker-alt text-danger me-1"></i> <strong>Destino Obra:</strong> ${activeRental.deliveryAddress || 'Sector Obra Central'}</div>
-            <div><i class="fa fa-calendar-alt text-primary me-1"></i> <strong>Periodo:</strong> ${activeRental.startDate} al ${activeRental.endDate} (${activeRental.days || activeRental.totalDays || 1} días)</div>
-            <div><i class="fa fa-coins text-warning me-1"></i> <strong>Total Liquidado:</strong> ${API.formatCurrency(activeRental.subtotal || activeRental.total)}</div>
-          </div>
-
-          <button class="btn btn-sm btn-outline-primary w-100 py-1" onclick="App.openReturnModal('${activeRental.id}')">
-            <i class="fa fa-clipboard-check me-1"></i> Inspección / Devolución
-          </button>
-        </div>
-      `;
-
-      const icon = L.divIcon({
-        className: 'provider-tool-pin-rented',
-        html: iconHtml,
-        iconSize: [38, 38],
-        iconAnchor: [19, 19]
-      });
-
-      L.marker([coords.lat, coords.lng], { icon })
-        .bindPopup(popupContent)
-        .addTo(providerMarkersLayer);
+    // Agrupar coordenadas para dispersar levemente solo herramientas que compartan exactamente el mismo punto de patio
+    const coordCounts = {};
+    toolsList.forEach(t => {
+      const c = resolveCoordinates(t);
+      const key = `${c.lat.toFixed(4)}_${c.lng.toFixed(4)}`;
+      coordCounts[key] = (coordCounts[key] || 0) + 1;
     });
+    const coordSeen = {};
 
-    // 2. DIBUJAR HERRAMIENTAS DISPONIBLES EN PATIO (Verde Esmeralda)
-    toolsList.forEach((tool, tIdx) => {
-      // Si la herramienta está actualmente activa en arriendo, ya fue dibujada arriba con sus datos de obra
-      if (rentedToolIds.has(String(tool.id))) return;
+    // Dibujar CADA máquina del catálogo/base de datos (1 pin por máquina)
+    toolsList.forEach(tool => {
+      const toolIdStr = String(tool.id);
 
+      // Buscar si esta máquina tiene un arriendo actualmente activo
+      const activeRental = rentalsList.find(r => 
+        String(r.toolId) === toolIdStr && 
+        ['CONFIRMADA', 'EN_CURSO', 'ACTIVO', 'PENDIENTE'].includes(r.status)
+      );
+
+      const isRented = !!activeRental;
       const baseCoords = resolveCoordinates(tool);
-      const coords = applyCoordinateJitter(baseCoords, tIdx, Math.max(toolsList.length, 2));
+      const coordKey = `${baseCoords.lat.toFixed(4)}_${baseCoords.lng.toFixed(4)}`;
+      const totalAtPoint = coordCounts[coordKey] || 1;
+      const idxAtPoint = coordSeen[coordKey] || 0;
+      coordSeen[coordKey] = idxAtPoint + 1;
+
+      // Desplazamiento mínimo (80m) solo si varias máquinas comparten el mismo patio
+      let coords = baseCoords;
+      if (totalAtPoint > 1) {
+        const angle = idxAtPoint * (2 * Math.PI / totalAtPoint);
+        const offsetDist = 0.00085; // ~90 metros
+        coords = {
+          lat: baseCoords.lat + Math.sin(angle) * offsetDist,
+          lng: baseCoords.lng + Math.cos(angle) * offsetDist
+        };
+      }
       bounds.push([coords.lat, coords.lng]);
 
       const toolImg = (window.getToolImageUrl ? window.getToolImageUrl(tool) : tool.imageUrl) || (window.TOOL_FALLBACK_IMG || 'assets/img/machinery/placeholder-tool.svg');
 
-      const iconHtml = `
-        <div style="background: #10b981; color: #ffffff; width: 36px; height: 36px; border-radius: 50%; border: 3px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.6);">
-          <i class="fa fa-warehouse"></i>
-        </div>
-      `;
-
-      const popupContent = `
-        <div style="min-width: 220px; font-family: inherit;">
-          <div class="d-flex align-items-center justify-content-between mb-2">
-            <span class="badge bg-success"><i class="fa fa-check me-1"></i> EN PATIO / DISPONIBLE</span>
-            <span class="badge bg-light text-dark border">${tool.code || 'ACT-01'}</span>
+      if (isRented) {
+        // Marcador EN OBRA / ALQUILADA (Naranja Fuego con casco)
+        const iconHtml = `
+          <div style="background: #ea580c; color: #ffffff; width: 38px; height: 38px; border-radius: 50%; border: 3px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 15px; box-shadow: 0 4px 14px rgba(234, 88, 12, 0.75);">
+            <i class="fa fa-hard-hat"></i>
           </div>
-          <img src="${toolImg}" style="width: 100%; height: 95px; object-fit: cover; border-radius: 6px; margin-bottom: 8px;" onerror="if (window.handleToolImageError) window.handleToolImageError(this); else { this.onerror=null; this.src='assets/img/machinery/placeholder-tool.svg'; }">
-          <h6 class="fw-bold text-dark mb-1">${tool.name}</h6>
-          <div class="small text-muted mb-2">Marca: ${tool.brand || 'N/A'} | Modelo: ${tool.model || 'N/A'}</div>
-          <div class="small fw-bold text-success mb-1">Tarifa pública: ${API.formatCurrency(tool.dailyPrice)}/día</div>
-          <div class="small text-secondary mb-2">Días acumulados en obra: <strong>${tool.accumulatedRentalDays || 0} d</strong></div>
-          <div class="alert alert-light border py-1 px-2 mb-0 text-center small text-muted">
-            Equipo listo y verificado para despacho
+        `;
+
+        const popupContent = `
+          <div class="provider-fleet-popup">
+            <div class="popup-header d-flex align-items-center justify-content-between">
+              <span class="badge bg-warning text-dark px-2 py-1"><i class="fa fa-hard-hat me-1"></i> EN OBRA / ALQUILADA</span>
+              <span class="badge bg-dark me-2">#${activeRental.id}</span>
+            </div>
+            
+            <h6 class="fw-bold text-dark mb-1" style="font-size: 0.95rem; line-height: 1.25;">${tool.name}</h6>
+            <div class="text-muted mb-2" style="font-size: 0.78rem;">
+              Código: <strong class="text-secondary">${tool.code || 'N/A'}</strong> &bull; Modelo: <strong class="text-secondary">${tool.model || 'N/A'}</strong>
+            </div>
+
+            <!-- Ficha completa del cliente -->
+            <div class="client-card">
+              <div class="text-muted fw-semibold mb-1" style="font-size: 0.75rem;">
+                <i class="fa fa-user-circle text-primary me-1"></i> CLIENTE QUE LA ALQUILÓ
+              </div>
+              <div class="text-dark fw-bold mb-1" style="font-size: 0.875rem;">${activeRental.clientName || 'Cliente Constructora'}</div>
+              ${activeRental.clientDocument ? `<div class="text-secondary small mb-2"><i class="fa fa-id-card me-1"></i> ${activeRental.clientDocument}</div>` : ''}
+              
+              <div class="pt-2 border-top d-flex flex-column gap-1">
+                <a href="tel:${activeRental.clientPhone || '+573204451023'}" class="text-success text-decoration-none fw-semibold small">
+                  <i class="fa fa-phone-alt me-1"></i> ${activeRental.clientPhone || '+57 320 445 1023'}
+                </a>
+                <a href="mailto:${activeRental.clientEmail || 'compras@constructora.com'}" class="text-primary text-decoration-none small text-truncate" title="${activeRental.clientEmail || 'compras@constructora.com'}">
+                  <i class="fa fa-envelope me-1"></i> ${activeRental.clientEmail || 'compras@constructora.com'}
+                </a>
+              </div>
+            </div>
+
+            <div class="bg-light p-2 rounded-2 border mb-2" style="font-size: 0.8rem;">
+              <div class="mb-1 text-truncate" title="${activeRental.deliveryAddress || 'Sector Obra Central'}">
+                <i class="fa fa-map-marker-alt text-danger me-1"></i><strong>Destino:</strong> ${activeRental.deliveryAddress || 'Sector Obra Central'}
+              </div>
+              <div class="mb-1">
+                <i class="fa fa-calendar-alt text-primary me-1"></i><strong>Periodo:</strong> ${activeRental.startDate} al ${activeRental.endDate} (${activeRental.days || activeRental.totalDays || 1} d)
+              </div>
+              <div>
+                <i class="fa fa-coins text-warning me-1"></i><strong>Total:</strong> <span class="fw-bold text-success">${API.formatCurrency(activeRental.total || activeRental.subtotal)}</span>
+              </div>
+            </div>
+
+            <button class="btn btn-sm btn-outline-primary w-100 py-1 fw-semibold" onclick="App.openReturnModal('${activeRental.id}')">
+              <i class="fa fa-clipboard-check me-1"></i> Inspección / Devolución
+            </button>
           </div>
-        </div>
-      `;
+        `;
 
-      const icon = L.divIcon({
-        className: 'provider-tool-pin-patio',
-        html: iconHtml,
-        iconSize: [36, 36],
-        iconAnchor: [18, 18]
-      });
+        const icon = L.divIcon({
+          className: 'provider-tool-pin-rented',
+          html: iconHtml,
+          iconSize: [38, 38],
+          iconAnchor: [19, 19]
+        });
 
-      L.marker([coords.lat, coords.lng], { icon })
-        .bindPopup(popupContent)
-        .addTo(providerMarkersLayer);
+        L.marker([coords.lat, coords.lng], { icon })
+          .bindPopup(popupContent)
+          .addTo(providerMarkersLayer);
+      } else {
+        // Marcador EN PATIO / DISPONIBLE (Verde Esmeralda con warehouse)
+        const iconHtml = `
+          <div style="background: #10b981; color: #ffffff; width: 36px; height: 36px; border-radius: 50%; border: 3px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.6);">
+            <i class="fa fa-warehouse"></i>
+          </div>
+        `;
+
+        const popupContent = `
+          <div class="provider-fleet-popup">
+            <div class="popup-header d-flex align-items-center justify-content-between">
+              <span class="badge bg-success px-2 py-1"><i class="fa fa-check me-1"></i> EN PATIO</span>
+              <span class="badge bg-light text-dark border me-2">${tool.code || 'ACT-01'}</span>
+            </div>
+            <img src="${toolImg}" style="width: 100%; height: 110px; object-fit: cover; border-radius: 8px; margin-bottom: 8px; border: 1px solid #e2e8f0;" onerror="if (window.handleToolImageError) window.handleToolImageError(this); else { this.onerror=null; this.src='assets/img/machinery/placeholder-tool.svg'; }">
+            <h6 class="fw-bold text-dark mb-1" style="font-size: 0.95rem; line-height: 1.25;">${tool.name}</h6>
+            <div class="text-muted mb-2" style="font-size: 0.78rem;">
+              Marca: <strong class="text-secondary">${tool.brand || 'N/A'}</strong> &bull; Modelo: <strong class="text-secondary">${tool.model || 'N/A'}</strong>
+            </div>
+            <div class="bg-light p-2 rounded-2 border mb-2" style="font-size: 0.8rem;">
+              <div class="d-flex justify-content-between mb-1">
+                <span class="text-muted">Tarifa pública:</span>
+                <strong class="text-success">${API.formatCurrency(tool.dailyPrice || tool.dailyRate)}/día</strong>
+              </div>
+              <div class="d-flex justify-content-between">
+                <span class="text-muted">Días en obra:</span>
+                <strong>${tool.accumulatedRentalDays || 0} días</strong>
+              </div>
+            </div>
+            <div class="text-center small text-success py-1 bg-success bg-opacity-10 rounded border border-success border-opacity-25 fw-semibold" style="font-size: 0.78rem;">
+              <i class="fa fa-check-circle me-1"></i> Lista y verificada para despacho
+            </div>
+          </div>
+        `;
+
+        const icon = L.divIcon({
+          className: 'provider-tool-pin-patio',
+          html: iconHtml,
+          iconSize: [36, 36],
+          iconAnchor: [18, 18]
+        });
+
+        L.marker([coords.lat, coords.lng], { icon })
+          .bindPopup(popupContent)
+          .addTo(providerMarkersLayer);
+      }
     });
 
     if (bounds.length > 1 && providerMap) {
-      providerMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 13 });
+      providerMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 12 });
     } else if (bounds.length === 1 && providerMap) {
       providerMap.setView(bounds[0], 12);
     } else if (providerMap) {
-      providerMap.setView([DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lng], 12);
+      providerMap.setView([DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lng], 6);
     }
 
     setTimeout(() => {

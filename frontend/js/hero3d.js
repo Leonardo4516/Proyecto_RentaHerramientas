@@ -374,7 +374,7 @@ function showFallback() {
     <div class="sb-hero-3d-fallback d-flex flex-column align-items-center justify-content-center h-100 text-center p-4">
       <i class="fa fa-truck-monster" style="font-size: 5.5rem; color: #FFC72C; opacity: 0.88; margin-bottom: 1rem;"></i>
       <h5 class="fw-bold text-dark mb-1">Maquinaria Pesada Lista para Operar</h5>
-      <p class="text-muted small mb-0">Catálogo certificado con disponibilidad inmediata en Bogotá y Sabana.</p>
+      <p class="text-muted small mb-0">Catálogo certificado con disponibilidad inmediata en toda Colombia.</p>
     </div>
   `;
 }

@@ -1222,9 +1222,23 @@ const App = (() => {
     }, 120);
   }
 
+  function updateSubnavActive(targetNavKey) {
+    document.querySelectorAll('.sb-subnav-link').forEach(link => {
+      link.classList.remove('active');
+      if (targetNavKey && (link.getAttribute('data-nav') === targetNavKey || link.dataset.nav === targetNavKey)) {
+        link.classList.add('active');
+        try {
+          link.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+        } catch (_) {}
+      }
+    });
+  }
+
   function navigateToSection(sectionId) {
+    updateSubnavActive(sectionId);
     if (currentView !== 'catalog') {
       switchView('catalog');
+      updateSubnavActive(sectionId);
     }
     setTimeout(() => {
       if (sectionId === 'section-map') {
@@ -2942,36 +2956,21 @@ const App = (() => {
   let lastProviderRentals = [];
 
   async function renderProviderDashboard() {
-    // 1. Asegurar catálogo de maquinaria cargado en memoria
-    if (!allTools || allTools.length === 0) {
-      try {
-        allTools = await API.tools.getAll() || [];
-        filteredTools = [...allTools];
-      } catch (e) {
-        console.warn('Error precargando maquinaria para portal proveedor:', e);
-      }
+    // 1. Sincronizar catálogo completo de maquinaria desde la base de datos de Docker
+    try {
+      allTools = await API.tools.getAll() || [];
+      enrichToolsWithCategories();
+      filteredTools = [...allTools];
+    } catch (e) {
+      console.warn('Error precargando maquinaria para portal proveedor:', e);
     }
 
-    // 2. Determinar flota asignada al proveedor autenticado
-    const user = API.getUser();
-    let currentProviderId = null;
-    if (user) {
-      currentProviderId = user.providerId || (user.role === 'ROLE_PROVEEDOR' ? 1 : user.id);
-    }
-    
-    let providerTools = [];
-    if (currentProviderId) {
-      providerTools = allTools.filter(t => String(t.providerId) === String(currentProviderId));
-    }
-    // Asegurar que el proveedor tenga una flota representativa en el mapa (al menos 6 maquinarias de su empresa)
-    if (providerTools.length < 5) {
-      const extraTools = allTools.filter(t => !providerTools.some(pt => String(pt.id) === String(t.id))).slice(0, 6 - providerTools.length);
-      providerTools = [...providerTools, ...extraTools];
-    }
+    // 2. Usar todas las maquinarias de la base de datos sincronizadas con Docker para el mapa de flota
+    const toolsForMap = (allTools && allTools.length > 0) ? allTools : [];
 
-    // 3. Renderizar inmediatamente el mapa geoespacial de la flota
+    // 3. Renderizar inmediatamente el mapa geoespacial de la flota en Colombia
     if (typeof MapManager !== 'undefined' && MapManager.renderProviderMap) {
-      MapManager.renderProviderMap('provider-map-container', providerTools, cachedRentals || []);
+      MapManager.renderProviderMap('provider-map-container', toolsForMap, cachedRentals || []);
     }
 
     // 4. Invalidar dimensiones del mapa para adaptarse a la vista activa
@@ -2987,7 +2986,7 @@ const App = (() => {
     }, 400);
 
     // 5. Cargar solicitudes de arriendo asíncronamente sin bloquear el mapa
-    await loadProviderRequests(providerTools);
+    await loadProviderRequests(toolsForMap);
   }
 
   async function loadProviderRequests(providerTools) {
@@ -3033,8 +3032,8 @@ const App = (() => {
     if (countPendingEl) countPendingEl.textContent = pendingList.length;
     if (countCompletedEl) countCompletedEl.textContent = completedList.length;
 
-    // Refrescar mapa de flota con los alquileres activos obtenidos
-    const tools = (providerTools && providerTools.length > 0) ? providerTools : allTools;
+    // Refrescar mapa de flota con toda la maquinaria de la base de datos
+    const tools = (allTools && allTools.length > 0) ? allTools : (providerTools || []);
     if (typeof MapManager !== 'undefined' && MapManager.renderProviderMap) {
       MapManager.renderProviderMap('provider-map-container', tools, lastProviderRentals);
     }
@@ -3392,6 +3391,17 @@ const App = (() => {
       }
     }
 
+    // Sincronizar barra de subnavegación para mover la línea verde bajo la opción seleccionada
+    if (viewName === 'provider-dashboard') {
+      updateSubnavActive('provider-dashboard');
+    } else if (viewName === 'client-dashboard') {
+      updateSubnavActive('client-dashboard');
+    } else if (viewName === 'catalog') {
+      updateSubnavActive('section-catalog');
+    } else {
+      updateSubnavActive(null);
+    }
+
     if (viewName === 'catalog') {
       try {
         if (typeof window !== 'undefined' && window.Hero3D && typeof window.Hero3D.resume === 'function') {
@@ -3516,7 +3526,7 @@ const App = (() => {
       if (providerNav) providerNav.style.display = isProvider ? 'block' : 'none';
       if (adminNav) adminNav.style.display = isAdmin ? 'block' : 'none';
       if (clientTabLink) clientTabLink.style.display = isClient ? 'block' : 'none';
-      if (providerTabLink) providerTabLink.style.display = isProvider ? 'block' : 'none';
+      if (providerTabLink) providerTabLink.style.display = 'block';
 
       // Rótulos contextuales según el rol (Admin -> "Alquileres Activos", Cliente -> "Mis Alquileres")
       const clientNavLabel = document.getElementById('nav-client-dashboard-label');
@@ -3589,7 +3599,7 @@ const App = (() => {
       if (providerNav) providerNav.style.display = 'none';
       if (adminNav) adminNav.style.display = 'none';
       if (clientTabLink) clientTabLink.style.display = 'none';
-      if (providerTabLink) providerTabLink.style.display = 'none';
+      if (providerTabLink) providerTabLink.style.display = 'block';
 
       if (clientDropdownItem) clientDropdownItem.style.display = 'none';
       if (providerDropdownItem) providerDropdownItem.style.display = 'none';
@@ -3708,7 +3718,8 @@ const App = (() => {
           role: resp.role
         });
 
-        bootstrap.Modal.getInstance(document.getElementById('authModal')).hide();
+        const authModalInst = bootstrap.Modal.getInstance(document.getElementById('authModal')) || bootstrap.Modal.getOrCreateInstance(document.getElementById('authModal'));
+        if (authModalInst) authModalInst.hide();
         checkAuthStatus();
 
         Swal.fire({
@@ -3785,7 +3796,8 @@ const App = (() => {
           role: resp.role
         });
 
-        bootstrap.Modal.getInstance(document.getElementById('authModal')).hide();
+        const authModalInstReg = bootstrap.Modal.getInstance(document.getElementById('authModal')) || bootstrap.Modal.getOrCreateInstance(document.getElementById('authModal'));
+        if (authModalInstReg) authModalInstReg.hide();
         checkAuthStatus();
 
         Swal.fire({
