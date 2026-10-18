@@ -1126,7 +1126,7 @@
       <div class="modal-content sb-modal">
         <div class="modal-header">
           <h5 class="modal-title" id="auth-modal-title">Iniciar Sesión</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar" onclick="App.closeAuthModal()"></button>
         </div>
         <form id="auth-form" onsubmit="App.submitAuth(); return false;" novalidate>
         <div class="modal-body">
@@ -1224,7 +1224,7 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" onclick="App.closeAuthModal()">Cerrar</button>
           <button type="submit" class="btn btn-sb-green px-4" id="btn-auth-submit">
             Entrar
           </button>

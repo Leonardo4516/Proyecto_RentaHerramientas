@@ -380,6 +380,17 @@ const App = (() => {
         loadProviderRequests();
       }
     });
+
+    // Garantizar que al cerrar el modal de autenticación nunca quede pantalla oscura ni scroll bloqueado
+    const authModalEl = document.getElementById('authModal');
+    if (authModalEl) {
+      authModalEl.addEventListener('hidden.bs.modal', () => {
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('overflow');
+        document.body.style.removeProperty('padding-right');
+      });
+    }
   }
 
   async function loadCategories() {
@@ -1589,7 +1600,7 @@ const App = (() => {
       }
 
       const payModalEl = document.getElementById('paymentModal');
-      const paymentModal = bootstrap.Modal.getInstance(payModalEl) || new bootstrap.Modal(payModalEl);
+      const paymentModal = bootstrap.Modal.getOrCreateInstance(payModalEl);
       paymentModal.show();
 
     } else if (activeToolForBooking) {
@@ -1757,7 +1768,7 @@ const App = (() => {
     renderCartModal();
     const cartModalEl = document.getElementById('cartModal');
     if (cartModalEl) {
-      const modal = bootstrap.Modal.getInstance(cartModalEl) || new bootstrap.Modal(cartModalEl);
+      const modal = bootstrap.Modal.getOrCreateInstance(cartModalEl);
       modal.show();
     }
   }
@@ -1784,7 +1795,7 @@ const App = (() => {
         (notes ? `<br><small class="text-muted"><i class="fa fa-truck-pickup me-1"></i> Cama baja: ${notes}</small>` : '');
     }
 
-    const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
+    const paymentModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('paymentModal'));
     paymentModal.show();
   }
 
@@ -1795,7 +1806,7 @@ const App = (() => {
     if (cartModal) cartModal.hide();
 
     const bookingModalEl = document.getElementById('bookingModal');
-    const bookingModal = bootstrap.Modal.getInstance(bookingModalEl) || new bootstrap.Modal(bookingModalEl);
+    const bookingModal = bootstrap.Modal.getOrCreateInstance(bookingModalEl);
     bookingModal.show();
   }
 
@@ -2226,7 +2237,7 @@ const App = (() => {
 
     // Abrir Modal de Reserva
     const bookingModalEl = document.getElementById('bookingModal');
-    const modal = bootstrap.Modal.getInstance(bookingModalEl) || new bootstrap.Modal(bookingModalEl);
+    const modal = bootstrap.Modal.getOrCreateInstance(bookingModalEl);
     modal.show();
 
     // CHEQUEO DE DISPONIBILIDAD EN TIEMPO REAL:
@@ -2419,7 +2430,7 @@ const App = (() => {
         (camaBajaNotes ? `<br><small class="text-muted"><i class="fa fa-truck-pickup me-1"></i> Cama baja: ${camaBajaNotes}</small>` : '');
     }
 
-    const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
+    const paymentModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('paymentModal'));
     paymentModal.show();
   }
 
@@ -3201,7 +3212,7 @@ const App = (() => {
       inspectorInput.value = user?.fullName || user?.username || 'Ing. Carlos Mendoza - Jefe de Patio';
     }
 
-    const modal = new bootstrap.Modal(document.getElementById('returnInspectionModal'));
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('returnInspectionModal'));
     modal.show();
   }
 
@@ -3669,7 +3680,7 @@ const App = (() => {
     }
   }
 
-  function openAuthModal(mode = 'login') {
+  function setAuthMode(mode = 'login') {
     const isLogin = mode === 'login';
     const titleEl = document.getElementById('auth-modal-title') || document.getElementById('authModalLabel');
     if (titleEl) titleEl.textContent = isLogin ? 'Iniciar Sesión en RentaTools' : 'Crear Cuenta Profesional';
@@ -3687,14 +3698,59 @@ const App = (() => {
     if (!isLogin) {
       handleRoleChange();
     }
+  }
 
-    const modal = new bootstrap.Modal(document.getElementById('authModal'));
-    modal.show();
+  function openAuthModal(mode = 'login') {
+    setAuthMode(mode);
+    const authModalEl = document.getElementById('authModal');
+    if (authModalEl) {
+      const modal = bootstrap.Modal.getOrCreateInstance(authModalEl);
+      if (!authModalEl.classList.contains('show')) {
+        modal.show();
+      }
+    }
   }
 
   function toggleAuthMode() {
-    const currentMode = document.getElementById('authModal').dataset.mode;
-    openAuthModal(currentMode === 'login' ? 'register' : 'login');
+    const authModalEl = document.getElementById('authModal');
+    const currentMode = (authModalEl && authModalEl.dataset.mode) || 'login';
+    const nextMode = currentMode === 'login' ? 'register' : 'login';
+    setAuthMode(nextMode);
+  }
+
+  function closeAuthModal() {
+    const modalEl = document.getElementById('authModal');
+    if (modalEl) {
+      const inst = bootstrap.Modal.getInstance(modalEl) || bootstrap.Modal.getOrCreateInstance(modalEl);
+      if (inst) {
+        if (inst._isTransitioning) {
+          inst._isTransitioning = false;
+        }
+        try {
+          inst.hide();
+        } catch (e) {
+          console.warn('Error hiding auth modal via bootstrap:', e);
+        }
+      }
+      modalEl.classList.remove('show');
+      modalEl.style.display = 'none';
+      modalEl.setAttribute('aria-hidden', 'true');
+      modalEl.removeAttribute('aria-modal');
+    }
+
+    const cleanBackdrops = () => {
+      document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+      document.body.classList.remove('modal-open');
+      document.body.style.removeProperty('overflow');
+      document.body.style.removeProperty('padding-right');
+      const mainContent = document.getElementById('main-content') || document.querySelector('.sb-main-layout');
+      const heroSection = document.getElementById('hero-section');
+      if (mainContent) mainContent.removeAttribute('inert');
+      if (heroSection) heroSection.removeAttribute('inert');
+    };
+
+    cleanBackdrops();
+    setTimeout(cleanBackdrops, 350);
   }
 
   async function submitAuth() {
@@ -4136,6 +4192,7 @@ const App = (() => {
     submitPayment,
     switchView,
     openAuthModal,
+    closeAuthModal,
     toggleAuthMode,
     handleRoleChange,
     submitAuth,
@@ -4186,6 +4243,8 @@ const App = (() => {
   };
 })();
 
+window.App = App;
+
 document.addEventListener('DOMContentLoaded', App.init);
 
 // Aislamiento accesible con 'inert': previene que el foco y lectores de pantalla accedan al fondo
@@ -4202,5 +4261,11 @@ document.addEventListener('hidden.bs.modal', () => {
     const heroSection = document.getElementById('hero-section');
     if (mainContent) mainContent.removeAttribute('inert');
     if (heroSection) heroSection.removeAttribute('inert');
+
+    // Limpieza estricta de cualquier backdrop residual y desbloqueo de scroll
+    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('overflow');
+    document.body.style.removeProperty('padding-right');
   }
 });
