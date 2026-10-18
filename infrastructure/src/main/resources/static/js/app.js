@@ -515,7 +515,7 @@ const App = (() => {
       const delay = (index % 4) * 60 + Math.floor(index / 4) * 50;
       return `
         <div class="sb-category-card sb-unfold-item" style="--unfold-delay: ${delay}ms;" onclick="App.filterByCategory('${cat.name}')">
-          <img src="${imgUrl}" alt="${cat.name}" class="sb-category-thumb" onerror="handleToolImageError(this)">
+          <img src="${imgUrl}" alt="${cat.name}" class="sb-category-thumb" width="120" height="90" loading="lazy" decoding="async" onerror="handleToolImageError(this)">
           <div class="sb-category-name">${cat.name}</div>
         </div>
       `;
@@ -1859,7 +1859,7 @@ const App = (() => {
         <div class="sb-tool-card mb-3" data-catalog-section="${sectionNum}" style="${isVisible ? '' : 'display: none !important;'}">
           <!-- Columna 1: Imagen y Badge de Estado -->
           <div class="sb-tool-img-wrap position-relative">
-            <img src="${getToolImageUrl(t)}" alt="${t.name}" onerror="handleToolImageError(this);">
+            <img src="${getToolImageUrl(t)}" alt="${t.name}" width="320" height="220" loading="lazy" decoding="async" onerror="handleToolImageError(this);">
             <span class="badge ${t.status === 'DISPONIBLE' ? 'bg-success' : 'bg-secondary'} position-absolute top-0 start-0 m-2" style="font-size: 0.7rem;">
               <i class="fa ${t.status === 'DISPONIBLE' ? 'fa-check-circle' : 'fa-clock'} me-1"></i> ${t.status}
             </span>
@@ -4175,3 +4175,20 @@ const App = (() => {
 })();
 
 document.addEventListener('DOMContentLoaded', App.init);
+
+// Aislamiento accesible con 'inert': previene que el foco y lectores de pantalla accedan al fondo
+document.addEventListener('show.bs.modal', () => {
+  const mainContent = document.getElementById('main-content') || document.querySelector('.sb-main-layout');
+  const heroSection = document.getElementById('hero-section');
+  if (mainContent) mainContent.setAttribute('inert', '');
+  if (heroSection) heroSection.setAttribute('inert', '');
+});
+
+document.addEventListener('hidden.bs.modal', () => {
+  if (!document.querySelector('.modal.show')) {
+    const mainContent = document.getElementById('main-content') || document.querySelector('.sb-main-layout');
+    const heroSection = document.getElementById('hero-section');
+    if (mainContent) mainContent.removeAttribute('inert');
+    if (heroSection) heroSection.removeAttribute('inert');
+  }
+});

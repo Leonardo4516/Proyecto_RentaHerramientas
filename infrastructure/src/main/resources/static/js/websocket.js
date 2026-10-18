@@ -145,10 +145,25 @@ const RealtimeManager = (() => {
     updateNotificationUI();
     showToastNotification(notif);
 
+    // Anuncio a tecnologías de asistencia mediante región aria-live
+    const announcer = document.getElementById('a11y-live-announcer');
+    if (announcer) {
+      announcer.textContent = `Nueva notificación de ${notif.channel}: ${notif.content}`;
+    }
+
     listeners.forEach(cb => {
       try { cb(notif); } catch (_) {}
     });
   }
+
+  // Modern Web Performance: Reconexión inteligente al reactivar pestaña
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      if (!stompClient || !stompClient.connected) {
+        init();
+      }
+    }
+  });
 
   function showToastNotification(notif) {
     if (typeof Swal !== 'undefined') {

@@ -52,6 +52,52 @@
 html {
   scroll-behavior: smooth;
   font-size: 16px;
+  scrollbar-gutter: stable;
+  color-scheme: light;
+}
+
+/* W3C Baseline Scrollbar Theming */
+* {
+  scrollbar-color: var(--sb-green, #00843D) var(--sb-gray-bg, #F7F8F9);
+  scrollbar-width: thin;
+}
+
+/* Personalización de selección de texto */
+::selection {
+  background-color: #FFC72C;
+  color: #101820;
+}
+
+/* Prevención de Scroll Chaining en contenedores modales */
+.modal-body,
+.sb-cart-body,
+.sb-notifications-list,
+.offcanvas-body {
+  overscroll-behavior: contain;
+}
+
+/* Modern Web Performance: Defer rendering below-the-fold heavy sections */
+@supports (content-visibility: auto) {
+  #section-catalog,
+  #section-industries,
+  #provider-dashboard-section,
+  #admin-dashboard-section,
+  #section-reviews {
+    content-visibility: auto;
+    contain-intrinsic-size: auto none auto 550px;
+  }
+}
+
+/* Validación moderna no invasiva: solo se activa tras interacción */
+.sb-form-control:user-invalid,
+.form-control:user-invalid {
+  border-color: #dc2626 !important;
+  background-color: #fef2f2 !important;
+}
+
+.sb-form-control:user-valid:not(:placeholder-shown),
+.form-control:user-valid:not(:placeholder-shown) {
+  border-color: #16a34a !important;
 }
 
 @media (min-width: 1200px) {

@@ -321,7 +321,7 @@
               </div>
             </div>
             <div class="col-12 col-md-5">
-              <img src="assets/img/machinery/Retroexcavadora-Oruga-CAT-320D.png" alt="Excavadora de Oruga CAT 320D" class="sb-split-banner-img">
+              <img src="assets/img/machinery/Retroexcavadora-Oruga-CAT-320D.png" alt="Excavadora de Oruga CAT 320D" class="sb-split-banner-img" width="500" height="340" loading="lazy" decoding="async">
             </div>
           </div>
         </div>
@@ -385,7 +385,7 @@
           <div class="col-6 col-md-4 col-lg-2">
             <div class="sb-industry-card sb-unfold-item" style="--unfold-delay: 0ms;" data-industry="construccion-civil" onclick="App.filterByIndustry('construccion-civil')">
               <div class="sb-industry-img-wrap">
-                <img src="assets/img/machinery/allanadora-concreto.jpeg" alt="Construcción Civil" class="sb-industry-img">
+                <img src="assets/img/machinery/allanadora-concreto.jpeg" alt="Construcción Civil" class="sb-industry-img" width="280" height="180" loading="lazy" decoding="async">
               </div>
               <div class="sb-industry-body">
                 <h5 class="sb-industry-title">Construcción Civil</h5>
@@ -398,7 +398,7 @@
           <div class="col-6 col-md-4 col-lg-2">
             <div class="sb-industry-card sb-unfold-item" style="--unfold-delay: 70ms;" data-industry="infraestructura-vial" onclick="App.filterByIndustry('infraestructura-vial')">
               <div class="sb-industry-img-wrap">
-                <img src="assets/img/machinery/rodillo-compactador.jpg" alt="Infraestructura Vial" class="sb-industry-img">
+                <img src="assets/img/machinery/rodillo-compactador.jpg" alt="Infraestructura Vial" class="sb-industry-img" width="280" height="180" loading="lazy" decoding="async">
               </div>
               <div class="sb-industry-body">
                 <h5 class="sb-industry-title">Infraestructura Vial</h5>
@@ -411,7 +411,7 @@
           <div class="col-6 col-md-4 col-lg-2">
             <div class="sb-industry-card sb-unfold-item" style="--unfold-delay: 140ms;" data-industry="mineria-agregados" onclick="App.filterByIndustry('mineria-agregados')">
               <div class="sb-industry-img-wrap">
-                <img src="assets/img/machinery/Retroexcavadora-Oruga-CAT-320D.png" alt="Minería y Agregados" class="sb-industry-img">
+                <img src="assets/img/machinery/Retroexcavadora-Oruga-CAT-320D.png" alt="Minería y Agregados" class="sb-industry-img" width="280" height="180" loading="lazy" decoding="async">
               </div>
               <div class="sb-industry-body">
                 <h5 class="sb-industry-title">Minería y Agregados</h5>
@@ -424,7 +424,7 @@
           <div class="col-6 col-md-4 col-lg-2">
             <div class="sb-industry-card sb-unfold-item" style="--unfold-delay: 210ms;" data-industry="energia-utilities" onclick="App.filterByIndustry('energia-utilities')">
               <div class="sb-industry-img-wrap">
-                <img src="assets/img/machinery/planta-electrica-cummins.jpg" alt="Energía y Utilities" class="sb-industry-img">
+                <img src="assets/img/machinery/planta-electrica-cummins.jpg" alt="Energía y Utilities" class="sb-industry-img" width="280" height="180" loading="lazy" decoding="async">
               </div>
               <div class="sb-industry-body">
                 <h5 class="sb-industry-title">Energía y Utilities</h5>
@@ -437,7 +437,7 @@
           <div class="col-6 col-md-4 col-lg-2">
             <div class="sb-industry-card sb-unfold-item" style="--unfold-delay: 280ms;" data-industry="eventos-montajes" onclick="App.filterByIndustry('eventos-montajes')">
               <div class="sb-industry-img-wrap">
-                <img src="assets/img/machinery/plataforma-tijera.jpg" alt="Eventos y Montajes" class="sb-industry-img">
+                <img src="assets/img/machinery/plataforma-tijera.jpg" alt="Eventos y Montajes" class="sb-industry-img" width="280" height="180" loading="lazy" decoding="async">
               </div>
               <div class="sb-industry-body">
                 <h5 class="sb-industry-title">Eventos y Montajes</h5>
@@ -450,7 +450,7 @@
           <div class="col-6 col-md-4 col-lg-2">
             <div class="sb-industry-card sb-unfold-item" style="--unfold-delay: 350ms;" data-industry="agroindustria" onclick="App.filterByIndustry('agroindustria')">
               <div class="sb-industry-img-wrap">
-                <img src="assets/img/machinery/motobomba-lodos.jpg" alt="Agroindustria" class="sb-industry-img">
+                <img src="assets/img/machinery/motobomba-lodos.jpg" alt="Agroindustria" class="sb-industry-img" width="280" height="180" loading="lazy" decoding="async">
               </div>
               <div class="sb-industry-body">
                 <h5 class="sb-industry-title">Agroindustria</h5>
@@ -1128,16 +1128,17 @@
           <h5 class="modal-title" id="auth-modal-title">Iniciar Sesión</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
+        <form id="auth-form" onsubmit="App.submitAuth(); return false;" novalidate>
         <div class="modal-body">
           <!-- Campos de Login -->
           <div id="login-fields">
             <div class="mb-3">
-              <label class="sb-form-label">Usuario o Correo:</label>
-              <input type="text" id="login-id" class="sb-form-control" placeholder="cliente, proveedor o admin" value="cliente">
+              <label for="login-id" class="sb-form-label">Usuario o Correo:</label>
+              <input type="text" id="login-id" class="sb-form-control" placeholder="cliente, proveedor o admin" value="cliente" autocomplete="username" autocapitalize="none" spellcheck="false" required>
             </div>
             <div class="mb-3">
-              <label class="sb-form-label">Contraseña:</label>
-              <input type="password" id="login-pass" class="sb-form-control" placeholder="Contraseña" value="Cliente123!">
+              <label for="login-pass" class="sb-form-label">Contraseña:</label>
+              <input type="password" id="login-pass" class="sb-form-control" placeholder="Contraseña" value="Cliente123!" autocomplete="current-password" required>
             </div>
             <div class="p-3 rounded-3 bg-light border mb-3">
               <div class="d-flex align-items-center justify-content-between mb-2">
@@ -1171,11 +1172,11 @@
           <div id="register-fields" style="display: none;">
             <div class="row g-2 mb-2">
               <div class="col-6">
-                <label class="sb-form-label">Usuario:</label>
-                <input type="text" id="reg-username" class="sb-form-control" placeholder="usuario123">
+                <label for="reg-username" class="sb-form-label">Usuario:</label>
+                <input type="text" id="reg-username" class="sb-form-control" placeholder="usuario123" autocomplete="username" autocapitalize="none" spellcheck="false">
               </div>
               <div class="col-6">
-                <label class="sb-form-label">Rol:</label>
+                <label for="reg-role" class="sb-form-label">Rol:</label>
                 <select id="reg-role" class="sb-form-control" onchange="App.handleRoleChange()">
                   <option value="ROLE_CLIENTE">Cliente Arrendatario</option>
                   <option value="ROLE_PROVEEDOR">Proveedor Maquinaria</option>
@@ -1183,36 +1184,36 @@
               </div>
             </div>
             <div class="mb-2">
-              <label class="sb-form-label" id="reg-fullname-label">Nombre Completo:</label>
-              <input type="text" id="reg-fullname" class="sb-form-control" placeholder="Ej. Juan Pérez">
+              <label for="reg-fullname" class="sb-form-label" id="reg-fullname-label">Nombre Completo:</label>
+              <input type="text" id="reg-fullname" class="sb-form-control" placeholder="Ej. Juan Pérez" autocomplete="name">
             </div>
             <div class="row g-2 mb-2">
               <div class="col-6">
-                <label class="sb-form-label">Correo Electrónico:</label>
-                <input type="email" id="reg-email" class="sb-form-control" placeholder="correo@obra.com">
+                <label for="reg-email" class="sb-form-label">Correo Electrónico:</label>
+                <input type="email" id="reg-email" class="sb-form-control" placeholder="correo@obra.com" inputmode="email" autocomplete="email">
               </div>
               <div class="col-6">
-                <label class="sb-form-label">Contraseña:</label>
-                <input type="password" id="reg-password" class="sb-form-control" placeholder="Mínimo 6 caracteres">
+                <label for="reg-password" class="sb-form-label">Contraseña:</label>
+                <input type="password" id="reg-password" class="sb-form-control" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
               </div>
             </div>
             <div class="row g-2 mb-2">
               <div class="col-6">
-                <label class="sb-form-label">NIT / Cédula:</label>
-                <input type="text" id="reg-taxid" class="sb-form-control" placeholder="900.123.456-7">
+                <label for="reg-taxid" class="sb-form-label">NIT / Cédula:</label>
+                <input type="text" id="reg-taxid" class="sb-form-control" placeholder="900.123.456-7" inputmode="numeric">
               </div>
               <div class="col-6">
-                <label class="sb-form-label">Teléfono:</label>
-                <input type="text" id="reg-phone" class="sb-form-control" placeholder="+57 300 0000000">
+                <label for="reg-phone" class="sb-form-label">Teléfono:</label>
+                <input type="tel" id="reg-phone" class="sb-form-control" placeholder="+57 300 0000000" inputmode="tel" autocomplete="tel">
               </div>
             </div>
             <div class="mb-2" id="reg-company-container" style="display: none;">
-              <label class="sb-form-label">Nombre de Empresa / Razón Social <span class="text-danger">*</span>:</label>
-              <input type="text" id="reg-company" class="sb-form-control" placeholder="Ej. Maquinarias del Norte SAS">
+              <label for="reg-company" class="sb-form-label">Nombre de Empresa / Razón Social <span class="text-danger">*</span>:</label>
+              <input type="text" id="reg-company" class="sb-form-control" placeholder="Ej. Maquinarias del Norte SAS" autocomplete="organization">
             </div>
             <div class="mb-3">
-              <label class="sb-form-label">Dirección en Obra:</label>
-              <input type="text" id="reg-address" class="sb-form-control" placeholder="Calle 100 # 15-20">
+              <label for="reg-address" class="sb-form-label">Dirección en Obra:</label>
+              <input type="text" id="reg-address" class="sb-form-control" placeholder="Calle 100 # 15-20" autocomplete="street-address">
             </div>
           </div>
 
@@ -1224,10 +1225,11 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
-          <button type="button" class="btn btn-sb-green px-4" id="btn-auth-submit" onclick="App.submitAuth()">
+          <button type="submit" class="btn btn-sb-green px-4" id="btn-auth-submit">
             Entrar
           </button>
         </div>
+        </form>
       </div>
     </div>
   </div>
@@ -1518,18 +1520,21 @@
     <i class="fa fa-comment-dots"></i>
   </button>
 
+  <!-- Anunciador accesible para lectores de pantalla en eventos WebSocket en vivo -->
+  <div id="a11y-live-announcer" class="visually-hidden" aria-live="polite" role="status"></div>
+
   <!-- Scripts: Bootstrap, Leaflet, SockJS, Stomp, SweetAlert2 -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <!-- Módulos de la Aplicación -->
-  <script src="js/api.js?v=5"></script>
-  <script src="js/websocket.js?v=5"></script>
-  <script src="js/map.js?v=5"></script>
-  <script src="js/app.js?v=7"></script>
+  <script defer src="js/api.js?v=5"></script>
+  <script defer src="js/websocket.js?v=6"></script>
+  <script defer src="js/map.js?v=5"></script>
+  <script defer src="js/app.js?v=8"></script>
   <script type="module" src="js/hero3d.js?v=4"></script>
 </body>
 </html>
