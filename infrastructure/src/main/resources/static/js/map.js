@@ -100,6 +100,18 @@ const MapManager = (() => {
 
       clientMarkersLayer = L.layerGroup().addTo(clientMap);
 
+      // Listener único de clic en el mapa: reubica el pin de obra fluidamente sin alterar el scroll
+      clientMap.on('click', function (e) {
+        if (e.originalEvent) {
+          e.originalEvent.stopPropagation();
+        }
+        userLocation = { lat: e.latlng.lat, lng: e.latlng.lng };
+        try {
+          localStorage.setItem('rentatools_user_location', JSON.stringify(userLocation));
+        } catch (_) {}
+        drawUserLocation(userLocation);
+      });
+
       // Dibujar inmediatamente la ubicación actual y el círculo azul
       drawUserLocation(userLocation);
 
@@ -117,8 +129,6 @@ const MapManager = (() => {
 
   function drawUserLocation(loc, radiusKm = null) {
     if (!clientMap) return;
-    if (userCircle) clientMap.removeLayer(userCircle);
-    if (userMarker) clientMap.removeLayer(userMarker);
 
     const slider = document.getElementById('radius-slider');
     let radius = currentRadiusMeters;
@@ -129,85 +139,63 @@ const MapManager = (() => {
     }
     currentRadiusMeters = radius;
 
-    // CÍRCULO AZUL CIAN DE COBERTURA
-    userCircle = L.circle([loc.lat, loc.lng], {
-      color: '#06b6d4',
-      fillColor: '#06b6d4',
-      fillOpacity: 0.12,
-      weight: 2,
-      radius: radius
-    }).addTo(clientMap);
+    // 1. CÍRCULO AZUL CIAN DE COBERTURA: actualizar in-situ o crear si no existe
+    if (userCircle) {
+      userCircle.setLatLng([loc.lat, loc.lng]);
+      userCircle.setRadius(radius);
+    } else {
+      userCircle = L.circle([loc.lat, loc.lng], {
+        color: '#06b6d4',
+        fillColor: '#06b6d4',
+        fillOpacity: 0.12,
+        weight: 2,
+        radius: radius
+      }).addTo(clientMap);
+    }
 
-    // Marcador de la obra del usuario con brillo cian
-    const userIcon = L.divIcon({
-      className: 'user-pin-icon',
-      html: `
-        <div style="position: relative; width: 24px; height: 24px;">
-          <div style="position: absolute; top: -5px; left: -5px; width: 34px; height: 34px; border-radius: 50%; background: rgba(6, 182, 212, 0.45); animation: mapPulse 2s infinite ease-in-out;"></div>
-          <div style="position: relative; z-index: 2; background: #06b6d4; width: 24px; height: 24px; border-radius: 50%; border: 3px solid #ffffff; box-shadow: 0 0 15px #06b6d4; display: flex; align-items: center; justify-content: center; color: #ffffff; font-size: 11px;">
-            <i class="fa fa-crosshairs"></i>
+    // 2. MARCADOR DE LA OBRA: actualizar in-situ o crear si no existe
+    if (userMarker) {
+      userMarker.setLatLng([loc.lat, loc.lng]);
+    } else {
+      const userIcon = L.divIcon({
+        className: 'user-pin-icon',
+        html: `
+          <div style="position: relative; width: 24px; height: 24px;">
+            <div style="position: absolute; top: -5px; left: -5px; width: 34px; height: 34px; border-radius: 50%; background: rgba(6, 182, 212, 0.45); animation: mapPulse 2s infinite ease-in-out;"></div>
+            <div style="position: relative; z-index: 2; background: #06b6d4; width: 24px; height: 24px; border-radius: 50%; border: 3px solid #ffffff; box-shadow: 0 0 15px #06b6d4; display: flex; align-items: center; justify-content: center; color: #ffffff; font-size: 11px;">
+              <i class="fa fa-crosshairs"></i>
+            </div>
           </div>
-        </div>
-      `,
-      iconSize: [24, 24],
-      iconAnchor: [12, 12]
-    });
+        `,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+      });
 
-    userMarker = L.marker([loc.lat, loc.lng], { 
-      icon: userIcon,
-      draggable: true
-    })
-      .bindPopup(`
-        <div style="font-family: inherit; min-width: 200px;">
-          <strong style="color: #0284c7;"><i class="fa fa-location-arrow me-1"></i>Ubicación de tu Obra (GPS)</strong>
-          <div class="small text-muted mt-1">Radio de cobertura: <strong>${Math.round(radius / 1000)} km</strong></div>
-          <div class="small text-muted mb-2">Centro de despacho para tu maquinaria</div>
-          <div class="alert alert-info py-1 px-2 mb-0 small" style="font-size: 0.75rem;">
-            <i class="fa fa-hand-pointer me-1"></i> Puedes arrastrar este pin o hacer clic en el mapa para ajustar tu obra.
+      userMarker = L.marker([loc.lat, loc.lng], { 
+        icon: userIcon,
+        draggable: true
+      })
+        .bindPopup(`
+          <div style="font-family: inherit; min-width: 200px;">
+            <strong style="color: #0284c7;"><i class="fa fa-location-arrow me-1"></i>Ubicación de tu Obra (GPS)</strong>
+            <div class="small text-muted mt-1">Radio de cobertura: <strong>${Math.round(radius / 1000)} km</strong></div>
+            <div class="small text-muted mb-2">Centro de despacho para tu maquinaria</div>
+            <div class="alert alert-info py-1 px-2 mb-0 small" style="font-size: 0.75rem;">
+              <i class="fa fa-hand-pointer me-1"></i> Puedes arrastrar este pin o hacer clic en el mapa para ajustar tu obra.
+            </div>
           </div>
-        </div>
-      `)
-      .addTo(clientMap);
+        `)
+        .addTo(clientMap);
 
-    userMarker.on('dragend', function (e) {
-      const pos = e.target.getLatLng();
-      userLocation = { lat: pos.lat, lng: pos.lng };
-      try {
-        localStorage.setItem('rentatools_user_location', JSON.stringify(userLocation));
-      } catch (_) {}
-      if (userCircle) userCircle.setLatLng(pos);
-      if (typeof Swal !== 'undefined') {
-        Swal.fire({
-          toast: true,
-          position: 'top-end',
-          icon: 'success',
-          title: 'Ubicación de obra actualizada',
-          text: `Coordenadas: ${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)}`,
-          showConfirmButton: false,
-          timer: 2000
-        });
-      }
-    });
-
-    clientMap.off('click');
-    clientMap.on('click', function (e) {
-      userLocation = { lat: e.latlng.lat, lng: e.latlng.lng };
-      try {
-        localStorage.setItem('rentatools_user_location', JSON.stringify(userLocation));
-      } catch (_) {}
-      drawUserLocation(userLocation);
-      if (typeof Swal !== 'undefined') {
-        Swal.fire({
-          toast: true,
-          position: 'top-end',
-          icon: 'info',
-          title: 'Obra reubicada en el mapa',
-          text: `${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)}`,
-          showConfirmButton: false,
-          timer: 1800
-        });
-      }
-    });
+      userMarker.on('dragend', function (e) {
+        const pos = e.target.getLatLng();
+        userLocation = { lat: pos.lat, lng: pos.lng };
+        try {
+          localStorage.setItem('rentatools_user_location', JSON.stringify(userLocation));
+        } catch (_) {}
+        if (userCircle) userCircle.setLatLng(pos);
+      });
+    }
   }
 
   // Solicitar permiso explícito al navegador para usar GPS real
@@ -229,6 +217,8 @@ const MapManager = (() => {
         title: 'Detectando tu ubicación real...',
         text: 'Por favor confirma el permiso de ubicación en tu navegador para posicionar tu obra en el mapa.',
         allowOutsideClick: false,
+        heightAuto: false,
+        returnFocus: false,
         didOpen: () => Swal.showLoading()
       });
     }
@@ -254,7 +244,9 @@ const MapManager = (() => {
             title: '¡Ubicación Sincronizada con Éxito!',
             html: `<p class="small text-muted mb-0">Coordenadas detectadas: <strong>${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)}</strong>.<br>El círculo azul ahora delimita el radio de entrega desde tu obra.</p>`,
             timer: 2500,
-            showConfirmButton: false
+            showConfirmButton: false,
+            heightAuto: false,
+            returnFocus: false
           });
         }
       },
@@ -268,7 +260,9 @@ const MapManager = (() => {
             title: 'Permisos de Ubicación Requeridos',
             html: '<p class="small text-muted">Para que el mapa ubique automáticamente tu obra, haz clic en el icono del candado o la chincheta junto a la barra de direcciones de tu navegador y selecciona <strong>Permitir ubicación</strong>.</p>',
             confirmButtonColor: '#00843D',
-            confirmButtonText: 'Entendido'
+            confirmButtonText: 'Entendido',
+            heightAuto: false,
+            returnFocus: false
           });
         }
       },
