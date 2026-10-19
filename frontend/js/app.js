@@ -123,7 +123,12 @@ const App = (() => {
     setupEventListeners();
     checkAuthStatus();
     RealtimeManager.init();
-    loadCartFromStorage();
+    if (API.getUser()) {
+      syncCartWithBackend();
+    } else {
+      cart = [];
+      updateCartBadge();
+    }
     updateHeroOffset();
     window.addEventListener('resize', updateHeroOffset);
     window.addEventListener('orientationchange', updateHeroOffset);
@@ -940,6 +945,15 @@ const App = (() => {
     const user = API.getUser();
     if (user && (user.role === 'ROLE_PROVEEDOR' || user.role === 'ROLE_ADMIN')) {
       switchView('provider-dashboard');
+    } else if (!user) {
+      openAuthModal('login');
+      Swal.fire({
+        icon: 'warning',
+        title: 'Acceso Restringido',
+        text: 'Debes iniciar sesión con perfil de Proveedor o Administrador para acceder al Portal Proveedor.',
+        confirmButtonColor: '#00843D',
+        confirmButtonText: 'Iniciar Sesión'
+      });
     } else {
       Swal.fire({
         icon: 'info',
@@ -1284,10 +1298,58 @@ const App = (() => {
     }
   }
 
-  // --- SISTEMA DEL CARRITO DE ALQUILER (PERSISTENTE Y MULTI-EQUIPO) ---
+  // --- SISTEMA DEL CARRITO DE ALQUILER (PERSISTENTE EN DOCKER POSTGRESQL Y MULTI-EQUIPO) ---
+  async function syncCartWithBackend() {
+    const user = API.getUser();
+    if (!user) {
+      cart = [];
+      updateCartBadge();
+      return;
+    }
+    try {
+      const remoteItems = await API.cart.get();
+      if (Array.isArray(remoteItems)) {
+        cart = remoteItems.map(item => ({
+          toolId: String(item.toolId),
+          name: item.name,
+          brand: item.brand,
+          model: item.model,
+          code: item.code || '',
+          imageUrl: item.imageUrl || 'assets/img/machinery/default.jpg',
+          categoryName: item.categoryName || 'Construcción',
+          providerName: item.providerName || 'Proveedor Aliado',
+          dailyRate: Number(item.dailyRate),
+          pricePerDay: Number(item.dailyRate),
+          depositAmount: Number(item.depositAmount),
+          days: item.days,
+          startDate: item.startDate,
+          endDate: item.endDate,
+          deliveryAddress: 'Frente de Obra - Colombia',
+          camaBajaNotes: '',
+          subtotal: Number(item.subtotal),
+          iva: Number(item.iva),
+          deposit: Number(item.deposit),
+          total: Number(item.total)
+        }));
+        saveCartToStorage();
+      }
+    } catch (e) {
+      console.warn('Error sincronizando carrito con la base de datos Docker:', e);
+      loadCartFromStorage();
+    }
+    updateCartBadge();
+  }
+
   function loadCartFromStorage() {
     try {
-      const saved = localStorage.getItem('rentatools_cart_v1');
+      const user = API.getUser();
+      if (!user) {
+        cart = [];
+        updateCartBadge();
+        return;
+      }
+      const userCartKey = `rentatools_cart_u${user.id || user.username}`;
+      const saved = localStorage.getItem(userCartKey) || localStorage.getItem('rentatools_cart_v1');
       cart = saved ? JSON.parse(saved) : [];
       if (!Array.isArray(cart)) cart = [];
     } catch (_) {
@@ -1297,10 +1359,21 @@ const App = (() => {
   }
 
   function saveCartToStorage() {
+    const user = API.getUser();
+    if (!user) {
+      cart = [];
+      try {
+        localStorage.removeItem('rentatools_cart_v1');
+      } catch (_) {}
+      updateCartBadge();
+      return;
+    }
     try {
+      const userCartKey = `rentatools_cart_u${user.id || user.username}`;
+      localStorage.setItem(userCartKey, JSON.stringify(cart));
       localStorage.setItem('rentatools_cart_v1', JSON.stringify(cart));
     } catch (e) {
-      console.error('Error guardando carrito:', e);
+      console.error('Error guardando carrito local:', e);
     }
     updateCartBadge();
   }
@@ -1337,6 +1410,9 @@ const App = (() => {
       existing.endDate = freeRange.endDate;
       recalculateCartItem(existing);
       saveCartToStorage();
+      if (API.getUser()) {
+        API.cart.update(tool.id, existing.days, existing.startDate, existing.endDate).catch(console.warn);
+      }
       if (document.getElementById('cartModal')?.classList.contains('show')) {
         renderCartModal();
       }
@@ -1389,6 +1465,9 @@ const App = (() => {
     });
 
     saveCartToStorage();
+    if (API.getUser()) {
+      API.cart.add(tool.id, daysCount, startStr, endStr).catch(console.warn);
+    }
 
     Swal.mixin({
       toast: true,
@@ -1432,6 +1511,9 @@ const App = (() => {
       cart.push(itemData);
     }
     saveCartToStorage();
+    if (API.getUser()) {
+      API.cart.add(tool.id, q.days, q.startDate, q.endDate).catch(console.warn);
+    }
 
     const bookingModalEl = document.getElementById('bookingModal');
     const bookingModal = bootstrap.Modal.getInstance(bookingModalEl);
@@ -1485,12 +1567,18 @@ const App = (() => {
 
     recalculateCartItem(item);
     saveCartToStorage();
+    if (API.getUser()) {
+      API.cart.update(toolId, item.days, item.startDate, item.endDate).catch(console.warn);
+    }
     renderCartModal();
   }
 
   function removeFromCart(toolId) {
     cart = cart.filter(c => String(c.toolId) !== String(toolId));
     saveCartToStorage();
+    if (API.getUser()) {
+      API.cart.remove(toolId).catch(console.warn);
+    }
     renderCartModal();
   }
 
@@ -1499,6 +1587,9 @@ const App = (() => {
     activeCartCheckout = null;
     activeToolForBooking = null;
     saveCartToStorage();
+    if (API.getUser()) {
+      API.cart.clear().catch(console.warn);
+    }
     renderCartModal();
   }
 
@@ -2662,6 +2753,9 @@ const App = (() => {
         // Limpiar carrito y estado
         cart = [];
         saveCartToStorage();
+        if (API.getUser()) {
+          API.cart.clear().catch(console.warn);
+        }
         updateCartBadge();
         activeCartCheckout = null;
         activeToolForBooking = null;
@@ -2799,6 +2893,9 @@ const App = (() => {
         if (activeToolForBooking) {
           cart = cart.filter(c => String(c.toolId) !== String(activeToolForBooking.id));
           saveCartToStorage();
+          if (API.getUser()) {
+            API.cart.remove(activeToolForBooking.id).catch(console.warn);
+          }
         }
         activeToolForBooking = null;
         updateCartBadge();
@@ -3386,6 +3483,30 @@ const App = (() => {
   // --- VISTAS & SESIÓN ---
 
   function switchView(viewName) {
+    if (viewName === 'provider-dashboard') {
+      const user = API.getUser();
+      if (!user) {
+        openAuthModal('login');
+        Swal.fire({
+          icon: 'warning',
+          title: 'Acceso Restringido',
+          text: 'Debes iniciar sesión con perfil de Proveedor o Administrador para acceder al Portal Proveedor.',
+          confirmButtonColor: '#00843D',
+          confirmButtonText: 'Iniciar Sesión'
+        });
+        return;
+      }
+      if (user.role === 'ROLE_CLIENTE') {
+        Swal.fire({
+          icon: 'info',
+          title: 'Perfil de Cliente',
+          text: 'Esta sección es exclusiva para proveedores de maquinaria aliados. Tu cuenta actual es de tipo Cliente.',
+          confirmButtonColor: '#00843D'
+        });
+        return;
+      }
+    }
+
     currentView = viewName;
     document.querySelectorAll('.app-view').forEach(v => v.style.display = 'none');
     document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
@@ -3537,7 +3658,7 @@ const App = (() => {
       if (providerNav) providerNav.style.display = isProvider ? 'block' : 'none';
       if (adminNav) adminNav.style.display = isAdmin ? 'block' : 'none';
       if (clientTabLink) clientTabLink.style.display = isClient ? 'block' : 'none';
-      if (providerTabLink) providerTabLink.style.display = 'block';
+      if (providerTabLink) providerTabLink.style.display = isProvider ? 'block' : 'none';
 
       // Rótulos contextuales según el rol (Admin -> "Alquileres Activos", Cliente -> "Mis Alquileres")
       const clientNavLabel = document.getElementById('nav-client-dashboard-label');
@@ -3610,7 +3731,7 @@ const App = (() => {
       if (providerNav) providerNav.style.display = 'none';
       if (adminNav) adminNav.style.display = 'none';
       if (clientTabLink) clientTabLink.style.display = 'none';
-      if (providerTabLink) providerTabLink.style.display = 'block';
+      if (providerTabLink) providerTabLink.style.display = 'none';
 
       if (clientDropdownItem) clientDropdownItem.style.display = 'none';
       if (providerDropdownItem) providerDropdownItem.style.display = 'none';
@@ -3777,6 +3898,7 @@ const App = (() => {
         const authModalInst = bootstrap.Modal.getInstance(document.getElementById('authModal')) || bootstrap.Modal.getOrCreateInstance(document.getElementById('authModal'));
         if (authModalInst) authModalInst.hide();
         checkAuthStatus();
+        await syncCartWithBackend();
 
         Swal.fire({
           icon: 'success',
@@ -3855,6 +3977,7 @@ const App = (() => {
         const authModalInstReg = bootstrap.Modal.getInstance(document.getElementById('authModal')) || bootstrap.Modal.getOrCreateInstance(document.getElementById('authModal'));
         if (authModalInstReg) authModalInstReg.hide();
         checkAuthStatus();
+        await syncCartWithBackend();
 
         Swal.fire({
           icon: 'success',
@@ -4138,6 +4261,16 @@ const App = (() => {
     API.setUser(null);
     if (typeof RealtimeManager !== 'undefined' && RealtimeManager.disconnect) {
       RealtimeManager.disconnect();
+    }
+    cart = [];
+    activeCartCheckout = null;
+    activeToolForBooking = null;
+    try {
+      localStorage.removeItem('rentatools_cart_v1');
+    } catch (_) {}
+    updateCartBadge();
+    if (document.getElementById('cartModal')?.classList.contains('show')) {
+      renderCartModal();
     }
     checkAuthStatus();
     switchView('catalog');

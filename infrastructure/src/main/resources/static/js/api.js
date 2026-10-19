@@ -161,6 +161,28 @@ const API = (() => {
     reports: {
       getDashboard: () => request('/api/v1/reports/dashboard'),
       getProvider: (providerId) => request(`/api/v1/reports/provider/${providerId}`)
+    },
+
+    cart: {
+      get: () => request('/api/v1/cart'),
+      add: (toolId, days, startDate, endDate) =>
+        request('/api/v1/cart', {
+          method: 'POST',
+          body: JSON.stringify({ toolId, days, startDate, endDate })
+        }),
+      update: (toolId, days, startDate, endDate) =>
+        request(`/api/v1/cart/${toolId}`, {
+          method: 'PUT',
+          body: JSON.stringify({ toolId, days, startDate, endDate })
+        }),
+      remove: (toolId) =>
+        request(`/api/v1/cart/${toolId}`, {
+          method: 'DELETE'
+        }),
+      clear: () =>
+        request('/api/v1/cart', {
+          method: 'DELETE'
+        })
     }
   };
 })();
