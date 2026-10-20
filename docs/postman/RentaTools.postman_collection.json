@@ -1,0 +1,1083 @@
+{
+  "info": {
+    "_postman_id": "b97e937d-8153-41bb-b892-rentatools2026",
+    "name": "RentaTools Enterprise API - Colecci\u00f3n Oficial",
+    "description": "Suite completa de pruebas de API para la Plataforma de Renta de Herramientas y Equipos de Construcci\u00f3n (Campus Lands Proyecto #1). Incluye flujos de Auth JWT, CRUD de Herramientas, Reservas con No Solapamiento, Facturaci\u00f3n PDF, Pagos y Reportes.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Autenticaci\u00f3n & Seguridad (JWT)",
+      "item": [
+        {
+          "name": "Login Administrador",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"Admin123!\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) { pm.environment.set('jwt_token', pm.response.json().token); pm.collectionVariables.set('jwt_token', pm.response.json().token); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login Proveedor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"proveedor\",\n  \"password\": \"Proveedor123!\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) { pm.environment.set('jwt_token', pm.response.json().token); pm.collectionVariables.set('jwt_token', pm.response.json().token); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login Cliente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"cliente\",\n  \"password\": \"Cliente123!\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) { pm.environment.set('jwt_token', pm.response.json().token); pm.collectionVariables.set('jwt_token', pm.response.json().token); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registro Nuevo Cliente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"nuevo_cliente\",\n  \"email\": \"nuevo@constructora.com\",\n  \"password\": \"Cliente123!\",\n  \"fullName\": \"Constructora Los Andes SAS\",\n  \"phone\": \"+57 320 1234567\",\n  \"role\": \"ROLE_CLIENTE\",\n  \"documentType\": \"NIT\",\n  \"documentNumber\": \"901.999.888-2\",\n  \"address\": \"Cra 7 # 100-20\",\n  \"city\": \"Bogot\\u00e1\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Consultar Perfil Autenticado (/me)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "me"
+              ],
+              "query": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Cat\u00e1logo & Maquinaria",
+      "item": [
+        {
+          "name": "Listar Todas las Herramientas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tools",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tools"
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "Filtrar por Categor\u00eda (Excavaci\u00f3n)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tools?categoryId=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tools"
+              ],
+              "query": [
+                {
+                  "key": "categoryId",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Filtrar por Estado (DISPONIBLE)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tools?status=DISPONIBLE",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tools"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "DISPONIBLE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Consultar Maquinaria por ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tools/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tools",
+                "1"
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "Buscar Maquinaria Cercana (Geolocalizaci\u00f3n Haversine)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tools/nearby?lat=4.6534&lng=-74.0836&radiusKm=30",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tools",
+                "nearby"
+              ],
+              "query": [
+                {
+                  "key": "lat",
+                  "value": "4.6534"
+                },
+                {
+                  "key": "lng",
+                  "value": "-74.0836"
+                },
+                {
+                  "key": "radiusKm",
+                  "value": "30"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar Categor\u00edas Activas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tools/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tools",
+                "categories"
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "Registrar Nueva Herramienta (Proveedor / Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tools",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tools"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryId\": 1,\n  \"code\": \"CAT-336D-TEST\",\n  \"name\": \"Excavadora Hidr\\u00e1ulica CAT 336D\",\n  \"brand\": \"Caterpillar\",\n  \"model\": \"336D L\",\n  \"dailyPrice\": 950000.0,\n  \"depositAmount\": 3000000.0,\n  \"latitude\": 4.6534,\n  \"longitude\": -74.0836,\n  \"imageUrls\": [\n    \"/assets/img/machinery/Retroexcavadora-Oruga-CAT-320D.png\"\n  ],\n  \"specifications\": [\n    {\n      \"specName\": \"Potencia\",\n      \"specValue\": \"268 HP\"\n    }\n  ]\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Reservas y Alquileres",
+      "item": [
+        {
+          "name": "Listar Todas las Reservas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rentals",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "rentals"
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "Mis Alquileres (Cliente / Proveedor)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rentals/my-rentals",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "rentals",
+                "my-rentals"
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "Validar Disponibilidad sin Solapamiento",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rentals/check-availability?toolId=1&startDate=2026-11-10&endDate=2026-11-15",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "rentals",
+                "check-availability"
+              ],
+              "query": [
+                {
+                  "key": "toolId",
+                  "value": "1"
+                },
+                {
+                  "key": "startDate",
+                  "value": "2026-11-10"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2026-11-15"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Crear Solicitud de Alquiler",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rentals",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "rentals"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"toolId\": 1,\n  \"startDate\": \"2026-11-10\",\n  \"endDate\": \"2026-11-15\",\n  \"deliveryAddress\": \"Proyecto Torre Titanium - Calle 100 # 15-20, Bogot\\u00e1\",\n  \"notes\": \"Requerida con operador certificado\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Cambiar Estado de Alquiler (Aprobar/Confirmar)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rentals/1/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "rentals",
+                "1",
+                "status"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"CONFIRMADA\",\n  \"reason\": \"Aprobado por el jefe de patio\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Registrar Devoluci\u00f3n e Inspecci\u00f3n T\u00e9cnica",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rentals/1/return",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "rentals",
+                "1",
+                "return"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"equipmentCondition\": \"EXCELENTE\",\n  \"hasDamage\": false,\n  \"depositRefunded\": 2500000.0,\n  \"notes\": \"Equipo recibido en patio sin novedades\",\n  \"damages\": []\n}"
+            }
+          }
+        },
+        {
+          "name": "Consultar Timeline de Auditor\u00eda de Estados",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rentals/1/timeline",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "rentals",
+                "1",
+                "timeline"
+              ],
+              "query": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Carrito de Alquiler (Cloud Cart)",
+      "item": [
+        {
+          "name": "Consultar Carrito del Usuario",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/cart",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cart"
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "Agregar \u00cdtem al Carrito",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/cart/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cart",
+                "items"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"toolId\": 2,\n  \"days\": 5,\n  \"startDate\": \"2026-11-20\",\n  \"endDate\": \"2026-11-25\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Eliminar \u00cdtem del Carrito",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/cart/items/2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cart",
+                "items",
+                "2"
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "Vaciar Carrito Completo",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/cart",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cart"
+              ],
+              "query": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Facturaci\u00f3n Electr\u00f3nica",
+      "item": [
+        {
+          "name": "Generar Factura para Alquiler",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/invoices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "invoices"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rentalId\": 1,\n  \"clientId\": 1,\n  \"clientName\": \"Constructora H\\u00e1bitat SAS\",\n  \"clientTaxId\": \"901.111.222-1\",\n  \"depositAmount\": 2500000.0,\n  \"items\": [\n    {\n      \"toolId\": 1,\n      \"toolName\": \"Retroexcavadora Oruga CAT 320D\",\n      \"dailyRate\": 850000.0,\n      \"days\": 4\n    }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Consultar Factura por ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/invoices/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "invoices",
+                "1"
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "Consultar Facturas de un Cliente",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/invoices/client/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "invoices",
+                "client",
+                "1"
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "Consultar Factura por ID de Alquiler",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/invoices/rental/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "invoices",
+                "rental",
+                "1"
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "Descargar Factura Oficial en PDF (OpenPDF)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/invoices/1/pdf",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "invoices",
+                "1",
+                "pdf"
+              ],
+              "query": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Pagos y Pasarela",
+      "item": [
+        {
+          "name": "Procesar Pago en L\u00ednea (PSE / Tarjeta)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "payments"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"invoiceId\": 1,\n  \"clientId\": 1,\n  \"amount\": 6546000.0,\n  \"paymentMethod\": \"PSE Bancolombia\",\n  \"transactionReference\": \"TX-POSTMAN-2026-TEST\",\n  \"notes\": \"Pago completado satisfactoriamente desde Postman\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Consultar Pago por Factura",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments/invoice/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "payments",
+                "invoice",
+                "1"
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "Consultar Historial de Pagos de Cliente",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments/client/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "payments",
+                "client",
+                "1"
+              ],
+              "query": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Reportes & KPIs de Negocio",
+      "item": [
+        {
+          "name": "M\u00e9tricas Globales del Dashboard (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reports/dashboard",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reports",
+                "dashboard"
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "Estad\u00edsticas de Rendimiento (Proveedor)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reports/provider/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reports",
+                "provider",
+                "1"
+              ],
+              "query": []
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

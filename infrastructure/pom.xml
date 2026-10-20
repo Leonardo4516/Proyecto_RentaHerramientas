@@ -63,6 +63,13 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- MySQL Database Driver (Soporte Dual Multi-Motor) -->
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
         <!-- JWT -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
