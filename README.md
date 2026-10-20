@@ -108,59 +108,123 @@ jwt:
 
 ### 1. Clonar el Repositorio
 ```bash
-git clone https://github.com/Leonardo4516/Proyecto_RentaHerramientas.git
+git clone -b develop https://github.com/Leonardo4516/Proyecto_RentaHerramientas.git
 cd Proyecto_RentaHerramientas
-git checkout develop
 ```
 
-### 2. Iniciar la Base de Datos
-* **Opción con Docker Compose (Recomendada):**
+> [!NOTE]
+> **Base de Datos en la Nube (Preconfigurada por defecto):**
+> El proyecto viene configurado por defecto para conectarse automáticamente a **Supabase (PostgreSQL en la Nube)**. No necesitas instalar ni configurar PostgreSQL, MySQL ni Docker en tu máquina para correr el proyecto. ¡Solo necesitas **Java 17 o 21** e internet!
+
+### 2. Ejecución Inmediata (2 Métodos)
+
+#### 🚀 Método 1: Ejecutar directamente con Maven Wrapper (Recomendado para desarrollo)
+
+No necesitas tener Maven instalado, el proyecto incluye sus propios wrappers ejecutables:
+
+* **En Linux / macOS:**
+  ```bash
+  ./mvnw spring-boot:run
+  ```
+* **En Windows (CMD o PowerShell):**
+  ```cmd
+  mvnw.cmd spring-boot:run
+  ```
+
+---
+
+#### 📦 Método 2: Ejecutar mediante el paquete WAR (`rentatools.war`)
+
+El empaquetado del proyecto genera un archivo WAR híbrido que **incluye su propio servidor Apache Tomcat integrado** en su interior.
+
+> [!IMPORTANT]
+> **¿El computador debe tener Tomcat instalado?**
+> **¡NO!** No necesitas instalar Apache Tomcat por separado. El archivo `.war` contiene su propio servidor web embebido y arranca inmediatamente con el comando `java -jar`.
+
+**1. Generar el archivo WAR:**
+```bash
+# Linux / macOS:
+./mvnw clean package -DskipTests
+
+# Windows:
+mvnw.cmd clean package -DskipTests
+```
+El archivo compilado quedará ubicado exactamente en:
+```text
+infrastructure/target/rentatools.war
+```
+
+**2. ¿Dónde y cómo ejecutar el comando `java -jar`?**
+
+* **Caso A: Si estás parado en la carpeta raíz del proyecto (`Proyecto_RentaHerramientas`):**
+  ```bash
+  # Linux / macOS:
+  java -jar infrastructure/target/rentatools.war
+
+  # Windows (CMD / PowerShell):
+  java -jar infrastructure\target\rentatools.war
+  ```
+
+* **Caso B: Si abriste la terminal dentro de la carpeta `infrastructure/target/`:**
+  ```bash
+  cd infrastructure/target
+  java -jar rentatools.war
+  ```
+
+* **Caso C: Si copiaste el archivo `rentatools.war` a una USB o al Escritorio de otro computador:**
+  Abres la terminal en esa misma carpeta donde pegaste el archivo y ejecutas:
+  ```bash
+  java -jar rentatools.war
+  ```
+
+---
+
+### 3. Acceder a la Aplicación
+
+Una vez que la terminal indique `Tomcat started on port 8080 (http) with context path '/'`:
+* 🌐 **Plataforma Web (Frontend):** [http://localhost:8080/](http://localhost:8080/)
+* 📚 **Documentación Swagger / OpenAPI:** [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
+* 🚀 **API REST:** [http://localhost:8080/api/v1/tools](http://localhost:8080/api/v1/tools)
+
+---
+
+## 💾 Opciones de Base de Datos Local (Opcional)
+
+Si en lugar de la base de datos en la nube de Supabase deseas trabajar con una base de datos local:
+
+* **Opción A (Docker Compose - PostgreSQL 16):**
   ```bash
   docker compose up -d
   ```
-  *Levantará PostgreSQL 16 con todas las tablas e inicialización de 20+ registros automáticamente.*
-
-* **Opción con MySQL:**
-  Crea la base de datos `renta_herramientas_db` en tu servidor MySQL y ejecuta los scripts:
+* **Opción B (MySQL Local):**
+  Crea la base de datos `renta_herramientas_db` en tu servidor MySQL 8 y ejecuta los scripts:
   ```bash
   mysql -u root -p < docs/sql/01_mysql_schema_4fn.sql
   mysql -u root -p < docs/sql/02_mysql_seeds_20_records.sql
   ```
+  Y arranca pasando las variables de conexión local (`-DSPRING_DATASOURCE_URL=...`).
 
 ---
 
-### 3. Compilar y Ejecutar
+## 🚢 Despliegue en Servidor Apache Tomcat Externo (Solo si es exigido por el evaluador)
 
-El proyecto incluye **Maven Wrapper** tanto para Linux/Mac (`./mvnw`) como para Windows (`mvnw.cmd`):
+Si el profesor o evaluador te exige desplegar la aplicación dentro de una instalación independiente de Apache Tomcat:
 
-* **En Linux / macOS:**
-  ```bash
-  ./mvnw clean package -DskipTests
-  java -jar infrastructure/target/rentatools.war
-  ```
-
-* **En Windows (CMD / PowerShell):**
-  ```cmd
-  mvnw.cmd clean package -DskipTests
-  java -jar infrastructure\target\rentatools.war
-  ```
-
----
-
-## 🚢 Despliegue en Servidor Apache Tomcat Externo
-
-El proyecto está empaquetado como archivo **WAR dual** compatible con Apache Tomcat 10.1+ (Jakarta EE 10):
-
-1. Genera el empaquetado:
+1. Asegúrate de tener instalado **Apache Tomcat 10.1 o superior** (compatible con Jakarta EE 10 / Servlet 6.0).
+2. Genera el empaquetado:
    ```bash
    ./mvnw clean package -DskipTests
    ```
-2. Copia el archivo `infrastructure/target/rentatools.war` dentro de la carpeta `webapps/` de tu instalación de Tomcat:
+3. Copia el archivo `infrastructure/target/rentatools.war` dentro de la carpeta `webapps/` de Apache Tomcat:
    ```bash
-   cp infrastructure/target/rentatools.war /opt/tomcat/webapps/ROOT.war
+   # En Linux / macOS:
+   cp infrastructure/target/rentatools.war /opt/tomcat/webapps/rentatools.war
+
+   # En Windows:
+   copy infrastructure\target\rentatools.war C:\apache-tomcat-10.1.x\webapps\rentatools.war
    ```
-3. Inicia Tomcat (`./bin/startup.sh` en Linux o `startup.bat` en Windows).
-4. Accede en tu navegador a: [http://localhost:8080/](http://localhost:8080/)
+4. Inicia Tomcat (`bin/startup.sh` en Linux o `bin/startup.bat` en Windows).
+5. Accede en tu navegador a: [http://localhost:8080/rentatools/](http://localhost:8080/rentatools/)
 
 ---
 
