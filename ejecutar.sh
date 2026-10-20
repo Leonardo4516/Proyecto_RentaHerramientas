@@ -1,12 +1,13 @@
 #!/bin/bash
-if [ ! -f "infrastructure/target/rentatools.war" ]; then
+# Recompilar si no existe el war o si cambió application.yml / pom.xml
+if [ ! -f "infrastructure/target/rentatools.war" ] || [ "infrastructure/src/main/resources/application.yml" -nt "infrastructure/target/rentatools.war" ] || [ "pom.xml" -nt "infrastructure/target/rentatools.war" ]; then
     echo "=========================================================="
-    echo "📦 Compilando RentaTools por primera vez..."
+    echo "📦 Compilando cambios de RentaTools..."
     echo "=========================================================="
     ./mvnw clean package -DskipTests
 fi
 
-# Detección automática de puerto para evitar conflictos
+# Detección automática de puerto libre para evitar colisiones
 PORT=8080
 if ss -tulpn 2>/dev/null | grep -q ":8080 " || lsof -Pi :8080 -sTCP:LISTEN -t >/dev/null 2>&1 || nc -z 127.0.0.1 8080 >/dev/null 2>&1; then
     echo "=========================================================="
