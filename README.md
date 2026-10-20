@@ -118,17 +118,21 @@ cd Proyecto_RentaHerramientas
 
 ### 2. Ejecución Inmediata (2 Métodos)
 
-#### 🚀 Método 1: Ejecutar directamente con Maven Wrapper (Recomendado para desarrollo)
+#### 🚀 Método 1: Ejecutar directamente con Maven Wrapper (Recomendado)
 
-No necesitas tener Maven instalado, el proyecto incluye sus propios wrappers ejecutables:
+Al ser una arquitectura modular (DDD), se ejecuta indicando el módulo de infraestructura (`-pl infrastructure`) o con los scripts directos:
 
 * **En Linux / macOS:**
   ```bash
-  ./mvnw spring-boot:run
+  ./mvnw spring-boot:run -pl infrastructure
+  # O simplemente:
+  ./ejecutar.sh
   ```
 * **En Windows (CMD o PowerShell):**
   ```cmd
-  mvnw.cmd spring-boot:run
+  mvnw.cmd spring-boot:run -pl infrastructure
+  rem O simplemente:
+  ejecutar.bat
   ```
 
 ---

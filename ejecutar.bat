@@ -1,0 +1,3 @@
+@echo off
+echo Iniciando RentaTools con conexion a Supabase...
+mvnw.cmd spring-boot:run -pl infrastructure
