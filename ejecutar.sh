@@ -1,3 +1,12 @@
 #!/bin/bash
-echo "Iniciando RentaTools con conexión a Supabase..."
-./mvnw spring-boot:run -pl infrastructure
+if [ ! -f "infrastructure/target/rentatools.war" ]; then
+    echo "=========================================================="
+    echo "📦 Compilando RentaTools por primera vez..."
+    echo "=========================================================="
+    ./mvnw clean package -DskipTests
+fi
+
+echo "=========================================================="
+echo "🚀 Iniciando RentaTools (Tomcat Embebido + Supabase Cloud)..."
+echo "=========================================================="
+java -jar infrastructure/target/rentatools.war

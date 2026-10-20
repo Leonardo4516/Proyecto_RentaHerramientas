@@ -116,26 +116,44 @@ cd Proyecto_RentaHerramientas
 > **Base de Datos en la Nube (Preconfigurada por defecto):**
 > El proyecto viene configurado por defecto para conectarse automáticamente a **Supabase (PostgreSQL en la Nube)**. No necesitas instalar ni configurar PostgreSQL, MySQL ni Docker en tu máquina para correr el proyecto. ¡Solo necesitas **Java 17 o 21** e internet!
 
-### 2. Ejecución Inmediata (2 Métodos)
+### 2. Ejecución Inmediata (Super Sencilla)
 
-#### 🚀 Método 1: Ejecutar directamente con Maven Wrapper (Recomendado)
-
-Al ser una arquitectura modular (DDD), se ejecuta indicando el módulo de infraestructura (`-pl infrastructure`) o con los scripts directos:
+El proyecto incluye scripts automatizados que compilan todos los módulos y arrancan el servidor Tomcat integrado de inmediato:
 
 * **En Linux / macOS:**
   ```bash
-  ./mvnw spring-boot:run -pl infrastructure
-  # O simplemente:
   ./ejecutar.sh
   ```
 * **En Windows (CMD o PowerShell):**
   ```cmd
-  mvnw.cmd spring-boot:run -pl infrastructure
-  rem O simplemente:
   ejecutar.bat
   ```
 
+*(El script verifica si el proyecto está compilado; si es la primera vez que se clona, lo compila automáticamente y arranca el servidor en el puerto `8080`).*
+
 ---
+
+#### 🛠️ Ejecución Manual en 2 Comandos (Equivalente)
+
+Si prefieres ejecutar los comandos manualmente uno por uno:
+
+1. **Compilar todos los módulos y empaquetar:**
+   ```bash
+   # Linux / macOS:
+   ./mvnw clean package -DskipTests
+
+   # Windows (CMD / PowerShell):
+   mvnw.cmd clean package -DskipTests
+   ```
+
+2. **Iniciar el servidor Tomcat integrado:**
+   ```bash
+   # Linux / macOS:
+   java -jar infrastructure/target/rentatools.war
+
+   # Windows (CMD / PowerShell):
+   java -jar infrastructure\target\rentatools.war
+   ```
 
 #### 📦 Método 2: Ejecutar mediante el paquete WAR (`rentatools.war`)
 
