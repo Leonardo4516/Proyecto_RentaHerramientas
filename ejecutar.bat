@@ -6,7 +6,17 @@ if not exist "infrastructure\target\rentatools.war" (
     call mvnw.cmd clean package -DskipTests
 )
 
+set PORT=8080
+netstat -ano | findstr :8080 | findstr LISTENING >nul 2>&1
+if not errorlevel 1 (
+    echo ==========================================================
+    echo Puerto 8080 ocupado. Cambiando automaticamente a puerto 8081...
+    echo ==========================================================
+    set PORT=8081
+)
+
 echo ==========================================================
-echo Iniciando RentaTools (Tomcat Embebido + Supabase Cloud)...
+echo Iniciando RentaTools en puerto %PORT% (Tomcat Embebido + Supabase Cloud)...
+echo Abre en tu navegador: http://localhost:%PORT%/
 echo ==========================================================
-java -jar infrastructure\target\rentatools.war
+java -Dserver.port=%PORT% -jar infrastructure\target\rentatools.war
