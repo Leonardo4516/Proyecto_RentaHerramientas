@@ -31,8 +31,8 @@ WORKDIR /app
 # Crear usuario no root por seguridad
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
-# Copiar el JAR generado desde la etapa de compilación
-COPY --from=builder /workspace/infrastructure/target/infrastructure-*.jar app.jar
+# Copiar el paquete WAR generado desde la etapa de compilación
+COPY --from=builder /workspace/infrastructure/target/rentatools.war app.war
 
 # Asignar permisos al usuario
 RUN chown -R appuser:appgroup /app
@@ -43,4 +43,4 @@ ENV PORT=8080
 EXPOSE 8080
 
 # Parámetros optimizados para contenedores de memoria limitada (Render / Railway / Cloud)
-ENTRYPOINT ["sh", "-c", "java -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Dserver.port=${PORT:-8080} -jar app.jar"]
+ENTRYPOINT ["sh", "-c", "java -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Dserver.port=${PORT:-8080} -jar app.war"]
