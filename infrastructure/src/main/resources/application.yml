@@ -8,9 +8,9 @@ spring:
     name: Proyecto_RentaHerramientas
 
   datasource:
-    url: ${JDBC_DATABASE_URL:${SPRING_DATASOURCE_URL:${DB_URL:${SUPABASE_DB_URL:jdbc:postgresql://${DB_HOST:${POSTGRES_HOST:localhost}}:${DB_PORT:${POSTGRES_PORT:5432}}/${DB_NAME:${POSTGRES_DB:renta_herramientas_db}}}}}}
-    username: ${SPRING_DATASOURCE_USERNAME:${DB_USER:${SUPABASE_DB_USER:${POSTGRES_USER:postgres}}}}
-    password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:${SUPABASE_DB_PASSWORD:${POSTGRES_PASSWORD:postgres}}}}
+    url: ${JDBC_DATABASE_URL:${SPRING_DATASOURCE_URL:${DB_URL:${SUPABASE_DB_URL:jdbc:postgresql://aws-0-us-east-1.pooler.supabase.com:5432/postgres?sslmode=require}}}}
+    username: ${SPRING_DATASOURCE_USERNAME:${DB_USER:${SUPABASE_DB_USER:${POSTGRES_USER:postgres.bijjnwcqhnnjxjlgqcns}}}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:${SUPABASE_DB_PASSWORD:${POSTGRES_PASSWORD:@colombia2020***}}}}
     driver-class-name: ${SPRING_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
 
   jpa:
