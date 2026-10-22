@@ -40,6 +40,10 @@ public class ToolController {
     private final RegisterToolUseCase registerToolUseCase;
     private final UpdateToolUseCase updateToolUseCase;
     private final FindNearbyToolsUseCase findNearbyToolsUseCase;
+    private final com.rentatools.application.tool.usecase.CreateToolCategoryUseCase createToolCategoryUseCase;
+    private final com.rentatools.application.tool.usecase.UpdateToolCategoryUseCase updateToolCategoryUseCase;
+    private final com.rentatools.application.tool.usecase.RegisterToolMaintenanceUseCase registerToolMaintenanceUseCase;
+    private final com.rentatools.application.tool.usecase.GetToolMaintenanceHistoryUseCase getToolMaintenanceHistoryUseCase;
     private final ToolCategoryRepository categoryRepository;
     private final SpringDataProviderRepository providerRepository;
     private final SpringDataUserRepository userRepository;
@@ -50,6 +54,10 @@ public class ToolController {
                           RegisterToolUseCase registerToolUseCase,
                           UpdateToolUseCase updateToolUseCase,
                           FindNearbyToolsUseCase findNearbyToolsUseCase,
+                          com.rentatools.application.tool.usecase.CreateToolCategoryUseCase createToolCategoryUseCase,
+                          com.rentatools.application.tool.usecase.UpdateToolCategoryUseCase updateToolCategoryUseCase,
+                          com.rentatools.application.tool.usecase.RegisterToolMaintenanceUseCase registerToolMaintenanceUseCase,
+                          com.rentatools.application.tool.usecase.GetToolMaintenanceHistoryUseCase getToolMaintenanceHistoryUseCase,
                           ToolCategoryRepository categoryRepository,
                           SpringDataProviderRepository providerRepository,
                           SpringDataUserRepository userRepository) {
@@ -59,6 +67,10 @@ public class ToolController {
         this.registerToolUseCase = registerToolUseCase;
         this.updateToolUseCase = updateToolUseCase;
         this.findNearbyToolsUseCase = findNearbyToolsUseCase;
+        this.createToolCategoryUseCase = createToolCategoryUseCase;
+        this.updateToolCategoryUseCase = updateToolCategoryUseCase;
+        this.registerToolMaintenanceUseCase = registerToolMaintenanceUseCase;
+        this.getToolMaintenanceHistoryUseCase = getToolMaintenanceHistoryUseCase;
         this.categoryRepository = categoryRepository;
         this.providerRepository = providerRepository;
         this.userRepository = userRepository;
@@ -159,6 +171,27 @@ public class ToolController {
         return ResponseEntity.ok(categories);
     }
 
+    @PostMapping("/categories")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @Operation(summary = "Crear nueva categoría de herramientas (Rol: Admin)")
+    public ResponseEntity<ToolCategoryResponse> createCategory(
+            @Valid @RequestBody com.rentatools.application.tool.dto.CreateToolCategoryCommand command
+    ) {
+        ToolCategoryResponse created = createToolCategoryUseCase.execute(command);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    @PutMapping("/categories/{id}")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @Operation(summary = "Actualizar categoría de herramientas (Rol: Admin)")
+    public ResponseEntity<ToolCategoryResponse> updateCategory(
+            @PathVariable Long id,
+            @Valid @RequestBody com.rentatools.application.tool.dto.UpdateToolCategoryCommand command
+    ) {
+        ToolCategoryResponse updated = updateToolCategoryUseCase.execute(id, command);
+        return ResponseEntity.ok(updated);
+    }
+
     @PostMapping
     @PreAuthorize("hasAnyAuthority('ROLE_PROVEEDOR', 'ROLE_ADMIN')")
     @Operation(summary = "Registrar nueva herramienta en el inventario (Rol: Proveedor)")
@@ -223,6 +256,30 @@ public class ToolController {
         }
         ToolResponse updated = updateToolUseCase.updateStatus(id, status);
         return ResponseEntity.ok(enrichTool(updated));
+    }
+
+    @PostMapping("/{id}/maintenance")
+    @PreAuthorize("hasAnyAuthority('ROLE_PROVEEDOR', 'ROLE_ADMIN')")
+    @Operation(summary = "Registrar mantenimiento preventivo o correctivo de maquinaria", description = "Registra una entrada en la bitácora técnica de la herramienta y opcionalmente conmuta su estado a EN_MANTENIMIENTO")
+    public ResponseEntity<com.rentatools.application.tool.dto.ToolMaintenanceResponse> registerMaintenance(
+            @PathVariable Long id,
+            @Valid @RequestBody com.rentatools.application.tool.dto.RegisterMaintenanceCommand command,
+            Authentication authentication
+    ) {
+        if (authentication != null && !authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+            validateToolProviderOwnership(id, authentication.getName());
+        }
+        com.rentatools.application.tool.dto.ToolMaintenanceResponse response = registerToolMaintenanceUseCase.execute(id, command);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/{id}/maintenance")
+    @Operation(summary = "Consultar bitácora de mantenimientos de una herramienta")
+    public ResponseEntity<List<com.rentatools.application.tool.dto.ToolMaintenanceResponse>> getMaintenanceHistory(
+            @PathVariable Long id
+    ) {
+        List<com.rentatools.application.tool.dto.ToolMaintenanceResponse> history = getToolMaintenanceHistoryUseCase.execute(id);
+        return ResponseEntity.ok(history);
     }
 
     private void validateToolProviderOwnership(Long toolId, String username) {

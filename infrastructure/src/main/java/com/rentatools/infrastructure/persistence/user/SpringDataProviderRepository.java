@@ -9,4 +9,5 @@ import java.util.Optional;
 public interface SpringDataProviderRepository extends JpaRepository<ProviderJpaEntity, Long> {
     Optional<ProviderJpaEntity> findByUserId(Long userId);
     Optional<ProviderJpaEntity> findByTaxId(String taxId);
+    java.util.List<ProviderJpaEntity> findByVerified(Boolean verified);
 }

@@ -2,8 +2,10 @@ package com.rentatools.infrastructure.adapters.in.rest;
 
 import com.rentatools.application.report.GetDashboardMetricsUseCase;
 import com.rentatools.application.report.GetProviderStatsUseCase;
+import com.rentatools.application.report.GetTopPerformanceUseCase;
 import com.rentatools.application.report.dto.DashboardMetricsResponse;
 import com.rentatools.application.report.dto.ProviderStatsResponse;
+import com.rentatools.application.report.dto.TopPerformanceResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
@@ -19,10 +21,14 @@ public class ReportController {
 
     private final GetDashboardMetricsUseCase dashboardMetricsUseCase;
     private final GetProviderStatsUseCase providerStatsUseCase;
+    private final GetTopPerformanceUseCase topPerformanceUseCase;
 
-    public ReportController(GetDashboardMetricsUseCase dashboardMetricsUseCase, GetProviderStatsUseCase providerStatsUseCase) {
+    public ReportController(GetDashboardMetricsUseCase dashboardMetricsUseCase,
+                            GetProviderStatsUseCase providerStatsUseCase,
+                            GetTopPerformanceUseCase topPerformanceUseCase) {
         this.dashboardMetricsUseCase = dashboardMetricsUseCase;
         this.providerStatsUseCase = providerStatsUseCase;
+        this.topPerformanceUseCase = topPerformanceUseCase;
     }
 
     @GetMapping("/dashboard")
@@ -36,6 +42,13 @@ public class ReportController {
     @Operation(summary = "Estadísticas por Proveedor", description = "Retorna métricas individuales de un proveedor específico")
     public ResponseEntity<ProviderStatsResponse> getProviderStats(@PathVariable Long providerId) {
         ProviderStatsResponse response = providerStatsUseCase.execute(providerId);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/top-performance")
+    @Operation(summary = "BI de Máximo Rendimiento", description = "Retorna la maquinaria más rentable, el cliente con mayor facturación y la tasa de ocupación actual del parque")
+    public ResponseEntity<TopPerformanceResponse> getTopPerformance() {
+        TopPerformanceResponse response = topPerformanceUseCase.execute();
         return ResponseEntity.ok(response);
     }
 }

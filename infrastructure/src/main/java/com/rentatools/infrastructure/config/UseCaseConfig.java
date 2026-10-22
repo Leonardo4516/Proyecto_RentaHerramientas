@@ -10,6 +10,7 @@ import com.rentatools.application.billing.GenerateInvoiceUseCase;
 import com.rentatools.application.billing.ProcessPaymentUseCase;
 import com.rentatools.application.report.GetDashboardMetricsUseCase;
 import com.rentatools.application.report.GetProviderStatsUseCase;
+import com.rentatools.application.report.GetTopPerformanceUseCase;
 import com.rentatools.domain.billing.port.InvoiceRepository;
 import com.rentatools.domain.billing.port.PaymentRepository;
 import com.rentatools.domain.billing.port.PdfPort;
@@ -73,5 +74,10 @@ public class UseCaseConfig {
     @Bean
     public GetProviderStatsUseCase getProviderStatsUseCase(ReportRepository reportRepository) {
         return new GetProviderStatsUseCase(reportRepository);
+    }
+
+    @Bean
+    public GetTopPerformanceUseCase getTopPerformanceUseCase(ReportRepository reportRepository) {
+        return new GetTopPerformanceUseCase(reportRepository);
     }
 }

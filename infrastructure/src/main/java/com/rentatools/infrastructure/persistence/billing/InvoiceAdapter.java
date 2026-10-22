@@ -66,6 +66,11 @@ public class InvoiceAdapter implements InvoiceRepository {
         return invoiceRepo.count();
     }
 
+    @Override
+    public List<Invoice> findOverdue(java.time.LocalDateTime now) {
+        return invoiceRepo.findByPaidFalseAndDueDateBefore(now).stream().map(this::toDomain).collect(Collectors.toList());
+    }
+
     private InvoiceJpaEntity toEntity(Invoice inv) {
         if (inv == null) return null;
         InvoiceJpaEntity e = new InvoiceJpaEntity();

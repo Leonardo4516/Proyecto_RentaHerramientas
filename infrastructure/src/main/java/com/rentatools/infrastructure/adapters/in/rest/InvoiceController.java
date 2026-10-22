@@ -75,6 +75,15 @@ public class InvoiceController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/overdue")
+    @Operation(summary = "Consultar facturas vencidas (Cartera en mora)", description = "Retorna el listado de facturas impagas cuya fecha límite ya expiró")
+    public ResponseEntity<List<InvoiceResponse>> getOverdueInvoices() {
+        List<InvoiceResponse> list = invoiceRepository.findOverdue(java.time.LocalDateTime.now()).stream()
+                .map(InvoiceResponse::fromDomain)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(list);
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Consultar factura por ID", description = "Obtiene los detalles y estado de una factura")
     public ResponseEntity<InvoiceResponse> getInvoiceById(@PathVariable Long id) {

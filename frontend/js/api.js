@@ -129,6 +129,22 @@ const API = (() => {
       updateStatus: (id, status) =>
         request(`/api/v1/tools/${id}/status?status=${encodeURIComponent(status)}`, {
           method: 'PATCH'
+        }),
+      registerMaintenance: (id, data) =>
+        request(`/api/v1/tools/${id}/maintenance`, {
+          method: 'POST',
+          body: JSON.stringify(data)
+        }),
+      getMaintenanceHistory: (id) => request(`/api/v1/tools/${id}/maintenance`),
+      createCategory: (data) =>
+        request('/api/v1/tools/categories', {
+          method: 'POST',
+          body: JSON.stringify(data)
+        }),
+      updateCategory: (id, data) =>
+        request(`/api/v1/tools/categories/${id}`, {
+          method: 'PUT',
+          body: JSON.stringify(data)
         })
     },
 
@@ -227,7 +243,20 @@ const API = (() => {
           method: 'PUT'
         });
       },
-      downloadPdfUrl: (id) => `${BASE_URL}/api/v1/invoices/${id}/pdf`
+      downloadPdfUrl: (id) => `${BASE_URL}/api/v1/invoices/${id}/pdf`,
+      getOverdue: () => request('/api/v1/invoices/overdue')
+    },
+
+    providers: {
+      getAll: (verified) => {
+        const query = (verified !== undefined && verified !== null) ? `?verified=${encodeURIComponent(verified)}` : '';
+        return request(`/api/v1/providers${query}`);
+      },
+      getById: (id) => request(`/api/v1/providers/${id}`),
+      verify: (id, verified = true) =>
+        request(`/api/v1/providers/${id}/verify?verified=${encodeURIComponent(verified)}`, {
+          method: 'PUT'
+        })
     },
 
     payments: {
@@ -253,7 +282,8 @@ const API = (() => {
 
     reports: {
       getDashboard: () => request('/api/v1/reports/dashboard'),
-      getProvider: (providerId) => request(`/api/v1/reports/provider/${providerId}`)
+      getProvider: (providerId) => request(`/api/v1/reports/provider/${providerId}`),
+      getTopPerformance: () => request('/api/v1/reports/top-performance')
     },
 
     cart: {

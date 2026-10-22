@@ -14,8 +14,11 @@ import com.rentatools.domain.rental.RentalRepository;
 import com.rentatools.domain.tool.ToolRepository;
 import com.rentatools.application.rental.usecase.GetReturnInspectionUseCase;
 import com.rentatools.application.rental.usecase.RegisterReturnInspectionUseCase;
+import com.rentatools.application.tool.usecase.CreateToolCategoryUseCase;
+import com.rentatools.application.tool.usecase.UpdateToolCategoryUseCase;
 import com.rentatools.domain.billing.port.PaymentRepository;
 import com.rentatools.domain.notification.port.NotificationPort;
+import com.rentatools.domain.tool.ToolCategoryRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -83,5 +86,28 @@ public class BeanConfig {
     @Bean
     public GetReturnInspectionUseCase getReturnInspectionUseCase(RentalRepository rentalRepository) {
         return new GetReturnInspectionUseCase(rentalRepository);
+    }
+
+    @Bean
+    public CreateToolCategoryUseCase createToolCategoryUseCase(ToolCategoryRepository categoryRepository) {
+        return new CreateToolCategoryUseCase(categoryRepository);
+    }
+
+    @Bean
+    public UpdateToolCategoryUseCase updateToolCategoryUseCase(ToolCategoryRepository categoryRepository) {
+        return new UpdateToolCategoryUseCase(categoryRepository);
+    }
+
+    @Bean
+    public com.rentatools.application.tool.usecase.RegisterToolMaintenanceUseCase registerToolMaintenanceUseCase(
+            com.rentatools.domain.tool.ToolMaintenanceRepository maintenanceRepository,
+            ToolRepository toolRepository) {
+        return new com.rentatools.application.tool.usecase.RegisterToolMaintenanceUseCase(maintenanceRepository, toolRepository);
+    }
+
+    @Bean
+    public com.rentatools.application.tool.usecase.GetToolMaintenanceHistoryUseCase getToolMaintenanceHistoryUseCase(
+            com.rentatools.domain.tool.ToolMaintenanceRepository maintenanceRepository) {
+        return new com.rentatools.application.tool.usecase.GetToolMaintenanceHistoryUseCase(maintenanceRepository);
     }
 }

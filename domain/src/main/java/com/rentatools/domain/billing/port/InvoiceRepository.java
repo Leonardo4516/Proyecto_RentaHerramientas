@@ -13,4 +13,7 @@ public interface InvoiceRepository {
     List<Invoice> findByClientId(Long clientId);
     List<Invoice> findAll();
     long count();
+    default List<Invoice> findOverdue(java.time.LocalDateTime now) {
+        return List.of();
+    }
 }

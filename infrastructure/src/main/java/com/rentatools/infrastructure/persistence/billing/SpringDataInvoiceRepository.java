@@ -11,4 +11,5 @@ public interface SpringDataInvoiceRepository extends JpaRepository<InvoiceJpaEnt
     Optional<InvoiceJpaEntity> findByInvoiceNumber(String invoiceNumber);
     Optional<InvoiceJpaEntity> findByRentalId(Long rentalId);
     List<InvoiceJpaEntity> findByClientId(Long clientId);
+    List<InvoiceJpaEntity> findByPaidFalseAndDueDateBefore(java.time.LocalDateTime now);
 }
