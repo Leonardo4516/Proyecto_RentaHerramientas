@@ -9,6 +9,7 @@ import com.rentatools.domain.user.ProviderProfile;
 import com.rentatools.domain.user.Role;
 import com.rentatools.domain.user.User;
 import com.rentatools.domain.user.port.UserRepository;
+import com.rentatools.infrastructure.persistence.repository.ToolJpaRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -17,7 +18,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 
+import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -38,9 +42,26 @@ public class RentaToolsApplication extends SpringBootServletInitializer {
     @Bean
     public CommandLineRunner seedInitialData(UserRepository userRepository,
                                              PasswordEncoderPort passwordEncoder,
-                                             InvoiceRepository invoiceRepository) {
+                                             InvoiceRepository invoiceRepository,
+                                             ToolJpaRepository toolRepository,
+                                             DataSource dataSource) {
         return args -> {
-            log.info("Inicializando datos de prueba del sistema RentaTools...");
+            log.info("Inicializando datos del sistema RentaTools...");
+
+            // Cargar catálogo completo de herramientas (25 herramientas, categorías, specs, fotos, proveedores) si está vacío
+            try {
+                if (toolRepository.count() == 0) {
+                    log.info("Catálogo vacío detectado. Cargando 25 herramientas, categorías y datos desde catalog_seeds.sql...");
+                    ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
+                    populator.setContinueOnError(true);
+                    populator.setIgnoreFailedDrops(true);
+                    populator.addScript(new ClassPathResource("seeds/catalog_seeds.sql"));
+                    populator.execute(dataSource);
+                    log.info("Catálogo de herramientas cargado exitosamente. Total disponibles: {}", toolRepository.count());
+                }
+            } catch (Exception e) {
+                log.warn("Aviso cargando script de herramientas: {}", e.getMessage());
+            }
 
             // 1. Usuario Administrador
             if (!userRepository.existsByUsername("admin")) {
