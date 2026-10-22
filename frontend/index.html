@@ -731,9 +731,14 @@
           <h3 class="fw-bold text-dark mb-1"><i class="fa fa-chart-pie text-success me-2"></i>Métricas de Negocio & KPIs Globales</h3>
           <p class="text-muted small mb-0">Visión gerencial de ingresos, ocupación de flota y actividad en tiempo real.</p>
         </div>
-        <button class="btn-sb-pill-outline" onclick="App.switchView('catalog')">
-          <i class="fa fa-arrow-left me-1"></i> Catálogo
-        </button>
+        <div class="d-flex gap-2">
+          <button class="btn btn-sm btn-sb-green" onclick="App.openCreateCategoryModal()">
+            <i class="fa fa-folder-plus me-1"></i> Nueva Categoría
+          </button>
+          <button class="btn-sb-pill-outline" onclick="App.switchView('catalog')">
+            <i class="fa fa-arrow-left me-1"></i> Catálogo
+          </button>
+        </div>
       </div>
 
       <div class="row g-3 mb-4">
@@ -764,6 +769,43 @@
             <div class="h3 fw-bold text-info mb-1" id="admin-total-users">45</div>
             <span class="small text-muted">Clientes y Proveedores</span>
           </div>
+        </div>
+      </div>
+
+      <!-- 🏆 BLOQUE BI: MÁXIMO RENDIMIENTO & TOP PERFORMANCE -->
+      <div class="row g-3 mb-4">
+        <div class="col-12 col-md-4">
+          <div class="p-3 border rounded-3 bg-white shadow-sm h-100 border-start border-4 border-warning">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="text-muted small text-uppercase fw-bold"><i class="fa fa-trophy text-warning me-1"></i> Maquinaria Más Rentable</span>
+              <span class="badge bg-warning text-dark" id="top-tool-rentals">0 rentas</span>
+            </div>
+            <h5 class="fw-bold text-dark mb-1" id="top-tool-name">Cargando...</h5>
+            <div class="small text-muted">Facturación generada: <strong class="text-success" id="top-tool-revenue">$ 0</strong></div>
+          </div>
+        </div>
+        <div class="col-12 col-md-4">
+          <div class="p-3 border rounded-3 bg-white shadow-sm h-100 border-start border-4 border-primary">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="text-muted small text-uppercase fw-bold"><i class="fa fa-building text-primary me-1"></i> Cliente Corporativo Top</span>
+              <span class="badge bg-primary text-white">VIP</span>
+            </div>
+            <h5 class="fw-bold text-dark mb-1" id="top-client-name">Cargando...</h5>
+            <div class="small text-muted">Inversión acumulada: <strong class="text-primary" id="top-client-spend">$ 0</strong></div>
+          </div>
+        </div>
+        <div class="col-12 col-md-4">
+          <div class="p-3 border rounded-3 bg-white shadow-sm h-100 border-start border-4 border-success">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="text-muted small text-uppercase fw-bold"><i class="fa fa-chart-line text-success me-1"></i> Ocupación del Parque</span>
+              <span class="badge bg-success" id="top-occupancy-badge">0%</span>
+            </div>
+            <h5 class="fw-bold text-dark mb-1" id="top-occupancy-text">0% en Obra</h5>
+            <div class="progress mt-2" style="height: 8px;">
+              <div class="progress-bar bg-success" id="top-occupancy-bar" role="progressbar" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- MAPA GLOBAL DE TELEMETRÍA Y CONTROL DE FLOTA (ADMIN) -->
@@ -792,11 +834,78 @@
         </div>
         <div id="admin-map-container" style="height: 460px; border-radius: 8px; z-index: 1;"></div>
       </div>
-        <h5 class="fw-bold text-dark mb-3"><i class="fa fa-history text-success me-2"></i>Flujo de Actividades del Marketplace</h5>
-        <ul class="list-group list-group-flush" id="admin-activities-list">
-          <!-- Renderizado dinámicamente -->
-        </ul>
+
+      <!-- 🏢 SECCIÓN: DIRECTORIO DE EMPRESAS PROVEEDORAS & HOMOLOGACIÓN -->
+      <div class="bg-white border rounded-3 p-3 mb-4 shadow-sm">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <div>
+            <h5 class="fw-bold text-dark mb-1">
+              <i class="fa fa-building text-success me-2"></i>Directorio de Empresas Proveedoras & Homologación
+            </h5>
+            <p class="text-muted small mb-0">Supervisión de aliados de maquinaria, tamaño de flota y validación legal.</p>
+          </div>
+          <button class="btn btn-sm btn-outline-secondary" onclick="App.loadAdminProviders()">
+            <i class="fa fa-sync-alt me-1"></i> Actualizar Proveedores
+          </button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>ID</th>
+                <th>EMPRESA</th>
+                <th>NIT</th>
+                <th>CIUDAD</th>
+                <th>FLOTA</th>
+                <th>CALIFICACIÓN</th>
+                <th>ESTADO</th>
+                <th>ACCIÓN</th>
+              </tr>
+            </thead>
+            <tbody id="admin-providers-list">
+              <tr><td colspan="8" class="text-center text-muted py-3">Cargando directorio de proveedores...</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
+
+      <!-- 📄 SECCIÓN: CARTERA VENCIDA (FACTURAS EN MORA) -->
+      <div class="bg-white border rounded-3 p-3 mb-4 shadow-sm">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <div>
+            <h5 class="fw-bold text-dark mb-1">
+              <i class="fa fa-file-invoice-dollar text-danger me-2"></i>Cartera Vencida (Facturación en Mora)
+            </h5>
+            <p class="text-muted small mb-0">Facturas impagas cuya fecha límite de pago ya expiró.</p>
+          </div>
+          <button class="btn btn-sm btn-outline-secondary" onclick="App.loadOverdueInvoices()">
+            <i class="fa fa-sync-alt me-1"></i> Actualizar Cartera
+          </button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th># FACTURA</th>
+                <th>CLIENTE</th>
+                <th>NIT</th>
+                <th>VENCIMIENTO</th>
+                <th>TOTAL</th>
+                <th>ESTADO</th>
+                <th>ACCIONES</th>
+              </tr>
+            </thead>
+            <tbody id="admin-overdue-list">
+              <tr><td colspan="7" class="text-center text-muted py-3">Cargando cartera vencida...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <h5 class="fw-bold text-dark mb-3"><i class="fa fa-history text-success me-2"></i>Flujo de Actividades del Marketplace</h5>
+      <ul class="list-group list-group-flush" id="admin-activities-list">
+        <!-- Renderizado dinámicamente -->
+      </ul>
     </div>
   </div>
 
@@ -1510,6 +1619,150 @@
         </div>
         <div class="modal-body p-4" id="cart-modal-body">
           <!-- Renderizado dinámico por App.renderCartModal(): Vacío o Cotización Activa -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL BITÁCORA DE MANTENIMIENTO ==================== -->
+  <div class="modal fade" id="maintenanceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content sb-modal">
+        <div class="modal-header border-bottom pb-3">
+          <div class="d-flex align-items-center gap-2">
+            <i class="fa fa-wrench text-warning fs-5"></i>
+            <div>
+              <h5 class="modal-title fw-bold text-dark mb-0">Bitácora de Mantenimiento Técnico</h5>
+              <small class="text-muted" id="maint-tool-title">Maquinaria</small>
+            </div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body p-4">
+          <input type="hidden" id="maint-tool-id">
+          
+          <ul class="nav nav-pills mb-3" id="maint-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="tab-maint-history" data-bs-toggle="pill" data-bs-target="#pane-maint-history" type="button" role="tab">
+                <i class="fa fa-history me-1"></i> Historial Técnico
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="tab-maint-new" data-bs-toggle="pill" data-bs-target="#pane-maint-new" type="button" role="tab">
+                <i class="fa fa-plus-circle me-1"></i> Registrar Mantenimiento
+              </button>
+            </li>
+          </ul>
+
+          <div class="tab-content">
+            <div class="tab-pane fade show active" id="pane-maint-history" role="tabpanel">
+              <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Tipo</th>
+                      <th>Descripción</th>
+                      <th>Técnico</th>
+                      <th>Costo</th>
+                      <th>Fecha</th>
+                      <th>Próximo</th>
+                    </tr>
+                  </thead>
+                  <tbody id="maint-history-table">
+                    <tr><td colspan="6" class="text-center text-muted py-3">Cargando bitácora...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="tab-pane fade" id="pane-maint-new" role="tabpanel">
+              <form id="form-register-maintenance" onsubmit="App.submitMaintenance(event)">
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold">Tipo de Mantenimiento</label>
+                    <select class="form-select form-select-sm" id="maint-type" required>
+                      <option value="PREVENTIVO">PREVENTIVO (Fluidos, filtros, engrase)</option>
+                      <option value="CORRECTIVO">CORRECTIVO (Reparación de falla mecánica)</option>
+                      <option value="OVERHAUL">OVERHAUL (Reconstrucción / Certificación)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold">Nombre del Técnico / Ingeniero</label>
+                    <input type="text" class="form-control form-control-sm" id="maint-technician" placeholder="ej. Ing. Carlos Mendoza" required>
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label small fw-bold">Descripción del Trabajo Realizado</label>
+                    <textarea class="form-control form-control-sm" id="maint-description" rows="2" placeholder="Detalle de componentes revisados, repuestos..." required></textarea>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold">Costo del Mantenimiento ($ COP)</label>
+                    <input type="number" class="form-control form-control-sm" id="maint-cost" min="0" step="1000" placeholder="ej. 350000" required>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold">Fecha del Próximo Mantenimiento</label>
+                    <input type="date" class="form-control form-control-sm" id="maint-next-date">
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label small fw-bold">Observaciones / Recomendaciones Técnicas</label>
+                    <input type="text" class="form-control form-control-sm" id="maint-notes" placeholder="ej. Equipo apto para 250 horas de trabajo continuo">
+                  </div>
+                  <div class="col-12">
+                    <div class="form-check form-switch">
+                      <input class="form-check-input" type="checkbox" id="maint-mark-status">
+                      <label class="form-check-label small" for="maint-mark-status">
+                        Poner la maquinaria en estado <strong>EN MANTENIMIENTO</strong>
+                      </label>
+                    </div>
+                  </div>
+                  <div class="col-12 text-end mt-3">
+                    <button type="submit" class="btn btn-sb-green">
+                      <i class="fa fa-save me-1"></i> Guardar en Bitácora
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL CREAR CATEGORÍA ==================== -->
+  <div class="modal fade" id="createCategoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content sb-modal">
+        <div class="modal-header border-bottom pb-3">
+          <div class="d-flex align-items-center gap-2">
+            <i class="fa fa-folder-plus text-success fs-5"></i>
+            <h5 class="modal-title fw-bold text-dark mb-0">Crear Nueva Categoría</h5>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body p-4">
+          <form id="form-create-category" onsubmit="App.submitCreateCategory(event)">
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Nombre de la Categoría</label>
+              <input type="text" class="form-control" id="cat-name" placeholder="ej. Compresión y Neumática" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Descripción</label>
+              <textarea class="form-control" id="cat-desc" rows="2" placeholder="ej. Compresores de aire de tornillo, martillos..."></textarea>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Icono FontAwesome</label>
+              <input type="text" class="form-control" id="cat-icon" value="fa-tools" placeholder="ej. fa-wind, fa-bolt, fa-truck-monster">
+            </div>
+            <div class="mb-3 form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="cat-active" checked>
+              <label class="form-check-label small" for="cat-active">Categoría Activa en Catálogo</label>
+            </div>
+            <div class="text-end mt-4">
+              <button type="submit" class="btn btn-sb-green w-100">
+                <i class="fa fa-check-circle me-1"></i> Guardar Categoría
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>

@@ -2020,6 +2020,9 @@ const App = (() => {
             <button class="btn btn-outline-success btn-sm w-100 mt-2 py-1 fw-bold" onclick="App.addToCart('${t.id}')">
               <i class="fa fa-cart-plus me-1"></i> Añadir al Carrito
             </button>
+            <button class="btn btn-outline-secondary btn-sm w-100 mt-2 py-1" onclick="App.openMaintenanceModal('${t.id}', '${encodeURIComponent(t.name || '')}')">
+              <i class="fa fa-wrench me-1"></i> Ficha & Mantenimiento
+            </button>
             <div class="sb-tool-availability-note">
               <i class="fa fa-check-circle me-1"></i> Disponibilidad garantizada en Bogotá
             </div>
@@ -3048,9 +3051,23 @@ const App = (() => {
             </span>
           </td>
           <td>
-            <button onclick="App.downloadInvoicePdfForRental('${r.id}')" class="btn btn-sm btn-neu py-1 px-3" title="Descargar comprobante en PDF">
-              <i class="fa fa-file-pdf text-danger me-1"></i> PDF
-            </button>
+            <div class="d-flex gap-1 flex-wrap">
+              <button onclick="App.downloadInvoicePdfForRental('${r.id}')" class="btn btn-sm btn-neu py-1 px-2" title="Descargar comprobante en PDF">
+                <i class="fa fa-file-pdf text-danger me-1"></i> PDF
+              </button>
+              ${['CONFIRMADA', 'EN_CURSO', 'ACTIVO'].includes(r.status) ? `
+                <button onclick="App.promptExtendRental('${r.id}', '${r.endDate}')" class="btn btn-sm btn-outline-primary py-1 px-2" title="Solicitar prórroga / extender días">
+                  <i class="fa fa-calendar-plus me-1"></i> Prórroga
+                </button>
+                <button onclick="App.promptCancelRental('${r.id}')" class="btn btn-sm btn-outline-danger py-1 px-2" title="Cancelar este alquiler">
+                  <i class="fa fa-times me-1"></i> Cancelar
+                </button>
+              ` : (r.status === 'PENDIENTE' ? `
+                <button onclick="App.promptCancelRental('${r.id}')" class="btn btn-sm btn-outline-danger py-1 px-2" title="Cancelar solicitud">
+                  <i class="fa fa-times me-1"></i> Cancelar
+                </button>
+              ` : '')}
+            </div>
           </td>
         </tr>
       `;
@@ -3464,8 +3481,327 @@ const App = (() => {
       } catch (errAdminMap) {
         console.warn('Error inicializando mapa global admin:', errAdminMap);
       }
+
+      // Render BI Top Performance
+      try {
+        const topPerf = await API.reports.getTopPerformance();
+        if (topPerf) {
+          const topToolEl = document.getElementById('top-tool-name');
+          const topToolRentalsEl = document.getElementById('top-tool-rentals');
+          const topToolRevEl = document.getElementById('top-tool-revenue');
+          const topClientEl = document.getElementById('top-client-name');
+          const topClientSpendEl = document.getElementById('top-client-spend');
+          const topOccBadge = document.getElementById('top-occupancy-badge');
+          const topOccText = document.getElementById('top-occupancy-text');
+          const topOccBar = document.getElementById('top-occupancy-bar');
+
+          if (topToolEl) topToolEl.textContent = topPerf.topToolName || 'Maquinaria Pesada';
+          if (topToolRentalsEl) topToolRentalsEl.textContent = `${topPerf.topToolRentalsCount || 0} rentas`;
+          if (topToolRevEl) topToolRevEl.textContent = API.formatCurrency(topPerf.topToolRevenue || 0);
+          if (topClientEl) topClientEl.textContent = topPerf.topClientName || 'Cliente Corporativo';
+          if (topClientSpendEl) topClientSpendEl.textContent = API.formatCurrency(topPerf.topClientSpend || 0);
+          if (topOccBadge) topOccBadge.textContent = `${topPerf.occupancyRate || 0}%`;
+          if (topOccText) topOccText.textContent = `${topPerf.occupancyRate || 0}% en Obra (${topPerf.activeRentalsCount || 0}/${topPerf.totalToolsCount || 0})`;
+          if (topOccBar) topOccBar.style.width = `${Math.min(100, topPerf.occupancyRate || 0)}%`;
+        }
+      } catch (errTopPerf) {
+        console.warn('Error cargando Top Performance BI:', errTopPerf);
+      }
+
+      loadAdminProviders();
+      loadOverdueInvoices();
     } catch (e) {
       console.warn('Error cargando KPIs admin:', e);
+    }
+  }
+
+  async function loadAdminProviders() {
+    const list = document.getElementById('admin-providers-list');
+    if (!list) return;
+    try {
+      const providers = await API.providers.getAll();
+      if (!providers || providers.length === 0) {
+        list.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-3">No hay proveedores registrados</td></tr>`;
+        return;
+      }
+      list.innerHTML = providers.map(p => `
+        <tr>
+          <td><strong>#${p.id}</strong></td>
+          <td>
+            <div class="fw-bold text-dark">${p.companyName || 'Empresa Aliada'}</div>
+            <small class="text-muted">${p.commercialAddress || 'Dirección registrada'}</small>
+          </td>
+          <td><code>${p.taxId || 'NIT'}</code></td>
+          <td>${p.city || 'Bogotá'}</td>
+          <td><span class="badge bg-primary">${p.fleetCount || 0} equipos</span></td>
+          <td><span class="text-warning fw-bold"><i class="fa fa-star me-1"></i>${p.rating || '5.0'}</span></td>
+          <td>
+            ${p.verified 
+              ? '<span class="badge bg-success"><i class="fa fa-check me-1"></i>Homologado</span>' 
+              : '<span class="badge bg-warning text-dark"><i class="fa fa-clock me-1"></i>Pendiente</span>'}
+          </td>
+          <td>
+            ${p.verified ? `
+              <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="App.toggleProviderVerify(${p.id}, false)">
+                <i class="fa fa-ban me-1"></i>Suspender
+              </button>
+            ` : `
+              <button class="btn btn-sm btn-success py-0 px-2 fw-semibold" onclick="App.toggleProviderVerify(${p.id}, true)">
+                <i class="fa fa-check-circle me-1"></i>Homologar
+              </button>
+            `}
+          </td>
+        </tr>
+      `).join('');
+    } catch (e) {
+      console.warn('Error cargando directorio de proveedores:', e);
+      list.innerHTML = `<tr><td colspan="8" class="text-center text-danger py-3">Error cargando proveedores</td></tr>`;
+    }
+  }
+
+  async function toggleProviderVerify(providerId, verified) {
+    try {
+      await API.providers.verify(providerId, verified);
+      Swal.fire({
+        icon: 'success',
+        title: verified ? 'Proveedor Homologado' : 'Homologación Suspendida',
+        text: `El estado del proveedor #${providerId} se actualizó con éxito.`,
+        timer: 1800,
+        showConfirmButton: false
+      });
+      loadAdminProviders();
+    } catch (e) {
+      Swal.fire('Error', e.message || 'No se pudo actualizar el proveedor', 'error');
+    }
+  }
+
+  async function loadOverdueInvoices() {
+    const list = document.getElementById('admin-overdue-list');
+    if (!list) return;
+    try {
+      const invoices = await API.invoices.getOverdue();
+      if (!invoices || invoices.length === 0) {
+        list.innerHTML = `<tr><td colspan="7" class="text-center text-success py-3"><i class="fa fa-check-circle me-2"></i>No hay facturas vencidas en mora. ¡Cartera 100% al día!</td></tr>`;
+        return;
+      }
+      list.innerHTML = invoices.map(inv => `
+        <tr class="table-danger bg-opacity-10">
+          <td><strong class="text-danger">${inv.invoiceNumber}</strong></td>
+          <td>${inv.clientName || 'Cliente'}</td>
+          <td>${inv.clientTaxId || 'NIT'}</td>
+          <td class="text-danger fw-bold">${inv.dueDate ? inv.dueDate.split('T')[0] : 'Vencida'}</td>
+          <td class="fw-bold">${API.formatCurrency(inv.totalAmount || 0)}</td>
+          <td><span class="badge bg-danger"><i class="fa fa-exclamation-triangle me-1"></i>EN MORA</span></td>
+          <td>
+            <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="App.downloadInvoicePdfForRental('${inv.rentalId}')">
+              <i class="fa fa-file-pdf me-1"></i>Ver Factura
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    } catch (e) {
+      console.warn('Error cargando cartera vencida:', e);
+      list.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">Sin facturas en mora</td></tr>`;
+    }
+  }
+
+  function openCreateCategoryModal() {
+    const modalEl = document.getElementById('createCategoryModal');
+    if (!modalEl) return;
+    document.getElementById('form-create-category')?.reset();
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+  }
+
+  async function submitCreateCategory(event) {
+    if (event) event.preventDefault();
+    const name = document.getElementById('cat-name')?.value?.trim();
+    const description = document.getElementById('cat-desc')?.value?.trim();
+    const iconName = document.getElementById('cat-icon')?.value?.trim() || 'fa-tools';
+    const active = document.getElementById('cat-active')?.checked ?? true;
+
+    if (!name) {
+      Swal.fire('Atención', 'El nombre de la categoría es obligatorio', 'warning');
+      return;
+    }
+
+    try {
+      await API.tools.createCategory({ name, description, iconName, active });
+      const modalEl = document.getElementById('createCategoryModal');
+      if (modalEl) bootstrap.Modal.getInstance(modalEl)?.hide();
+      Swal.fire({
+        icon: 'success',
+        title: 'Categoría Creada',
+        text: `La categoría "${name}" ya está disponible en el catálogo.`,
+        timer: 2000,
+        showConfirmButton: false
+      });
+      loadTools();
+    } catch (e) {
+      Swal.fire('Error', e.message || 'No se pudo crear la categoría', 'error');
+    }
+  }
+
+  async function openMaintenanceModal(toolId, toolNameEscaped) {
+    const modalEl = document.getElementById('maintenanceModal');
+    if (!modalEl) return;
+
+    const toolName = toolNameEscaped ? decodeURIComponent(toolNameEscaped) : `Equipo #${toolId}`;
+    document.getElementById('maint-tool-id').value = toolId;
+    document.getElementById('maint-tool-title').textContent = toolName;
+    document.getElementById('form-register-maintenance')?.reset();
+
+    const historyTab = document.getElementById('tab-maint-history');
+    if (historyTab) bootstrap.Tab.getOrCreateInstance(historyTab).show();
+
+    const tableBody = document.getElementById('maint-history-table');
+    if (tableBody) tableBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3"><i class="fa fa-spinner fa-spin me-2"></i>Consultando bitácora técnica...</td></tr>`;
+
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+
+    try {
+      const logs = await API.tools.getMaintenanceHistory(toolId);
+      if (!logs || logs.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3"><i class="fa fa-info-circle me-1"></i>No hay registros de mantenimiento para esta máquina. Puedes registrar el primero en la pestaña siguiente.</td></tr>`;
+        return;
+      }
+      tableBody.innerHTML = logs.map(l => `
+        <tr>
+          <td><span class="badge ${l.maintenanceType === 'PREVENTIVO' ? 'bg-info text-dark' : 'bg-warning text-dark'}">${l.maintenanceType}</span></td>
+          <td><strong>${l.description}</strong><br><small class="text-muted">${l.notes || ''}</small></td>
+          <td>${l.technicianName || 'Técnico'}</td>
+          <td class="fw-bold">${API.formatCurrency(l.cost || 0)}</td>
+          <td>${l.performedAt ? l.performedAt.split('T')[0] : 'Hoy'}</td>
+          <td>${l.nextMaintenanceDate || 'N/A'}</td>
+        </tr>
+      `).join('');
+    } catch (e) {
+      tableBody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-3">Error al consultar bitácora: ${e.message}</td></tr>`;
+    }
+  }
+
+  async function submitMaintenance(event) {
+    if (event) event.preventDefault();
+    const toolId = document.getElementById('maint-tool-id')?.value;
+    const maintenanceType = document.getElementById('maint-type')?.value;
+    const technicianName = document.getElementById('maint-technician')?.value?.trim();
+    const description = document.getElementById('maint-description')?.value?.trim();
+    const cost = parseFloat(document.getElementById('maint-cost')?.value) || 0;
+    const nextMaintenanceDate = document.getElementById('maint-next-date')?.value || null;
+    const notes = document.getElementById('maint-notes')?.value?.trim();
+    const markToolInMaintenance = document.getElementById('maint-mark-status')?.checked ?? false;
+
+    if (!toolId || !description) {
+      Swal.fire('Atención', 'La descripción técnica es obligatoria', 'warning');
+      return;
+    }
+
+    try {
+      await API.tools.registerMaintenance(toolId, {
+        maintenanceType,
+        description,
+        technicianName,
+        cost,
+        nextMaintenanceDate,
+        notes,
+        markToolInMaintenance
+      });
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Mantenimiento Registrado',
+        text: 'La orden técnica se agregó exitosamente a la bitácora de la máquina.',
+        timer: 2000,
+        showConfirmButton: false
+      });
+
+      openMaintenanceModal(toolId, encodeURIComponent(document.getElementById('maint-tool-title').textContent));
+      loadTools();
+    } catch (e) {
+      Swal.fire('Error', e.message || 'No se pudo registrar el mantenimiento', 'error');
+    }
+  }
+
+  async function promptExtendRental(rentalId, currentEndDate) {
+    const { value: formValues } = await Swal.fire({
+      title: `<i class="fa fa-calendar-plus text-primary me-2"></i>Extender Alquiler #${rentalId}`,
+      html: `
+        <div class="text-start">
+          <p class="small text-muted mb-3">Fecha actual de devolución: <strong>${currentEndDate || 'En curso'}</strong></p>
+          <label class="form-label small fw-bold">Nueva Fecha de Devolución</label>
+          <input type="date" id="swal-extend-date" class="form-control mb-3" min="${currentEndDate || ''}">
+          <label class="form-label small fw-bold">Notas o Motivo de la Extensión</label>
+          <input type="text" id="swal-extend-notes" class="form-control" placeholder="ej. Obra requiere 3 días adicionales">
+        </div>
+      `,
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: 'Confirmar Prórroga',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#00843D',
+      preConfirm: () => {
+        const newDate = document.getElementById('swal-extend-date').value;
+        const notes = document.getElementById('swal-extend-notes').value;
+        if (!newDate) {
+          Swal.showValidationMessage('Por favor selecciona la nueva fecha de devolución');
+          return false;
+        }
+        return { newDate, notes };
+      }
+    });
+
+    if (formValues) {
+      try {
+        await API.rentals.extend(rentalId, formValues.newDate, formValues.notes);
+        Swal.fire({
+          icon: 'success',
+          title: 'Prórroga Aprobada',
+          text: `El alquiler #${rentalId} ha sido extendido hasta el ${formValues.newDate}`,
+          timer: 2200,
+          showConfirmButton: false
+        });
+        loadClientRentals();
+        loadProviderRequests();
+      } catch (e) {
+        Swal.fire('Error al extender', e.message || 'No fue posible registrar la prórroga', 'error');
+      }
+    }
+  }
+
+  async function promptCancelRental(rentalId) {
+    const { value: reason } = await Swal.fire({
+      title: `<i class="fa fa-times-circle text-danger me-2"></i>Cancelar Alquiler #${rentalId}`,
+      input: 'text',
+      inputLabel: 'Motivo de la cancelación',
+      inputPlaceholder: 'ej. Suspensión temporal de obra por lluvias / cambio de maquinaria',
+      showCancelButton: true,
+      confirmButtonText: 'Confirmar Cancelación',
+      cancelButtonText: 'Volver',
+      confirmButtonColor: '#dc3545',
+      inputValidator: (val) => {
+        if (!val || !val.trim()) {
+          return 'Debes indicar el motivo de la cancelación';
+        }
+      }
+    });
+
+    if (reason) {
+      try {
+        await API.rentals.cancel(rentalId, reason);
+        Swal.fire({
+          icon: 'success',
+          title: 'Alquiler Cancelado',
+          text: `La reserva #${rentalId} fue cancelada. Se ha registrado el motivo.`,
+          timer: 2000,
+          showConfirmButton: false
+        });
+        loadClientRentals();
+        loadProviderRequests();
+        loadTools();
+      } catch (e) {
+        Swal.fire('Error al cancelar', e.message || 'No fue posible cancelar el alquiler', 'error');
+      }
     }
   }
 
@@ -4372,7 +4708,16 @@ const App = (() => {
     clearCart,
     downloadInvoicePdfForRental,
     openChatSupport,
-    filterAdminMap
+    filterAdminMap,
+    loadAdminProviders,
+    toggleProviderVerify,
+    loadOverdueInvoices,
+    openCreateCategoryModal,
+    submitCreateCategory,
+    openMaintenanceModal,
+    submitMaintenance,
+    promptExtendRental,
+    promptCancelRental
   };
 })();
 
