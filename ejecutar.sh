@@ -1,6 +1,6 @@
 #!/bin/bash
-# Recompilar si no existe el war o si cambió application.yml / pom.xml
-if [ ! -f "infrastructure/target/rentatools.war" ] || [ "infrastructure/src/main/resources/application.yml" -nt "infrastructure/target/rentatools.war" ] || [ "pom.xml" -nt "infrastructure/target/rentatools.war" ]; then
+# Recompilar si no existe el war o si cambiaron archivos de configuración o código fuente
+if [ ! -f "infrastructure/target/rentatools.war" ] || [ -n "$(find application domain infrastructure -type f -newer infrastructure/target/rentatools.war 2>/dev/null)" ] || [ "pom.xml" -nt "infrastructure/target/rentatools.war" ]; then
     echo "=========================================================="
     echo "📦 Compilando cambios de RentaTools..."
     echo "=========================================================="
@@ -18,7 +18,8 @@ if ss -tulpn 2>/dev/null | grep -q ":8080 " || lsof -Pi :8080 -sTCP:LISTEN -t >/
 fi
 
 echo "=========================================================="
-echo "🚀 Iniciando RentaTools en puerto $PORT (Tomcat Embebido + Supabase Cloud)..."
+echo "🚀 Iniciando RentaTools en puerto $PORT (PostgreSQL Local / Docker)..."
 echo "👉 Abre en tu navegador: http://localhost:$PORT/"
+echo "👉 Swagger UI:          http://localhost:$PORT/swagger-ui.html"
 echo "=========================================================="
 java -Dserver.port=$PORT -jar infrastructure/target/rentatools.war

@@ -16,7 +16,8 @@ if not errorlevel 1 (
 )
 
 echo ==========================================================
-echo Iniciando RentaTools en puerto %PORT% (Tomcat Embebido + Supabase Cloud)...
+echo Iniciando RentaTools en puerto %PORT% (PostgreSQL Local / Docker)...
 echo Abre en tu navegador: http://localhost:%PORT%/
+echo Swagger UI:          http://localhost:%PORT%/swagger-ui.html
 echo ==========================================================
 java -Dserver.port=%PORT% -jar infrastructure\target\rentatools.war

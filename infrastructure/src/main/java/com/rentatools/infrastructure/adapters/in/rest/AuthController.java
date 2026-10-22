@@ -7,30 +7,36 @@ import com.rentatools.application.auth.dto.AuthResponse;
 import com.rentatools.application.auth.dto.LoginRequest;
 import com.rentatools.application.auth.dto.RegisterRequest;
 import com.rentatools.application.auth.dto.UserResponse;
+import com.rentatools.domain.user.Role;
+import com.rentatools.domain.user.port.UserRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/auth")
-@Tag(name = "Autenticación & Seguridad", description = "Endpoints de registro, inicio de sesión y consulta del perfil autenticado")
+@Tag(name = "Autenticación & Seguridad", description = "Endpoints de registro, inicio de sesión y gestión de usuarios")
 public class AuthController {
 
     private final LoginUseCase loginUseCase;
     private final RegisterUseCase registerUseCase;
     private final GetCurrentUserUseCase getCurrentUserUseCase;
+    private final UserRepository userRepository;
 
-    public AuthController(LoginUseCase loginUseCase, RegisterUseCase registerUseCase, GetCurrentUserUseCase getCurrentUserUseCase) {
+    public AuthController(LoginUseCase loginUseCase,
+                          RegisterUseCase registerUseCase,
+                          GetCurrentUserUseCase getCurrentUserUseCase,
+                          UserRepository userRepository) {
         this.loginUseCase = loginUseCase;
         this.registerUseCase = registerUseCase;
         this.getCurrentUserUseCase = getCurrentUserUseCase;
+        this.userRepository = userRepository;
     }
 
     @PostMapping("/login")
@@ -55,5 +61,24 @@ public class AuthController {
         }
         UserResponse response = getCurrentUserUseCase.execute(authentication.getName());
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/users")
+    @Operation(summary = "Listar todos los usuarios", description = "Retorna la lista completa de usuarios registrados sin exponer contraseñas")
+    public ResponseEntity<List<UserResponse>> getAllUsers() {
+        List<UserResponse> users = userRepository.findAll().stream()
+                .map(UserResponse::fromDomain)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(users);
+    }
+
+    @PutMapping("/users/{id}/role")
+    @Operation(summary = "Actualizar rol de usuario", description = "Permite cambiar el rol de un usuario (ROLE_ADMIN, ROLE_CLIENTE, ROLE_PROVEEDOR)")
+    public ResponseEntity<UserResponse> updateUserRole(@PathVariable Long id, @RequestParam Role role) {
+        return userRepository.findById(id).map(user -> {
+            user.setRole(role);
+            com.rentatools.domain.user.User saved = userRepository.save(user);
+            return ResponseEntity.ok(UserResponse.fromDomain(saved));
+        }).orElse(ResponseEntity.notFound().build());
     }
 }
