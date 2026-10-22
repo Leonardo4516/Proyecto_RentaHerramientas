@@ -47,6 +47,18 @@ if errorlevel 1 (
         set "DB_OPTS=-Dspring.datasource.url=jdbc:h2:mem:rentatools;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH -Dspring.datasource.driver-class-name=org.h2.Driver -Dspring.datasource.username=sa -Dspring.datasource.password="
         set "DB_INFO=H2 In-Memory (Modo Respaldo Autonomo)"
     )
+) else (
+    where psql >nul 2>&1
+    if not errorlevel 1 (
+        set PGPASSWORD=postgres
+        psql -h localhost -p 5432 -U postgres -d postgres -c "SELECT 1;" >nul 2>&1
+        if errorlevel 1 (
+            echo [AVISO] PostgreSQL local rechazo la clave 'postgres'.
+            echo [RESPALDO] Activando modo de respaldo autonomo H2...
+            set "DB_OPTS=-Dspring.datasource.url=jdbc:h2:mem:rentatools;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH -Dspring.datasource.driver-class-name=org.h2.Driver -Dspring.datasource.username=sa -Dspring.datasource.password="
+            set "DB_INFO=H2 In-Memory (Modo Respaldo Autonomo)"
+        )
+    )
 )
 
 :start_app
