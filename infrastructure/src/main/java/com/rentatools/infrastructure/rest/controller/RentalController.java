@@ -6,6 +6,7 @@ import com.rentatools.application.rental.dto.RentalResponse;
 import com.rentatools.application.rental.usecase.ChangeRentalStatusUseCase;
 import com.rentatools.application.rental.usecase.CheckAvailabilityUseCase;
 import com.rentatools.application.rental.usecase.CreateRentalBookingUseCase;
+import com.rentatools.application.rental.usecase.ExtendRentalBookingUseCase;
 import com.rentatools.domain.rental.BookingStatus;
 import com.rentatools.domain.rental.RentalRepository;
 import io.swagger.v3.oas.annotations.Operation;
@@ -39,6 +40,7 @@ public class RentalController {
     private final CreateRentalBookingUseCase createRentalBookingUseCase;
     private final CheckAvailabilityUseCase checkAvailabilityUseCase;
     private final ChangeRentalStatusUseCase changeRentalStatusUseCase;
+    private final ExtendRentalBookingUseCase extendRentalBookingUseCase;
     private final RentalRepository rentalRepository;
     private final SpringDataClientRepository clientRepository;
     private final SpringDataUserRepository userRepository;
@@ -48,6 +50,7 @@ public class RentalController {
     public RentalController(CreateRentalBookingUseCase createRentalBookingUseCase,
                             CheckAvailabilityUseCase checkAvailabilityUseCase,
                             ChangeRentalStatusUseCase changeRentalStatusUseCase,
+                            ExtendRentalBookingUseCase extendRentalBookingUseCase,
                             RentalRepository rentalRepository,
                             SpringDataClientRepository clientRepository,
                             SpringDataUserRepository userRepository,
@@ -56,6 +59,7 @@ public class RentalController {
         this.createRentalBookingUseCase = createRentalBookingUseCase;
         this.checkAvailabilityUseCase = checkAvailabilityUseCase;
         this.changeRentalStatusUseCase = changeRentalStatusUseCase;
+        this.extendRentalBookingUseCase = extendRentalBookingUseCase;
         this.rentalRepository = rentalRepository;
         this.clientRepository = clientRepository;
         this.userRepository = userRepository;
@@ -336,6 +340,75 @@ public class RentalController {
         RentalResponse updated = changeRentalStatusUseCase.execute(id, BookingStatus.COMPLETADA, "Devolución e inspección registrada", changedBy);
         var refreshed = rentalRepository.findById(updated.id());
         return ResponseEntity.ok(refreshed.map(this::enrichRental).orElse(updated));
+    }
+
+    @PostMapping("/{id}/extend")
+    @PreAuthorize("hasAnyAuthority('ROLE_CLIENTE', 'ROLE_PROVEEDOR', 'ROLE_ADMIN')")
+    @Operation(summary = "Extender plazo de alquiler", description = "Extiende la fecha de finalización de una reserva activa validando atómicamente la disponibilidad de la maquinaria sin solapamiento")
+    public ResponseEntity<RentalResponse> extendRental(
+            @PathVariable Long id,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate newEndDate,
+            @RequestParam(required = false) String notes,
+            Authentication authentication
+    ) {
+        if (authentication != null && !authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+            boolean isClient = authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_CLIENTE"));
+            if (isClient) {
+                validateClientOwnership(id, authentication.getName());
+            } else {
+                validateProviderOwnership(id, authentication.getName());
+            }
+        }
+        String user = (authentication != null && authentication.isAuthenticated()) ? authentication.getName() : "Cliente";
+        RentalResponse response = extendRentalBookingUseCase.execute(id, newEndDate, notes, user);
+        var refreshed = rentalRepository.findById(response.id());
+        return ResponseEntity.ok(refreshed.map(this::enrichRental).orElse(response));
+    }
+
+    @PutMapping("/{id}/cancel")
+    @PreAuthorize("hasAnyAuthority('ROLE_CLIENTE', 'ROLE_PROVEEDOR', 'ROLE_ADMIN')")
+    @Operation(summary = "Cancelar reserva de alquiler", description = "Cancela una reserva en estado PENDIENTE o CONFIRMADA y libera las fechas en el calendario")
+    public ResponseEntity<RentalResponse> cancelRental(
+            @PathVariable Long id,
+            @RequestParam(required = false) String reason,
+            Authentication authentication
+    ) {
+        if (authentication != null && !authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+            boolean isClient = authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_CLIENTE"));
+            if (isClient) {
+                validateClientOwnership(id, authentication.getName());
+            } else {
+                validateProviderOwnership(id, authentication.getName());
+            }
+        }
+        String user = (authentication != null && authentication.isAuthenticated()) ? authentication.getName() : "Usuario";
+        RentalResponse response = changeRentalStatusUseCase.execute(id, BookingStatus.CANCELADA, reason != null ? reason : "Reserva cancelada por el usuario", user);
+        var refreshed = rentalRepository.findById(response.id());
+        return ResponseEntity.ok(refreshed.map(this::enrichRental).orElse(response));
+    }
+
+    @PutMapping("/{id}/dispatch")
+    @PreAuthorize("hasAnyAuthority('ROLE_PROVEEDOR', 'ROLE_ADMIN')")
+    @Operation(summary = "Despachar maquinaria a obra (Iniciar alquiler)", description = "Transiciona el estado de CONFIRMADA a EN_CURSO y registra la salida a obra")
+    public ResponseEntity<RentalResponse> dispatchRental(
+            @PathVariable Long id,
+            @RequestParam(required = false) String transportGuide,
+            @RequestParam(required = false) String driverName,
+            @RequestParam(required = false) String notes,
+            Authentication authentication
+    ) {
+        if (authentication != null && !authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+            validateProviderOwnership(id, authentication.getName());
+        }
+        String user = (authentication != null && authentication.isAuthenticated()) ? authentication.getName() : "Proveedor";
+        StringBuilder dispatchInfo = new StringBuilder("Despacho a obra confirmado.");
+        if (transportGuide != null && !transportGuide.isBlank()) dispatchInfo.append(" Guía Transporte: ").append(transportGuide);
+        if (driverName != null && !driverName.isBlank()) dispatchInfo.append(" Conductor: ").append(driverName);
+        if (notes != null && !notes.isBlank()) dispatchInfo.append(" Notas: ").append(notes);
+
+        RentalResponse response = changeRentalStatusUseCase.execute(id, BookingStatus.EN_CURSO, dispatchInfo.toString(), user);
+        var refreshed = rentalRepository.findById(response.id());
+        return ResponseEntity.ok(refreshed.map(this::enrichRental).orElse(response));
     }
 
     @GetMapping("/{id}/timeline")

@@ -3,11 +3,13 @@ package com.rentatools.infrastructure.config;
 import com.rentatools.application.rental.usecase.ChangeRentalStatusUseCase;
 import com.rentatools.application.rental.usecase.CheckAvailabilityUseCase;
 import com.rentatools.application.rental.usecase.CreateRentalBookingUseCase;
+import com.rentatools.application.rental.usecase.ExtendRentalBookingUseCase;
 import com.rentatools.application.tool.usecase.FindNearbyToolsUseCase;
 import com.rentatools.application.tool.usecase.GetToolByIdUseCase;
 import com.rentatools.application.tool.usecase.ListToolsUseCase;
 import com.rentatools.application.tool.usecase.RegisterToolUseCase;
 import com.rentatools.application.tool.usecase.SearchToolsUseCase;
+import com.rentatools.application.tool.usecase.UpdateToolUseCase;
 import com.rentatools.domain.rental.RentalRepository;
 import com.rentatools.domain.tool.ToolRepository;
 import org.springframework.context.annotation.Bean;
@@ -37,6 +39,11 @@ public class BeanConfig {
     }
 
     @Bean
+    public UpdateToolUseCase updateToolUseCase(ToolRepository toolRepository) {
+        return new UpdateToolUseCase(toolRepository);
+    }
+
+    @Bean
     public FindNearbyToolsUseCase findNearbyToolsUseCase(ToolRepository toolRepository) {
         return new FindNearbyToolsUseCase(toolRepository);
     }
@@ -49,6 +56,11 @@ public class BeanConfig {
     @Bean
     public CreateRentalBookingUseCase createRentalBookingUseCase(RentalRepository rentalRepository, ToolRepository toolRepository) {
         return new CreateRentalBookingUseCase(rentalRepository, toolRepository);
+    }
+
+    @Bean
+    public ExtendRentalBookingUseCase extendRentalBookingUseCase(RentalRepository rentalRepository, ToolRepository toolRepository) {
+        return new ExtendRentalBookingUseCase(rentalRepository, toolRepository);
     }
 
     @Bean

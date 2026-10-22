@@ -4,11 +4,13 @@ import com.rentatools.application.tool.dto.NearbyToolResponse;
 import com.rentatools.application.tool.dto.RegisterToolCommand;
 import com.rentatools.application.tool.dto.ToolCategoryResponse;
 import com.rentatools.application.tool.dto.ToolResponse;
+import com.rentatools.application.tool.dto.UpdateToolCommand;
 import com.rentatools.application.tool.usecase.FindNearbyToolsUseCase;
 import com.rentatools.application.tool.usecase.GetToolByIdUseCase;
 import com.rentatools.application.tool.usecase.ListToolsUseCase;
 import com.rentatools.application.tool.usecase.RegisterToolUseCase;
 import com.rentatools.application.tool.usecase.SearchToolsUseCase;
+import com.rentatools.application.tool.usecase.UpdateToolUseCase;
 import com.rentatools.domain.tool.ToolCategoryRepository;
 import com.rentatools.domain.tool.ToolStatus;
 import com.rentatools.infrastructure.persistence.user.ProviderJpaEntity;
@@ -20,6 +22,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.rentatools.domain.common.exception.UnauthorizedException;
 import com.rentatools.infrastructure.persistence.user.SpringDataUserRepository;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -35,6 +38,7 @@ public class ToolController {
     private final SearchToolsUseCase searchToolsUseCase;
     private final GetToolByIdUseCase getToolByIdUseCase;
     private final RegisterToolUseCase registerToolUseCase;
+    private final UpdateToolUseCase updateToolUseCase;
     private final FindNearbyToolsUseCase findNearbyToolsUseCase;
     private final ToolCategoryRepository categoryRepository;
     private final SpringDataProviderRepository providerRepository;
@@ -44,6 +48,7 @@ public class ToolController {
                           SearchToolsUseCase searchToolsUseCase,
                           GetToolByIdUseCase getToolByIdUseCase,
                           RegisterToolUseCase registerToolUseCase,
+                          UpdateToolUseCase updateToolUseCase,
                           FindNearbyToolsUseCase findNearbyToolsUseCase,
                           ToolCategoryRepository categoryRepository,
                           SpringDataProviderRepository providerRepository,
@@ -52,6 +57,7 @@ public class ToolController {
         this.searchToolsUseCase = searchToolsUseCase;
         this.getToolByIdUseCase = getToolByIdUseCase;
         this.registerToolUseCase = registerToolUseCase;
+        this.updateToolUseCase = updateToolUseCase;
         this.findNearbyToolsUseCase = findNearbyToolsUseCase;
         this.categoryRepository = categoryRepository;
         this.providerRepository = providerRepository;
@@ -187,5 +193,50 @@ public class ToolController {
         }
         ToolResponse created = registerToolUseCase.execute(effectiveCommand);
         return ResponseEntity.status(HttpStatus.CREATED).body(enrichTool(created));
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('ROLE_PROVEEDOR', 'ROLE_ADMIN')")
+    @Operation(summary = "Actualizar datos y tarifas de una herramienta", description = "Permite modificar nombre, marca, modelo, tarifa diaria y depósito de garantía de una herramienta")
+    public ResponseEntity<ToolResponse> updateTool(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateToolCommand command,
+            Authentication authentication
+    ) {
+        if (authentication != null && !authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+            validateToolProviderOwnership(id, authentication.getName());
+        }
+        ToolResponse updated = updateToolUseCase.execute(id, command);
+        return ResponseEntity.ok(enrichTool(updated));
+    }
+
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAnyAuthority('ROLE_PROVEEDOR', 'ROLE_ADMIN')")
+    @Operation(summary = "Actualizar estado operativo de una herramienta", description = "Conmuta el estado operativo entre DISPONIBLE, EN_MANTENIMIENTO y DE_BAJA")
+    public ResponseEntity<ToolResponse> updateToolStatus(
+            @PathVariable Long id,
+            @RequestParam ToolStatus status,
+            Authentication authentication
+    ) {
+        if (authentication != null && !authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+            validateToolProviderOwnership(id, authentication.getName());
+        }
+        ToolResponse updated = updateToolUseCase.updateStatus(id, status);
+        return ResponseEntity.ok(enrichTool(updated));
+    }
+
+    private void validateToolProviderOwnership(Long toolId, String username) {
+        var userOpt = userRepository.findByUsername(username);
+        if (userOpt.isEmpty()) {
+            throw new UnauthorizedException("Usuario autenticado no válido.");
+        }
+        var provOpt = providerRepository.findByUserId(userOpt.get().getId());
+        if (provOpt.isEmpty()) {
+            throw new UnauthorizedException("El usuario no tiene un perfil de proveedor asociado.");
+        }
+        ToolResponse tool = getToolByIdUseCase.execute(toolId);
+        if (tool != null && !provOpt.get().getId().equals(tool.providerId())) {
+            throw new UnauthorizedException("No tienes autorización para modificar maquinaria perteneciente a otra empresa.");
+        }
     }
 }

@@ -120,6 +120,15 @@ const API = (() => {
         request('/api/v1/tools', {
           method: 'POST',
           body: JSON.stringify(toolData)
+        }),
+      update: (id, toolData) =>
+        request(`/api/v1/tools/${id}`, {
+          method: 'PUT',
+          body: JSON.stringify(toolData)
+        }),
+      updateStatus: (id, status) =>
+        request(`/api/v1/tools/${id}/status?status=${encodeURIComponent(status)}`, {
+          method: 'PATCH'
         })
     },
 
@@ -154,6 +163,30 @@ const API = (() => {
       getByToolId: (toolId) => request(`/api/v1/rentals/tool/${toolId}`),
       checkAvailability: (toolId, startDate, endDate) =>
         request(`/api/v1/rentals/check-availability?toolId=${encodeURIComponent(toolId)}&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`),
+      extend: (id, newEndDate, notes) => {
+        const params = new URLSearchParams();
+        params.append('newEndDate', newEndDate);
+        if (notes) params.append('notes', notes);
+        return request(`/api/v1/rentals/${id}/extend?${params.toString()}`, {
+          method: 'POST'
+        });
+      },
+      cancel: (id, reason) => {
+        const query = reason ? `?reason=${encodeURIComponent(reason)}` : '';
+        return request(`/api/v1/rentals/${id}/cancel${query}`, {
+          method: 'PUT'
+        });
+      },
+      dispatch: (id, transportGuide, driverName, notes) => {
+        const params = new URLSearchParams();
+        if (transportGuide) params.append('transportGuide', transportGuide);
+        if (driverName) params.append('driverName', driverName);
+        if (notes) params.append('notes', notes);
+        const query = params.toString() ? `?${params.toString()}` : '';
+        return request(`/api/v1/rentals/${id}/dispatch${query}`, {
+          method: 'PUT'
+        });
+      },
       updateStatus: (id, status) =>
         request(`/api/v1/rentals/${id}/status`, {
           method: 'PUT',

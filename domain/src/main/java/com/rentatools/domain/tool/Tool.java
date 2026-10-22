@@ -65,6 +65,28 @@ public class Tool {
         this.status = ToolStatus.EN_MANTENIMIENTO;
     }
 
+    public void updateDetails(String name, String brand, String model, BigDecimal dailyPrice, BigDecimal depositAmount) {
+        if (dailyPrice == null || dailyPrice.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BusinessRuleValidationException("La tarifa diaria debe ser mayor a 0.");
+        }
+        if (depositAmount == null || depositAmount.compareTo(BigDecimal.ZERO) < 0) {
+            throw new BusinessRuleValidationException("El depósito de garantía no puede ser negativo.");
+        }
+        if (name != null && !name.isBlank()) this.name = name;
+        if (brand != null && !brand.isBlank()) this.brand = brand;
+        if (model != null && !model.isBlank()) this.model = model;
+        this.dailyPrice = dailyPrice;
+        this.depositAmount = depositAmount;
+    }
+
+    public void updateStatus(ToolStatus newStatus) {
+        if (newStatus == null) return;
+        if (this.status == ToolStatus.ALQUILADO && newStatus != ToolStatus.ALQUILADO && newStatus != ToolStatus.DISPONIBLE) {
+            throw new BusinessRuleValidationException("No se puede cambiar el estado de una herramienta actualmente ALQUILADA sin completar la devolución.");
+        }
+        this.status = newStatus;
+    }
+
     public void addAccumulatedDays(int days) {
         if (days > 0) {
             this.accumulatedRentalDays += days;

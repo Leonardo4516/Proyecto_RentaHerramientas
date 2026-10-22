@@ -80,6 +80,35 @@ public class RentalBooking {
         this.status = BookingStatus.CANCELADA;
     }
 
+    public RentalBooking extendTo(java.time.LocalDate newEndDate, String extensionNotes) {
+        if (this.status != BookingStatus.CONFIRMADA && this.status != BookingStatus.EN_CURSO && this.status != BookingStatus.PENDIENTE) {
+            throw new BusinessRuleValidationException("Solo se pueden extender alquileres activos (PENDIENTE, CONFIRMADA o EN_CURSO).");
+        }
+        if (newEndDate == null || !newEndDate.isAfter(this.dateRange.endDate())) {
+            throw new BusinessRuleValidationException("La nueva fecha final debe ser posterior a la fecha final actual: " + this.dateRange.endDate());
+        }
+        DateRange newRange = new DateRange(this.dateRange.startDate(), newEndDate);
+        BigDecimal newSubtotal = this.dailyRate.multiply(BigDecimal.valueOf(newRange.totalDays()));
+        String combinedNotes = (this.notes != null ? this.notes : "") +
+                (extensionNotes != null && !extensionNotes.isBlank() ? " | Extensión: " + extensionNotes : " | Extendido hasta " + newEndDate);
+
+        RentalBooking extended = new RentalBooking(
+                this.id,
+                this.clientId,
+                this.toolId,
+                newRange,
+                this.dailyRate,
+                this.depositAmount,
+                newSubtotal,
+                this.status,
+                this.deliveryAddress,
+                combinedNotes,
+                this.createdAt
+        );
+        extended.inspection = this.inspection;
+        return extended;
+    }
+
     public Long getId() { return id; }
     public Long getClientId() { return clientId; }
     public Long getToolId() { return toolId; }
