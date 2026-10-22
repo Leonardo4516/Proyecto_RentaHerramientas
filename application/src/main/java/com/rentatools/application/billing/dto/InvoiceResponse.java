@@ -23,6 +23,9 @@ public class InvoiceResponse {
     private BigDecimal totalAmount;
     private boolean paid;
     private LocalDateTime paymentDate;
+    private String pdfStoragePath;
+    private boolean cancelled;
+    private String status;
     private List<InvoiceItem> items = new ArrayList<>();
 
     public InvoiceResponse() {}
@@ -44,6 +47,16 @@ public class InvoiceResponse {
         r.setTotalAmount(invoice.getTotalAmount());
         r.setPaid(invoice.isPaid());
         r.setPaymentDate(invoice.getPaymentDate());
+        r.setPdfStoragePath(invoice.getPdfStoragePath());
+        boolean isCancelled = invoice.isCancelled();
+        r.setCancelled(isCancelled);
+        if (isCancelled) {
+            r.setStatus("CANCELADA");
+        } else if (invoice.isPaid()) {
+            r.setStatus("PAGADA");
+        } else {
+            r.setStatus("PENDIENTE");
+        }
         r.setItems(invoice.getItems());
         return r;
     }
@@ -166,5 +179,29 @@ public class InvoiceResponse {
 
     public void setItems(List<InvoiceItem> items) {
         this.items = items != null ? items : new ArrayList<>();
+    }
+
+    public String getPdfStoragePath() {
+        return pdfStoragePath;
+    }
+
+    public void setPdfStoragePath(String pdfStoragePath) {
+        this.pdfStoragePath = pdfStoragePath;
+    }
+
+    public boolean isCancelled() {
+        return cancelled;
+    }
+
+    public void setCancelled(boolean cancelled) {
+        this.cancelled = cancelled;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 }

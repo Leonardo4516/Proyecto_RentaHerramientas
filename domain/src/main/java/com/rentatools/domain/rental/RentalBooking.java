@@ -66,8 +66,8 @@ public class RentalBooking {
     }
 
     public void completeReturn(ReturnInspection inspection) {
-        if (this.status != BookingStatus.EN_CURSO) {
-            throw new BusinessRuleValidationException("Solo se pueden devolver alquileres EN_CURSO.");
+        if (this.status != BookingStatus.EN_CURSO && this.status != BookingStatus.CONFIRMADA) {
+            throw new BusinessRuleValidationException("Solo se pueden devolver alquileres en estado EN_CURSO o CONFIRMADA.");
         }
         this.status = BookingStatus.COMPLETADA;
         this.inspection = inspection;

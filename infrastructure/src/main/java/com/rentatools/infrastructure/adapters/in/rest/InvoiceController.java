@@ -20,6 +20,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import com.rentatools.domain.billing.Invoice;
 
+import com.rentatools.application.billing.CancelInvoiceUseCase;
+import org.springframework.web.bind.annotation.PutMapping;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -30,11 +33,16 @@ public class InvoiceController {
 
     private final GenerateInvoiceUseCase generateInvoiceUseCase;
     private final DownloadPdfUseCase downloadPdfUseCase;
+    private final CancelInvoiceUseCase cancelInvoiceUseCase;
     private final InvoiceRepository invoiceRepository;
 
-    public InvoiceController(GenerateInvoiceUseCase generateInvoiceUseCase, DownloadPdfUseCase downloadPdfUseCase, InvoiceRepository invoiceRepository) {
+    public InvoiceController(GenerateInvoiceUseCase generateInvoiceUseCase,
+                             DownloadPdfUseCase downloadPdfUseCase,
+                             CancelInvoiceUseCase cancelInvoiceUseCase,
+                             InvoiceRepository invoiceRepository) {
         this.generateInvoiceUseCase = generateInvoiceUseCase;
         this.downloadPdfUseCase = downloadPdfUseCase;
+        this.cancelInvoiceUseCase = cancelInvoiceUseCase;
         this.invoiceRepository = invoiceRepository;
     }
 
@@ -56,6 +64,15 @@ public class InvoiceController {
     public ResponseEntity<InvoiceResponse> generateInvoice(@RequestBody GenerateInvoiceRequest request) {
         InvoiceResponse response = generateInvoiceUseCase.execute(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PutMapping("/{id}/cancel")
+    @Operation(summary = "Anular factura / Emitir nota de crédito", description = "Marca la factura como cancelada registrando el motivo de anulación y revirtiendo su exigibilidad")
+    public ResponseEntity<InvoiceResponse> cancelInvoice(
+            @PathVariable Long id,
+            @RequestParam(required = false) String reason) {
+        InvoiceResponse response = cancelInvoiceUseCase.execute(id, reason);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")

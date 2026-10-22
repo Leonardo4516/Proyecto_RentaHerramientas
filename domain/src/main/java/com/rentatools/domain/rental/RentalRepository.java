@@ -21,4 +21,13 @@ public interface RentalRepository {
     default List<RentalTimelineEvent> findTimelineByRentalId(Long rentalId) {
         return List.of();
     }
+
+    default ReturnInspection saveInspection(Long rentalId, ReturnInspection inspection) {
+        return inspection;
+    }
+
+    default Optional<ReturnInspection> findInspectionByRentalId(Long rentalId) {
+        return Optional.empty();
+    }
 }
+

@@ -12,6 +12,10 @@ import com.rentatools.application.tool.usecase.SearchToolsUseCase;
 import com.rentatools.application.tool.usecase.UpdateToolUseCase;
 import com.rentatools.domain.rental.RentalRepository;
 import com.rentatools.domain.tool.ToolRepository;
+import com.rentatools.application.rental.usecase.GetReturnInspectionUseCase;
+import com.rentatools.application.rental.usecase.RegisterReturnInspectionUseCase;
+import com.rentatools.domain.billing.port.PaymentRepository;
+import com.rentatools.domain.notification.port.NotificationPort;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -66,5 +70,18 @@ public class BeanConfig {
     @Bean
     public ChangeRentalStatusUseCase changeRentalStatusUseCase(RentalRepository rentalRepository) {
         return new ChangeRentalStatusUseCase(rentalRepository);
+    }
+
+    @Bean
+    public RegisterReturnInspectionUseCase registerReturnInspectionUseCase(RentalRepository rentalRepository,
+                                                                           ToolRepository toolRepository,
+                                                                           PaymentRepository paymentRepository,
+                                                                           NotificationPort notificationPort) {
+        return new RegisterReturnInspectionUseCase(rentalRepository, toolRepository, paymentRepository, notificationPort);
+    }
+
+    @Bean
+    public GetReturnInspectionUseCase getReturnInspectionUseCase(RentalRepository rentalRepository) {
+        return new GetReturnInspectionUseCase(rentalRepository);
     }
 }

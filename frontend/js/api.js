@@ -197,6 +197,12 @@ const API = (() => {
           method: 'POST',
           body: JSON.stringify({ notes, damageDetected, damageCost })
         }),
+      submitInspection: (id, inspectionData) =>
+        request(`/api/v1/rentals/${id}/inspection-return`, {
+          method: 'POST',
+          body: JSON.stringify(inspectionData || {})
+        }),
+      getInspection: (id) => request(`/api/v1/rentals/${id}/return-inspection`),
       getTimeline: (id) => request(`/api/v1/rentals/${id}/timeline`)
     },
 
@@ -215,6 +221,12 @@ const API = (() => {
           method: 'POST',
           body: JSON.stringify(invoiceData)
         }),
+      cancel: (id, reason) => {
+        const query = reason ? `?reason=${encodeURIComponent(reason)}` : '';
+        return request(`/api/v1/invoices/${id}/cancel${query}`, {
+          method: 'PUT'
+        });
+      },
       downloadPdfUrl: (id) => `${BASE_URL}/api/v1/invoices/${id}/pdf`
     },
 
@@ -230,6 +242,11 @@ const API = (() => {
         request('/api/v1/payments', {
           method: 'POST',
           body: JSON.stringify(paymentData)
+        }),
+      refundDeposit: (refundData) =>
+        request('/api/v1/payments/refund-deposit', {
+          method: 'POST',
+          body: JSON.stringify(refundData)
         }),
       getByInvoice: (invoiceId) => request(`/api/v1/payments/invoice/${invoiceId}`)
     },

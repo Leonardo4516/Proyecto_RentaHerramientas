@@ -41,6 +41,8 @@ public class RentalController {
     private final CheckAvailabilityUseCase checkAvailabilityUseCase;
     private final ChangeRentalStatusUseCase changeRentalStatusUseCase;
     private final ExtendRentalBookingUseCase extendRentalBookingUseCase;
+    private final com.rentatools.application.rental.usecase.RegisterReturnInspectionUseCase registerReturnInspectionUseCase;
+    private final com.rentatools.application.rental.usecase.GetReturnInspectionUseCase getReturnInspectionUseCase;
     private final RentalRepository rentalRepository;
     private final SpringDataClientRepository clientRepository;
     private final SpringDataUserRepository userRepository;
@@ -51,6 +53,8 @@ public class RentalController {
                             CheckAvailabilityUseCase checkAvailabilityUseCase,
                             ChangeRentalStatusUseCase changeRentalStatusUseCase,
                             ExtendRentalBookingUseCase extendRentalBookingUseCase,
+                            com.rentatools.application.rental.usecase.RegisterReturnInspectionUseCase registerReturnInspectionUseCase,
+                            com.rentatools.application.rental.usecase.GetReturnInspectionUseCase getReturnInspectionUseCase,
                             RentalRepository rentalRepository,
                             SpringDataClientRepository clientRepository,
                             SpringDataUserRepository userRepository,
@@ -60,6 +64,8 @@ public class RentalController {
         this.checkAvailabilityUseCase = checkAvailabilityUseCase;
         this.changeRentalStatusUseCase = changeRentalStatusUseCase;
         this.extendRentalBookingUseCase = extendRentalBookingUseCase;
+        this.registerReturnInspectionUseCase = registerReturnInspectionUseCase;
+        this.getReturnInspectionUseCase = getReturnInspectionUseCase;
         this.rentalRepository = rentalRepository;
         this.clientRepository = clientRepository;
         this.userRepository = userRepository;
@@ -409,6 +415,33 @@ public class RentalController {
         RentalResponse response = changeRentalStatusUseCase.execute(id, BookingStatus.EN_CURSO, dispatchInfo.toString(), user);
         var refreshed = rentalRepository.findById(response.id());
         return ResponseEntity.ok(refreshed.map(this::enrichRental).orElse(response));
+    }
+
+    @PostMapping("/{id}/inspection-return")
+    @PreAuthorize("hasAnyAuthority('ROLE_PROVEEDOR', 'ROLE_ADMIN')")
+    @Operation(summary = "Registrar devolución física e inspección técnica", description = "Liquida penalizaciones por daños, calcula el depósito a reembolsar y devuelve la maquinaria a estado DISPONIBLE")
+    public ResponseEntity<com.rentatools.application.rental.dto.ReturnInspectionResponse> registerInspectionReturn(
+            @PathVariable Long id,
+            @RequestBody(required = false) com.rentatools.application.rental.dto.RegisterReturnInspectionCommand command,
+            Authentication authentication
+    ) {
+        if (authentication != null && !authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+            validateProviderOwnership(id, authentication.getName());
+        }
+        String user = (authentication != null && authentication.isAuthenticated()) ? authentication.getName() : "Inspector Técnico";
+        var cmd = command != null ? command : new com.rentatools.application.rental.dto.RegisterReturnInspectionCommand(
+                1L, "EXCELENTE", "Devolución conforme en patio", java.util.List.of(), true
+        );
+        var response = registerReturnInspectionUseCase.execute(id, cmd, user);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{id}/return-inspection")
+    @Operation(summary = "Consultar acta de inspección técnica", description = "Retorna el informe detallado de devolución, reporte de daños y liquidación del depósito de garantía")
+    public ResponseEntity<com.rentatools.application.rental.dto.ReturnInspectionResponse> getReturnInspection(
+            @PathVariable Long id
+    ) {
+        return ResponseEntity.ok(getReturnInspectionUseCase.execute(id));
     }
 
     @GetMapping("/{id}/timeline")

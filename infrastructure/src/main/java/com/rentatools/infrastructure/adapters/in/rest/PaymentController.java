@@ -18,6 +18,9 @@ import org.springframework.web.bind.annotation.RestController;
 import com.rentatools.domain.billing.Payment;
 import com.rentatools.domain.billing.PaymentStatus;
 
+import com.rentatools.application.billing.RefundDepositUseCase;
+import com.rentatools.application.billing.dto.RefundDepositRequest;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -27,10 +30,14 @@ import java.util.stream.Collectors;
 public class PaymentController {
 
     private final ProcessPaymentUseCase processPaymentUseCase;
+    private final RefundDepositUseCase refundDepositUseCase;
     private final PaymentRepository paymentRepository;
 
-    public PaymentController(ProcessPaymentUseCase processPaymentUseCase, PaymentRepository paymentRepository) {
+    public PaymentController(ProcessPaymentUseCase processPaymentUseCase,
+                             RefundDepositUseCase refundDepositUseCase,
+                             PaymentRepository paymentRepository) {
         this.processPaymentUseCase = processPaymentUseCase;
+        this.refundDepositUseCase = refundDepositUseCase;
         this.paymentRepository = paymentRepository;
     }
 
@@ -60,6 +67,13 @@ public class PaymentController {
     @Operation(summary = "Registrar y procesar pago", description = "Procesa el pago de una factura (Tarjeta, PSE, Transferencia) y actualiza su estado a PAGADA")
     public ResponseEntity<PaymentResponse> processPayment(@RequestBody ProcessPaymentRequest request) {
         PaymentResponse response = processPaymentUseCase.execute(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/refund-deposit")
+    @Operation(summary = "Reembolsar depósito de garantía", description = "Registra la devolución del depósito al cliente tras la liquidación de la inspección técnica (Estado: REEMBOLSADO)")
+    public ResponseEntity<PaymentResponse> refundDeposit(@RequestBody RefundDepositRequest request) {
+        PaymentResponse response = refundDepositUseCase.execute(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

@@ -25,6 +25,7 @@ public class Invoice extends BaseEntity<Long> {
     private boolean paid;
     private LocalDateTime paymentDate;
     private LocalDateTime pdfGeneratedAt;
+    private String pdfStoragePath;
     private List<InvoiceItem> items;
 
     public Invoice() {
@@ -190,6 +191,23 @@ public class Invoice extends BaseEntity<Long> {
 
     public void setPdfGeneratedAt(LocalDateTime pdfGeneratedAt) {
         this.pdfGeneratedAt = pdfGeneratedAt;
+    }
+
+    public String getPdfStoragePath() {
+        return pdfStoragePath;
+    }
+
+    public void setPdfStoragePath(String pdfStoragePath) {
+        this.pdfStoragePath = pdfStoragePath;
+    }
+
+    public boolean isCancelled() {
+        return pdfStoragePath != null && pdfStoragePath.startsWith("CANCELADA");
+    }
+
+    public void cancel(String reason) {
+        this.paid = false;
+        this.pdfStoragePath = "CANCELADA: " + (reason != null && !reason.isBlank() ? reason : "Nota de crédito / Anulación emitida");
     }
 
     public List<InvoiceItem> getItems() {

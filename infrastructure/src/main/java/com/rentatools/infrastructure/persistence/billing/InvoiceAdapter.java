@@ -84,6 +84,7 @@ public class InvoiceAdapter implements InvoiceRepository {
         e.setPaid(inv.isPaid());
         e.setPaymentDate(inv.getPaymentDate());
         e.setPdfGeneratedAt(inv.getPdfGeneratedAt());
+        e.setPdfStoragePath(inv.getPdfStoragePath());
 
         if (inv.getItems() != null) {
             List<InvoiceItemJpaEntity> itemEntities = new ArrayList<>();
@@ -122,6 +123,7 @@ public class InvoiceAdapter implements InvoiceRepository {
         inv.setPaid(e.isPaid());
         inv.setPaymentDate(e.getPaymentDate());
         inv.setPdfGeneratedAt(e.getPdfGeneratedAt());
+        inv.setPdfStoragePath(e.getPdfStoragePath());
 
         if (e.getItems() != null) {
             List<InvoiceItem> items = new ArrayList<>();

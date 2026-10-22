@@ -51,6 +51,9 @@ public class InvoiceJpaEntity {
     private LocalDateTime paymentDate;
     private LocalDateTime pdfGeneratedAt;
 
+    @Column(name = "pdf_storage_path", length = 255)
+    private String pdfStoragePath;
+
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
     @JoinColumn(name = "invoice_id", nullable = false)
     private List<InvoiceItemJpaEntity> items = new ArrayList<>();
@@ -175,6 +178,14 @@ public class InvoiceJpaEntity {
 
     public void setPdfGeneratedAt(LocalDateTime pdfGeneratedAt) {
         this.pdfGeneratedAt = pdfGeneratedAt;
+    }
+
+    public String getPdfStoragePath() {
+        return pdfStoragePath;
+    }
+
+    public void setPdfStoragePath(String pdfStoragePath) {
+        this.pdfStoragePath = pdfStoragePath;
     }
 
     public List<InvoiceItemJpaEntity> getItems() {
