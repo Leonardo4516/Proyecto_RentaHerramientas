@@ -63,6 +63,25 @@ public class RentaToolsApplication extends SpringBootServletInitializer {
                 log.warn("Aviso cargando script de herramientas: {}", e.getMessage());
             }
 
+            // Sincronizar secuencias e identidades para evitar colisión de claves primarias en nuevas reservas
+            try (var conn = dataSource.getConnection(); var stmt = conn.createStatement()) {
+                String[] tables = {"rentals", "users", "tools", "tool_categories", "tool_images",
+                                   "tool_specifications", "invoices", "invoice_items", "payments",
+                                   "cart_items", "clients", "providers", "admins", "rental_audit_logs"};
+                for (String table : tables) {
+                    try {
+                        stmt.execute("ALTER TABLE " + table + " ALTER COLUMN id RESTART WITH 1000");
+                    } catch (Exception ignored) {
+                        try {
+                            stmt.execute("SELECT setval(pg_get_serial_sequence('" + table + "', 'id'), COALESCE(max(id), 1) + 1) FROM " + table);
+                        } catch (Exception ignored2) {}
+                    }
+                }
+                log.info("Secuencias e identidades de tablas sincronizadas correctamente.");
+            } catch (Exception e) {
+                log.warn("Aviso sincronizando secuencias de base de datos: {}", e.getMessage());
+            }
+
             // 1. Usuario Administrador
             if (!userRepository.existsByUsername("admin")) {
                 User admin = new User();

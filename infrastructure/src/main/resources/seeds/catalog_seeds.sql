@@ -360,3 +360,17 @@ INSERT INTO rental_audit_logs (id, rental_id, previous_status, new_status, chang
 (6, 16, 'PENDIENTE', 'CONFIRMADA', 'proveedor16', 'Disponibilidad confirmada por Maquinaria del Café Armenia', '2026-10-03 09:20:00-05'),
 
 (7, 21, NULL, 'PENDIENTE', 'cliente', 'Solicitud radicada por Constructora Hábitat para Perforadora Sacanúcleos', '2026-10-13 11:45:00-05');
+-- Sincronizar secuencias/identidades para evitar colisión de claves primarias
+ALTER TABLE rentals ALTER COLUMN id RESTART WITH 1000;
+ALTER TABLE users ALTER COLUMN id RESTART WITH 1000;
+ALTER TABLE tools ALTER COLUMN id RESTART WITH 1000;
+ALTER TABLE tool_categories ALTER COLUMN id RESTART WITH 1000;
+ALTER TABLE tool_images ALTER COLUMN id RESTART WITH 1000;
+ALTER TABLE tool_specifications ALTER COLUMN id RESTART WITH 1000;
+ALTER TABLE invoices ALTER COLUMN id RESTART WITH 1000;
+ALTER TABLE invoice_items ALTER COLUMN id RESTART WITH 1000;
+ALTER TABLE payments ALTER COLUMN id RESTART WITH 1000;
+ALTER TABLE cart_items ALTER COLUMN id RESTART WITH 1000;
+ALTER TABLE clients ALTER COLUMN id RESTART WITH 1000;
+ALTER TABLE providers ALTER COLUMN id RESTART WITH 1000;
+ALTER TABLE admins ALTER COLUMN id RESTART WITH 1000;
