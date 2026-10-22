@@ -7,6 +7,7 @@ import com.rentatools.application.tool.usecase.FindNearbyToolsUseCase;
 import com.rentatools.application.tool.usecase.GetToolByIdUseCase;
 import com.rentatools.application.tool.usecase.ListToolsUseCase;
 import com.rentatools.application.tool.usecase.RegisterToolUseCase;
+import com.rentatools.application.tool.usecase.SearchToolsUseCase;
 import com.rentatools.domain.rental.RentalRepository;
 import com.rentatools.domain.tool.ToolRepository;
 import org.springframework.context.annotation.Bean;
@@ -14,6 +15,11 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class BeanConfig {
+
+    @Bean
+    public SearchToolsUseCase searchToolsUseCase(ToolRepository toolRepository) {
+        return new SearchToolsUseCase(toolRepository);
+    }
 
     @Bean
     public ListToolsUseCase listToolsUseCase(ToolRepository toolRepository) {

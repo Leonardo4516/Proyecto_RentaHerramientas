@@ -16,7 +16,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import com.rentatools.domain.billing.Invoice;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -34,6 +36,19 @@ public class InvoiceController {
         this.generateInvoiceUseCase = generateInvoiceUseCase;
         this.downloadPdfUseCase = downloadPdfUseCase;
         this.invoiceRepository = invoiceRepository;
+    }
+
+    @GetMapping
+    @Operation(summary = "Listar todas las facturas", description = "Retorna el listado completo de facturas emitidas con filtro opcional por estado de pago (paid=true/false)")
+    public ResponseEntity<List<InvoiceResponse>> getAllInvoices(@RequestParam(required = false) Boolean paid) {
+        List<Invoice> invoices = invoiceRepository.findAll();
+        if (paid != null) {
+            invoices = invoices.stream().filter(i -> i.isPaid() == paid).toList();
+        }
+        List<InvoiceResponse> list = invoices.stream()
+                .map(InvoiceResponse::fromDomain)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(list);
     }
 
     @PostMapping

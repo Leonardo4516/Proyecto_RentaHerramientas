@@ -13,7 +13,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import com.rentatools.domain.billing.Payment;
+import com.rentatools.domain.billing.PaymentStatus;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -29,6 +32,28 @@ public class PaymentController {
     public PaymentController(ProcessPaymentUseCase processPaymentUseCase, PaymentRepository paymentRepository) {
         this.processPaymentUseCase = processPaymentUseCase;
         this.paymentRepository = paymentRepository;
+    }
+
+    @GetMapping
+    @Operation(summary = "Listar todos los pagos", description = "Retorna el historial completo de pagos y transacciones registradas con filtros opcionales por método y estado")
+    public ResponseEntity<List<PaymentResponse>> getAllPayments(
+            @RequestParam(required = false) String paymentMethod,
+            @RequestParam(required = false) PaymentStatus status) {
+        List<Payment> payments = paymentRepository.findAll();
+        if (paymentMethod != null && !paymentMethod.isBlank()) {
+            payments = payments.stream()
+                    .filter(p -> p.getPaymentMethod() != null && p.getPaymentMethod().name().equalsIgnoreCase(paymentMethod.trim()))
+                    .toList();
+        }
+        if (status != null) {
+            payments = payments.stream()
+                    .filter(p -> p.getStatus() == status)
+                    .toList();
+        }
+        List<PaymentResponse> list = payments.stream()
+                .map(PaymentResponse::fromDomain)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(list);
     }
 
     @PostMapping

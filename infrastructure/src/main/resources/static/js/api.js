@@ -106,6 +106,16 @@ const API = (() => {
       getCategories: () => request('/api/v1/tools/categories'),
       getNearby: (lat, lng, radiusKm = 20) =>
         request(`/api/v1/tools/nearby?lat=${lat}&lng=${lng}&radiusKm=${radiusKm}`),
+      search: (q, categoryId, minPrice, maxPrice, status) => {
+        const params = new URLSearchParams();
+        if (q) params.append('q', q);
+        if (categoryId) params.append('categoryId', categoryId);
+        if (minPrice) params.append('minPrice', minPrice);
+        if (maxPrice) params.append('maxPrice', maxPrice);
+        if (status) params.append('status', status);
+        const queryStr = params.toString();
+        return request(`/api/v1/tools/search${queryStr ? '?' + queryStr : ''}`);
+      },
       create: (toolData) =>
         request('/api/v1/tools', {
           method: 'POST',
@@ -119,8 +129,28 @@ const API = (() => {
           method: 'POST',
           body: JSON.stringify(rentalData)
         }),
-      getAll: (params = '') => request('/api/v1/rentals' + (params ? (params.startsWith('?') ? params : '?' + params) : '')),
-      getMyRentals: () => request('/api/v1/rentals/my-rentals'),
+      getAll: (params = '') => {
+        if (typeof params === 'object') {
+          const sp = new URLSearchParams();
+          Object.entries(params).forEach(([k, v]) => {
+            if (v !== undefined && v !== null && v !== '') sp.append(k, v);
+          });
+          const qs = sp.toString();
+          return request(`/api/v1/rentals${qs ? '?' + qs : ''}`);
+        }
+        return request('/api/v1/rentals' + (params ? (params.startsWith('?') ? params : '?' + params) : ''));
+      },
+      getMyRentals: (params = '') => {
+        if (typeof params === 'object') {
+          const sp = new URLSearchParams();
+          Object.entries(params).forEach(([k, v]) => {
+            if (v !== undefined && v !== null && v !== '') sp.append(k, v);
+          });
+          const qs = sp.toString();
+          return request(`/api/v1/rentals/my-rentals${qs ? '?' + qs : ''}`);
+        }
+        return request('/api/v1/rentals/my-rentals' + (params ? (params.startsWith('?') ? params : '?' + params) : ''));
+      },
       getByToolId: (toolId) => request(`/api/v1/rentals/tool/${toolId}`),
       checkAvailability: (toolId, startDate, endDate) =>
         request(`/api/v1/rentals/check-availability?toolId=${encodeURIComponent(toolId)}&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`),
@@ -138,6 +168,12 @@ const API = (() => {
     },
 
     invoices: {
+      getAll: (paid) => {
+        const url = paid !== undefined && paid !== null 
+          ? `/api/v1/invoices?paid=${encodeURIComponent(paid)}`
+          : '/api/v1/invoices';
+        return request(url);
+      },
       getById: (id) => request(`/api/v1/invoices/${id}`),
       getByClient: (clientId) => request(`/api/v1/invoices/client/${clientId}`),
       getByRental: (rentalId) => request(`/api/v1/invoices/rental/${rentalId}`),
@@ -150,6 +186,13 @@ const API = (() => {
     },
 
     payments: {
+      getAll: (paymentMethod, status) => {
+        const params = new URLSearchParams();
+        if (paymentMethod) params.append('paymentMethod', paymentMethod);
+        if (status) params.append('status', status);
+        const queryStr = params.toString();
+        return request(`/api/v1/payments${queryStr ? '?' + queryStr : ''}`);
+      },
       process: (paymentData) =>
         request('/api/v1/payments', {
           method: 'POST',

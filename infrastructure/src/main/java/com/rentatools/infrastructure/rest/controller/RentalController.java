@@ -108,10 +108,13 @@ public class RentalController {
     }
 
     @GetMapping
-    @Operation(summary = "Listar todas las reservas", description = "Retorna el historial de alquileres con aislamiento automático de privacidad para clientes y proveedores")
+    @Operation(summary = "Listar todas las reservas", description = "Retorna el historial de alquileres con aislamiento automático de privacidad para clientes y proveedores, con filtros opcionales por estado y rango de fechas")
     public ResponseEntity<List<RentalResponse>> getAllRentals(
             @RequestParam(required = false) Long providerId,
             @RequestParam(required = false) Long clientId,
+            @RequestParam(required = false) BookingStatus status,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             Authentication authentication
     ) {
         List<RentalBooking> bookings;
@@ -167,6 +170,16 @@ public class RentalController {
             bookings = rentalRepository.findAll();
         }
 
+        if (status != null) {
+            bookings = bookings.stream().filter(r -> r.getStatus() == status).toList();
+        }
+        if (startDate != null) {
+            bookings = bookings.stream().filter(r -> r.getDateRange() != null && !r.getDateRange().startDate().isBefore(startDate)).toList();
+        }
+        if (endDate != null) {
+            bookings = bookings.stream().filter(r -> r.getDateRange() != null && !r.getDateRange().endDate().isAfter(endDate)).toList();
+        }
+
         List<RentalResponse> rentals = bookings.stream()
                 .map(this::enrichRental)
                 .toList();
@@ -175,8 +188,12 @@ public class RentalController {
 
     @GetMapping("/my-rentals")
     @Operation(summary = "Listar reservas exclusivas del usuario autenticado (Cliente o Proveedor)")
-    public ResponseEntity<List<RentalResponse>> getMyRentals(Authentication authentication) {
-        return getAllRentals(null, null, authentication);
+    public ResponseEntity<List<RentalResponse>> getMyRentals(
+            @RequestParam(required = false) BookingStatus status,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            Authentication authentication) {
+        return getAllRentals(null, null, status, startDate, endDate, authentication);
     }
 
     @GetMapping("/tool/{toolId}")

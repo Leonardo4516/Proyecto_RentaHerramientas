@@ -8,6 +8,7 @@ import com.rentatools.application.tool.usecase.FindNearbyToolsUseCase;
 import com.rentatools.application.tool.usecase.GetToolByIdUseCase;
 import com.rentatools.application.tool.usecase.ListToolsUseCase;
 import com.rentatools.application.tool.usecase.RegisterToolUseCase;
+import com.rentatools.application.tool.usecase.SearchToolsUseCase;
 import com.rentatools.domain.tool.ToolCategoryRepository;
 import com.rentatools.domain.tool.ToolStatus;
 import com.rentatools.infrastructure.persistence.user.ProviderJpaEntity;
@@ -31,6 +32,7 @@ import java.util.List;
 public class ToolController {
 
     private final ListToolsUseCase listToolsUseCase;
+    private final SearchToolsUseCase searchToolsUseCase;
     private final GetToolByIdUseCase getToolByIdUseCase;
     private final RegisterToolUseCase registerToolUseCase;
     private final FindNearbyToolsUseCase findNearbyToolsUseCase;
@@ -39,6 +41,7 @@ public class ToolController {
     private final SpringDataUserRepository userRepository;
 
     public ToolController(ListToolsUseCase listToolsUseCase,
+                          SearchToolsUseCase searchToolsUseCase,
                           GetToolByIdUseCase getToolByIdUseCase,
                           RegisterToolUseCase registerToolUseCase,
                           FindNearbyToolsUseCase findNearbyToolsUseCase,
@@ -46,12 +49,28 @@ public class ToolController {
                           SpringDataProviderRepository providerRepository,
                           SpringDataUserRepository userRepository) {
         this.listToolsUseCase = listToolsUseCase;
+        this.searchToolsUseCase = searchToolsUseCase;
         this.getToolByIdUseCase = getToolByIdUseCase;
         this.registerToolUseCase = registerToolUseCase;
         this.findNearbyToolsUseCase = findNearbyToolsUseCase;
         this.categoryRepository = categoryRepository;
         this.providerRepository = providerRepository;
         this.userRepository = userRepository;
+    }
+
+    @GetMapping("/search")
+    @Operation(summary = "Búsqueda multifactorial de maquinaria", description = "Busca por texto libre en nombre, marca, modelo o código, con filtros opcionales de categoría, rango de precios y estado")
+    public ResponseEntity<List<ToolResponse>> searchTools(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice,
+            @RequestParam(required = false) ToolStatus status
+    ) {
+        List<ToolResponse> tools = searchToolsUseCase.execute(q, categoryId, minPrice, maxPrice, status).stream()
+                .map(this::enrichTool)
+                .toList();
+        return ResponseEntity.ok(tools);
     }
 
     @GetMapping({"", "/public"})
