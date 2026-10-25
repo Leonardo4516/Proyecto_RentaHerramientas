@@ -1620,7 +1620,8 @@ const App = (() => {
     if (cart.length === 0 && (!activeToolForBooking || !activeToolForBooking.calculatedQuote)) return;
 
     const user = API.getUser();
-    if (!user) {
+    const token = API.getToken();
+    if (!user || !token) {
       const cartModalEl = document.getElementById('cartModal');
       const cartModal = bootstrap.Modal.getInstance(cartModalEl);
       if (cartModal) cartModal.hide();
@@ -1628,7 +1629,7 @@ const App = (() => {
       Swal.fire({
         icon: 'info',
         title: 'Iniciar Sesión Requerido',
-        text: 'Debes iniciar sesión para procesar el alquiler y pago de tu maquinaria.',
+        text: 'Debes iniciar sesión con tu cuenta de cliente para procesar el alquiler y pago de tu maquinaria.',
         confirmButtonColor: '#00843D',
         confirmButtonText: 'Ir a Iniciar Sesión',
         background: '#ffffff',
@@ -2236,11 +2237,12 @@ const App = (() => {
   async function openBookingModal(toolId) {
     activeCartCheckout = null;
     const user = API.getUser();
-    if (!user) {
+    const token = API.getToken();
+    if (!user || !token) {
       Swal.fire({
         icon: 'info',
         title: 'Iniciar Sesión Requerido',
-        text: 'Debes iniciar sesión para realizar cotizaciones y reservas de maquinaria en línea.',
+        text: 'Debes iniciar sesión con tu cuenta para realizar cotizaciones y reservas de maquinaria en línea.',
         confirmButtonColor: '#00843D',
         confirmButtonText: 'Ir a Iniciar Sesión',
         background: '#ffffff',
@@ -2429,6 +2431,27 @@ const App = (() => {
     activeCartCheckout = null;
     if (!activeToolForBooking || !activeToolForBooking.calculatedQuote) return;
 
+    const user = API.getUser();
+    const token = API.getToken();
+    if (!user || !token) {
+      const bookingModalEl = document.getElementById('bookingModal');
+      const bookingModal = bootstrap.Modal.getInstance(bookingModalEl);
+      if (bookingModal) bookingModal.hide();
+
+      Swal.fire({
+        icon: 'warning',
+        title: 'Iniciar Sesión Requerido',
+        text: 'Debes iniciar sesión con tu cuenta para proceder con el pago y confirmación de la reserva.',
+        confirmButtonColor: '#00843D',
+        confirmButtonText: 'Iniciar Sesión',
+        background: '#ffffff',
+        color: '#101820'
+      }).then(() => {
+        openAuthModal('login');
+      });
+      return;
+    }
+
     const q = activeToolForBooking.calculatedQuote;
     const startVal = q.startDate;
     const endVal = q.endDate;
@@ -2530,7 +2553,21 @@ const App = (() => {
 
   async function submitPayment() {
     const user = API.getUser();
-    if (!user) return;
+    const token = API.getToken();
+    if (!user || !token) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Sesión Requerida',
+        text: 'Tu sesión no está activa o ha expirado. Por favor inicia sesión para completar el pago de la maquinaria.',
+        confirmButtonColor: '#00843D',
+        confirmButtonText: 'Iniciar Sesión',
+        background: '#ffffff',
+        color: '#101820'
+      }).then(() => {
+        openAuthModal('login');
+      });
+      return;
+    }
     if (!activeToolForBooking && (!activeCartCheckout || activeCartCheckout.length === 0)) return;
 
     const selectedMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value || 'PSE';
@@ -2989,13 +3026,19 @@ const App = (() => {
         btnSubmit.disabled = false;
         btnSubmit.innerHTML = originalBtnHtml;
       }
+      const isAuthError = err.status === 401 || (err.message && err.message.toLowerCase().includes('sesión'));
       Swal.fire({
-        icon: 'error',
-        title: 'Error en la transacción',
+        icon: isAuthError ? 'warning' : 'error',
+        title: isAuthError ? 'Sesión Requerida' : 'Error en la transacción',
         text: err.message || 'No se pudo procesar el pago.',
         confirmButtonColor: '#00843D',
+        confirmButtonText: isAuthError ? 'Iniciar Sesión' : 'Entendido',
         background: '#ffffff',
         color: '#101820'
+      }).then(() => {
+        if (isAuthError) {
+          openAuthModal('login');
+        }
       });
     }
   }
@@ -3913,7 +3956,12 @@ const App = (() => {
   }
 
   function checkAuthStatus() {
-    const user = API.getUser();
+    let user = API.getUser();
+    const token = API.getToken();
+    if (user && !token) {
+      API.setUser(null);
+      user = null;
+    }
     const guestNav = document.getElementById('nav-guest-actions');
     const userNav = document.getElementById('nav-user-actions');
     const avatarEl = document.getElementById('nav-user-avatar');

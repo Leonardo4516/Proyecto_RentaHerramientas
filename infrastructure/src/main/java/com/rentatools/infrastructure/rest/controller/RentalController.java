@@ -309,7 +309,7 @@ public class RentalController {
     ) {
         if (authentication != null && !authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
             boolean isClient = authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_CLIENTE"));
-            if (isClient) {
+            if (isClient || isRentalClient(id, authentication.getName())) {
                 validateClientOwnership(id, authentication.getName());
             } else {
                 validateProviderOwnership(id, authentication.getName());
@@ -318,7 +318,7 @@ public class RentalController {
 
         BookingStatus targetStatus = newStatus;
         if (targetStatus == null && body != null && body.containsKey("status")) {
-            targetStatus = BookingStatus.valueOf(body.get("status").toUpperCase());
+            targetStatus = BookingStatus.fromString(body.get("status"));
         }
         if (targetStatus == null) {
             targetStatus = BookingStatus.CONFIRMADA;
@@ -675,5 +675,17 @@ public class RentalController {
         if (!isOwner && !userId.equals(rentalClientId)) {
             throw new UnauthorizedException("No tienes autorización para gestionar reservas de otro cliente.");
         }
+    }
+
+    private boolean isRentalClient(Long rentalId, String username) {
+        var userOpt = userRepository.findByUsername(username);
+        if (userOpt.isEmpty()) return false;
+        var rentalOpt = rentalRepository.findById(rentalId);
+        if (rentalOpt.isEmpty()) return false;
+        Long userId = userOpt.get().getId();
+        Long rentalClientId = rentalOpt.get().getClientId();
+        if (userId.equals(rentalClientId)) return true;
+        var clientOpt = clientRepository.findByUserId(userId);
+        return clientOpt.isPresent() && clientOpt.get().getId().equals(rentalClientId);
     }
 }
