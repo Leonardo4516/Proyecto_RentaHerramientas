@@ -3204,10 +3204,12 @@ const App = (() => {
       const toolName = tool ? tool.name : (r.toolName || `Maquinaria #${r.toolId}`);
       
       let badgeHtml = '';
-      if (['CONFIRMADA', 'EN_CURSO', 'ACTIVO'].includes(r.status)) {
-        badgeHtml = `<span class="badge bg-warning text-dark border border-warning border-opacity-50 py-1 px-2"><i class="fa fa-hard-hat me-1"></i>En Obra / Alquilada</span>`;
+      if (['CONFIRMADA', 'APROBADA', 'EN_CURSO', 'ACTIVO'].includes(r.status)) {
+        badgeHtml = `<span class="badge bg-success text-white border py-1 px-2"><i class="fa fa-check-circle me-1"></i>${r.status === 'APROBADA' ? 'Aprobada por Proveedor' : 'En Obra / Confirmada'}</span>`;
       } else if (r.status === 'PENDIENTE' || r.status === 'PENDIENTE_PAGO') {
         badgeHtml = `<span class="badge bg-info text-dark border border-info border-opacity-50 py-1 px-2"><i class="fa fa-clock me-1"></i>Pendiente Aprobación</span>`;
+      } else if (r.status === 'RECHAZADA') {
+        badgeHtml = `<span class="badge bg-danger text-white py-1 px-2"><i class="fa fa-ban me-1"></i>Rechazada</span>`;
       } else if (r.status === 'COMPLETADA') {
         badgeHtml = `<span class="badge bg-secondary py-1 px-2"><i class="fa fa-check me-1"></i>Completada</span>`;
       } else {
@@ -3231,13 +3233,13 @@ const App = (() => {
         <td>
           <div class="provider-actions-cell d-flex gap-1 flex-wrap">
           ${r.status === 'PENDIENTE_PAGO' || r.status === 'PENDIENTE' ? `
-            <button class="btn btn-sm btn-success py-1 px-2 fw-semibold" onclick="App.updateRentalStatus('${r.id}', 'CONFIRMADA')">
+            <button class="btn btn-sm btn-success py-1 px-2 fw-semibold" onclick="App.updateRentalStatus('${r.id}', 'APROBADA')">
               <i class="fa fa-check me-1"></i> Aprobar
             </button>
             <button class="btn btn-sm btn-outline-danger py-1 px-2" onclick="App.updateRentalStatus('${r.id}', 'RECHAZADA')">
               <i class="fa fa-times me-1"></i> Rechazar
             </button>
-          ` : (['CONFIRMADA', 'EN_CURSO', 'ACTIVO'].includes(r.status) ? `
+          ` : (['CONFIRMADA', 'APROBADA', 'EN_CURSO', 'ACTIVO'].includes(r.status) ? `
             <button class="btn btn-sm btn-neu-cyan py-1 px-2 text-nowrap" onclick="App.openReturnModal('${r.id}')">
               <i class="fa fa-clipboard-check me-1"></i> Inspección Devolución
             </button>

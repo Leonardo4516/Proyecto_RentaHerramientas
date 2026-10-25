@@ -203,11 +203,20 @@ const API = (() => {
           method: 'PUT'
         });
       },
-      updateStatus: (id, status) =>
-        request(`/api/v1/rentals/${id}/status`, {
+      approve: (id) => request(`/api/reservas/${id}/aprobar`, { method: 'POST' }),
+      reject: (id, motivo) => request(`/api/reservas/${id}/rechazar?motivo=${encodeURIComponent(motivo || 'Rechazada por el proveedor')}`, { method: 'POST' }),
+      updateStatus: (id, status, reason) => {
+        if (status === 'APROBADA' || status === 'CONFIRMADA') {
+          return request(`/api/reservas/${id}/aprobar`, { method: 'POST' });
+        }
+        if (status === 'RECHAZADA') {
+          return request(`/api/reservas/${id}/rechazar?motivo=${encodeURIComponent(reason || 'Rechazada por el proveedor')}`, { method: 'POST' });
+        }
+        return request(`/api/v1/rentals/${id}/status`, {
           method: 'PUT',
-          body: JSON.stringify({ status })
-        }),
+          body: JSON.stringify({ status, reason })
+        });
+      },
       return: (id, notes, damageDetected, damageCost) =>
         request(`/api/v1/rentals/${id}/return`, {
           method: 'POST',
@@ -220,6 +229,16 @@ const API = (() => {
         }),
       getInspection: (id) => request(`/api/v1/rentals/${id}/return-inspection`),
       getTimeline: (id) => request(`/api/v1/rentals/${id}/timeline`)
+    },
+
+    coupons: {
+      validate: (code) => request(`/api/v1/coupons/validate?code=${encodeURIComponent(code)}`),
+      list: () => request('/api/v1/coupons')
+    },
+
+    reviews: {
+      create: (data) => request('/api/v1/reviews', { method: 'POST', body: JSON.stringify(data) }),
+      getByTool: (toolId) => request(`/api/v1/reviews/tool/${toolId}`)
     },
 
     invoices: {

@@ -70,10 +70,10 @@ public class RentaToolsApplication extends SpringBootServletInitializer {
                                    "cart_items", "clients", "providers", "admins", "rental_audit_logs"};
                 for (String table : tables) {
                     try {
-                        stmt.execute("ALTER TABLE " + table + " ALTER COLUMN id RESTART WITH 1000");
+                        stmt.execute("SELECT setval(pg_get_serial_sequence('" + table + "', 'id'), COALESCE((SELECT MAX(id) FROM " + table + "), 1) + 1)");
                     } catch (Exception ignored) {
                         try {
-                            stmt.execute("SELECT setval(pg_get_serial_sequence('" + table + "', 'id'), COALESCE(max(id), 1) + 1) FROM " + table);
+                            stmt.execute("ALTER TABLE " + table + " ALTER COLUMN id RESTART WITH 2000");
                         } catch (Exception ignored2) {}
                     }
                 }
