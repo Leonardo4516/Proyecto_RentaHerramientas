@@ -13,7 +13,7 @@ public interface RentalJpaRepository extends JpaRepository<RentalEntity, Long> {
     List<RentalEntity> findByClientId(Long clientId);
     List<RentalEntity> findByToolId(Long toolId);
 
-    @Query("SELECT r FROM RentalEntity r WHERE r.toolId = :toolId AND r.status IN ('PENDIENTE', 'CONFIRMADA', 'EN_CURSO')")
+    @Query("SELECT r FROM RentalEntity r WHERE r.toolId = :toolId AND r.status IN ('PENDIENTE', 'APROBADA', 'CONFIRMADA', 'EN_CURSO')")
     List<RentalEntity> findActiveRentalsByToolId(@Param("toolId") Long toolId);
 
     /**
@@ -24,7 +24,7 @@ public interface RentalJpaRepository extends JpaRepository<RentalEntity, Long> {
     @Query("""
         SELECT COUNT(r) > 0 FROM RentalEntity r
         WHERE r.toolId = :toolId
-          AND r.status IN ('PENDIENTE', 'CONFIRMADA', 'EN_CURSO')
+          AND r.status IN ('PENDIENTE', 'APROBADA', 'CONFIRMADA', 'EN_CURSO')
           AND r.startDate <= :endDate
           AND r.endDate >= :startDate
     """)

@@ -16,6 +16,17 @@ public interface RentalRepository {
      */
     boolean hasOverlappingBookings(Long toolId, LocalDate startDate, LocalDate endDate);
 
+    default boolean hasOverlappingBookingsExcluding(Long toolId, LocalDate startDate, LocalDate endDate, Long excludeRentalId) {
+        if (excludeRentalId == null) {
+            return hasOverlappingBookings(toolId, startDate, endDate);
+        }
+        DateRange requested = new DateRange(startDate, endDate);
+        return findActiveRentalsByToolId(toolId).stream()
+                .filter(r -> r.getId() != null && !r.getId().equals(excludeRentalId))
+                .filter(r -> r.getStatus() == BookingStatus.APROBADA || r.getStatus() == BookingStatus.CONFIRMADA || r.getStatus() == BookingStatus.EN_CURSO)
+                .anyMatch(r -> r.getDateRange().overlapsWith(requested));
+    }
+
     default void recordTimelineEvent(RentalTimelineEvent event) {}
 
     default List<RentalTimelineEvent> findTimelineByRentalId(Long rentalId) {

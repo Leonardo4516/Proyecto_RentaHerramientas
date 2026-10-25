@@ -47,6 +47,8 @@ public class ToolController {
     private final ToolCategoryRepository categoryRepository;
     private final SpringDataProviderRepository providerRepository;
     private final SpringDataUserRepository userRepository;
+    private final com.rentatools.domain.rental.RentalRepository rentalRepository;
+    private final com.rentatools.infrastructure.persistence.repository.RentalReviewJpaRepository reviewRepository;
 
     public ToolController(ListToolsUseCase listToolsUseCase,
                           SearchToolsUseCase searchToolsUseCase,
@@ -60,7 +62,9 @@ public class ToolController {
                           com.rentatools.application.tool.usecase.GetToolMaintenanceHistoryUseCase getToolMaintenanceHistoryUseCase,
                           ToolCategoryRepository categoryRepository,
                           SpringDataProviderRepository providerRepository,
-                          SpringDataUserRepository userRepository) {
+                          SpringDataUserRepository userRepository,
+                          com.rentatools.domain.rental.RentalRepository rentalRepository,
+                          com.rentatools.infrastructure.persistence.repository.RentalReviewJpaRepository reviewRepository) {
         this.listToolsUseCase = listToolsUseCase;
         this.searchToolsUseCase = searchToolsUseCase;
         this.getToolByIdUseCase = getToolByIdUseCase;
@@ -74,6 +78,8 @@ public class ToolController {
         this.categoryRepository = categoryRepository;
         this.providerRepository = providerRepository;
         this.userRepository = userRepository;
+        this.rentalRepository = rentalRepository;
+        this.reviewRepository = reviewRepository;
     }
 
     @GetMapping("/search")
@@ -280,6 +286,69 @@ public class ToolController {
     ) {
         List<com.rentatools.application.tool.dto.ToolMaintenanceResponse> history = getToolMaintenanceHistoryUseCase.execute(id);
         return ResponseEntity.ok(history);
+    }
+
+    @PutMapping("/{id}/mantenimiento")
+    @PreAuthorize("hasAnyAuthority('ROLE_PROVEEDOR', 'ROLE_ADMIN')")
+    @Operation(summary = "Enviar maquinaria a mantenimiento con validación de reservas activas futuras")
+    public ResponseEntity<ToolResponse> enviarAMantenimiento(
+            @PathVariable Long id,
+            @RequestParam(required = false, defaultValue = "Mantenimiento preventivo") String motivo,
+            Authentication authentication
+    ) {
+        if (authentication != null && !authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+            validateToolProviderOwnership(id, authentication.getName());
+        }
+
+        if (rentalRepository != null) {
+            java.time.LocalDate hoy = java.time.LocalDate.now();
+            List<com.rentatools.domain.rental.RentalBooking> activas = rentalRepository.findActiveRentalsByToolId(id).stream()
+                    .filter(r -> r.getStatus() == com.rentatools.domain.rental.BookingStatus.PENDIENTE
+                              || r.getStatus() == com.rentatools.domain.rental.BookingStatus.APROBADA
+                              || r.getStatus() == com.rentatools.domain.rental.BookingStatus.CONFIRMADA
+                              || r.getStatus() == com.rentatools.domain.rental.BookingStatus.EN_CURSO)
+                    .filter(r -> r.getDateRange() != null && !r.getDateRange().endDate().isBefore(hoy))
+                    .toList();
+
+            if (!activas.isEmpty()) {
+                throw new com.rentatools.domain.common.BusinessRuleValidationException(
+                        "No se puede enviar a mantenimiento: La herramienta tiene " + activas.size() + " reserva(s) activa(s) o futuras en el sistema."
+                );
+            }
+        }
+
+        ToolResponse updated = updateToolUseCase.updateStatus(id, ToolStatus.EN_MANTENIMIENTO);
+        return ResponseEntity.ok(enrichTool(updated));
+    }
+
+    @PutMapping("/{id}/operativa")
+    @PreAuthorize("hasAnyAuthority('ROLE_PROVEEDOR', 'ROLE_ADMIN')")
+    @Operation(summary = "Finalizar mantenimiento y reactivar maquinaria a estado DISPONIBLE")
+    public ResponseEntity<ToolResponse> finalizarMantenimiento(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        if (authentication != null && !authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+            validateToolProviderOwnership(id, authentication.getName());
+        }
+        ToolResponse updated = updateToolUseCase.updateStatus(id, ToolStatus.DISPONIBLE);
+        return ResponseEntity.ok(enrichTool(updated));
+    }
+
+    @GetMapping("/{id}/calificaciones")
+    @Operation(summary = "Listar reseñas y promedio de calificaciones de una maquinaria")
+    public ResponseEntity<java.util.Map<String, Object>> getToolReviews(@PathVariable Long id) {
+        if (reviewRepository == null) {
+            return ResponseEntity.ok(java.util.Map.of("toolId", id, "reviews", List.of(), "averageScore", 0.0, "totalReviews", 0));
+        }
+        List<com.rentatools.infrastructure.persistence.entity.RentalReviewEntity> reviews = reviewRepository.findByToolId(id);
+        double avg = reviews.stream().mapToInt(com.rentatools.infrastructure.persistence.entity.RentalReviewEntity::getScore).average().orElse(0.0);
+        return ResponseEntity.ok(java.util.Map.of(
+                "toolId", id,
+                "reviews", reviews,
+                "averageScore", Math.round(avg * 10.0) / 10.0,
+                "totalReviews", reviews.size()
+        ));
     }
 
     private void validateToolProviderOwnership(Long toolId, String username) {
