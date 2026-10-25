@@ -638,7 +638,7 @@
               <th>PERIODO</th>
               <th>TOTAL FACTURADO</th>
               <th>ESTADO</th>
-              <th>FACTURA PDF</th>
+              <th>ACCIONES & CALIFICACIÓN</th>
             </tr>
           </thead>
           <tbody id="client-rentals-list">
@@ -655,7 +655,7 @@
       <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <div>
           <h3 class="fw-bold text-dark mb-1"><i class="fa fa-dolly text-warning me-2"></i>Panel de Control del Proveedor</h3>
-          <p class="text-muted small mb-0">Gestión de inventario de maquinaria, aprobación de arriendos entrantes y recepción de equipos.</p>
+          <p class="text-muted small mb-0">Gestión de inventario de maquinaria, aprobación de arriendos entrantes y control operativo de flota.</p>
         </div>
         <div class="d-flex gap-2">
           <button class="btn btn-sb-green" onclick="App.openAddToolModal()">
@@ -692,7 +692,7 @@
       <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
         <div>
           <h5 class="fw-bold text-dark mb-0"><i class="fa fa-list-check text-success me-2"></i>Historial y Solicitudes de Alquiler</h5>
-          <span class="text-muted small">Revisa tus solicitudes activas, pendientes de aprobación y el historial de devoluciones</span>
+          <span class="text-muted small">Revisa tus solicitudes entrantes, aprueba o rechaza solicitudes pendientes y registra devoluciones de maquinaria</span>
         </div>
         <div class="btn-group btn-group-sm" role="group">
           <button type="button" class="btn btn-outline-secondary active fw-semibold" id="btn-filter-prov-all" onclick="App.filterProviderRequests('ALL')">Todas (<span id="prov-count-all">0</span>)</button>
@@ -702,7 +702,7 @@
         </div>
       </div>
 
-      <div class="table-responsive">
+      <div class="table-responsive mb-5">
         <table class="table table-hover align-middle mb-0">
           <thead class="table-light">
             <tr>
@@ -712,13 +712,46 @@
               <th>DÍAS</th>
               <th>VALOR TOTAL</th>
               <th>ESTADO</th>
-              <th>ACCIONES</th>
+              <th>ACCIONES DE APROBACIÓN</th>
             </tr>
           </thead>
           <tbody id="provider-requests-list">
             <!-- Renderizado dinámicamente -->
           </tbody>
         </table>
+      </div>
+
+      <!-- SECCIÓN GESTIÓN DE FLOTA Y MANTENIMIENTO TÉCNICO -->
+      <div class="pt-4 border-top">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <div>
+            <h5 class="fw-bold text-dark mb-0">
+              <i class="fa fa-wrench text-warning me-2"></i>Gestión de Flota y Control de Mantenimiento
+            </h5>
+            <span class="text-muted small">Supervisa el estado operativo de tu maquinaria, envía equipos a mantenimiento o reactívalos a disponibilidad</span>
+          </div>
+          <button class="btn btn-sm btn-outline-success fw-semibold" onclick="App.loadTools(); App.renderProviderFleetTable();">
+            <i class="fa fa-sync-alt me-1"></i> Actualizar Flota
+          </button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>MAQUINARIA / CÓDIGO</th>
+                <th>CATEGORÍA & MARCA</th>
+                <th>TARIFA / DÍA</th>
+                <th>ESTADO OPERATIVO</th>
+                <th>CALIFICACIÓN</th>
+                <th>ACCIONES DE MANTENIMIENTO</th>
+              </tr>
+            </thead>
+            <tbody id="provider-fleet-list">
+              <!-- Renderizado dinámicamente con App.renderProviderFleetTable() -->
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
@@ -1763,6 +1796,91 @@
               </button>
             </div>
           </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL CALIFICACIÓN DE ALQUILER ==================== -->
+  <div class="modal fade" id="ratingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content sb-modal">
+        <div class="modal-header border-bottom pb-3">
+          <div class="d-flex align-items-center gap-2">
+            <i class="fa fa-star text-warning fs-4"></i>
+            <div>
+              <h5 class="modal-title fw-bold text-dark mb-0">Calificar Alquiler Completado</h5>
+              <small class="text-muted" id="rating-tool-name">Maquinaria</small>
+            </div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body p-4">
+          <input type="hidden" id="rating-rental-id">
+          
+          <div class="text-center mb-4">
+            <p class="text-muted small mb-2">¿Cómo calificarías el desempeño del equipo y la experiencia en obra?</p>
+            <div id="rating-stars-container" class="d-flex justify-content-center gap-2 fs-2 cursor-pointer">
+              <i class="fa fa-star text-warning star-btn" data-value="1" onclick="App.setRatingScore(1)" style="cursor: pointer;"></i>
+              <i class="fa fa-star text-warning star-btn" data-value="2" onclick="App.setRatingScore(2)" style="cursor: pointer;"></i>
+              <i class="fa fa-star text-warning star-btn" data-value="3" onclick="App.setRatingScore(3)" style="cursor: pointer;"></i>
+              <i class="fa fa-star text-warning star-btn" data-value="4" onclick="App.setRatingScore(4)" style="cursor: pointer;"></i>
+              <i class="fa fa-star text-warning star-btn" data-value="5" onclick="App.setRatingScore(5)" style="cursor: pointer;"></i>
+            </div>
+            <div class="fw-bold text-success mt-2 fs-6" id="rating-score-label">5 Estrellas - Excelente rendimiento</div>
+            <input type="hidden" id="rating-score-val" value="5">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-dark">Comentario / Reseña Técnica del Cliente</label>
+            <textarea id="rating-comment" class="form-control" rows="3" placeholder="ej. Maquinaria en óptimas condiciones mecánicas, consumo eficiente y entrega puntual en el frente de obra."></textarea>
+          </div>
+
+          <div class="d-flex justify-content-end gap-2 mt-4">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="button" class="btn btn-sb-green" onclick="App.submitCalificacion()">
+              <i class="fa fa-paper-plane me-1"></i> Publicar Calificación
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL DE RESEÑAS DE MAQUINARIA ==================== -->
+  <div class="modal fade" id="toolReviewsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content sb-modal">
+        <div class="modal-header border-bottom pb-3">
+          <div class="d-flex align-items-center gap-2">
+            <i class="fa fa-star text-warning fs-4"></i>
+            <div>
+              <h5 class="modal-title fw-bold text-dark mb-0">Calificaciones y Reseñas de Clientes</h5>
+              <small class="text-muted" id="reviews-tool-title">Maquinaria</small>
+            </div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body p-4">
+          <!-- RESUMEN PROMEDIO -->
+          <div class="p-3 bg-light rounded-3 border d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+            <div>
+              <span class="h2 fw-bold text-dark mb-0" id="reviews-average-score">5.0</span>
+              <span class="text-warning fs-5 ms-1" id="reviews-average-stars">★★★★★</span>
+              <div class="small text-muted" id="reviews-total-count">0 calificaciones registradas</div>
+            </div>
+            <div class="small text-muted text-end">
+              <i class="fa fa-shield-alt text-success me-1"></i> Reseñas verificadas de clientes con alquileres completados
+            </div>
+          </div>
+
+          <!-- LISTA DE RESEÑAS -->
+          <div id="reviews-list-container" style="max-height: 380px; overflow-y: auto;">
+            <!-- Renderizado dinámico -->
+          </div>
+        </div>
+        <div class="modal-footer border-top">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
         </div>
       </div>
     </div>

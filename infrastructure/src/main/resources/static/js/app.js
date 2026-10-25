@@ -656,6 +656,10 @@ const App = (() => {
       if (typeof MapManager !== 'undefined' && MapManager.updateToolsOnMap) {
         MapManager.updateToolsOnMap(filteredTools, cachedRentals);
       }
+
+      if (document.getElementById('provider-fleet-list')) {
+        renderProviderFleetTable();
+      }
     } catch (err) {
       console.error('Error cargando maquinaria:', err);
     }
@@ -1984,7 +1988,12 @@ const App = (() => {
 
           <!-- Columna 2: Ficha Técnica e Inventario -->
           <div class="sb-tool-info-col">
-            <div class="sb-tool-cat-class">CAT CLASS: ${catClass} | ${t.categoryName || t.category || 'Maquinaria'}</div>
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-1 mb-1">
+              <span class="sb-tool-cat-class mb-0">CAT CLASS: ${catClass} | ${t.categoryName || t.category || 'Maquinaria'}</span>
+              <button class="btn btn-sm btn-outline-warning text-dark border py-0 px-2 rounded-pill small fw-semibold" onclick="App.verCalificacionesTool('${t.id}', '${encodeURIComponent(t.name || '')}')" title="Ver calificaciones y reseñas técnicas">
+                <i class="fa fa-star text-warning me-1"></i>5.0 <span class="text-muted small fw-normal">(Reseñas)</span>
+              </button>
+            </div>
             <h4 class="sb-tool-name">${t.name}</h4>
             <div class="text-muted small mb-2"><i class="fa fa-building text-success me-1"></i><strong>Proveedor:</strong> <span class="text-dark fw-semibold">${providerName}</span></div>
             <div class="sb-tool-specs-header">ESPECIFICACIONES TÉCNICAS</div>
@@ -3082,34 +3091,74 @@ const App = (() => {
       container.innerHTML = rentals.map(r => {
         const tool = allTools.find(t => String(t.id) === String(r.toolId));
         const toolName = tool ? tool.name : (r.toolName || `Maquinaria #${r.toolId}`);
+        const safeToolName = (toolName || '').replace(/'/g, "\\'");
+        
+        let statusBadge = '';
+        if (r.status === 'APROBADA' || r.status === 'CONFIRMADA') {
+          statusBadge = `<span class="badge bg-success py-1 px-2"><i class="fa fa-check-circle me-1"></i>${r.status}</span>`;
+        } else if (r.status === 'PENDIENTE' || r.status === 'PENDIENTE_PAGO') {
+          statusBadge = `<span class="badge bg-warning text-dark py-1 px-2"><i class="fa fa-clock me-1"></i>Pendiente Aprobación</span>`;
+        } else if (r.status === 'EN_CURSO' || r.status === 'ACTIVO') {
+          statusBadge = `<span class="badge bg-primary py-1 px-2"><i class="fa fa-hard-hat me-1"></i>En Obra</span>`;
+        } else if (r.status === 'COMPLETADA' || r.status === 'DEVUELTO') {
+          statusBadge = `<span class="badge bg-secondary py-1 px-2"><i class="fa fa-flag-checkered me-1"></i>Completada</span>`;
+        } else if (r.status === 'RECHAZADA') {
+          statusBadge = `<span class="badge bg-danger py-1 px-2"><i class="fa fa-times-circle me-1"></i>Rechazada</span>`;
+        } else if (r.status === 'CANCELADA') {
+          statusBadge = `<span class="badge bg-secondary py-1 px-2"><i class="fa fa-ban me-1"></i>Cancelada</span>`;
+        } else {
+          statusBadge = `<span class="badge bg-light text-dark border py-1 px-2">${r.status}</span>`;
+        }
+
+        let actionButtons = `
+          <button onclick="App.downloadInvoicePdfForRental('${r.id}')" class="btn btn-sm btn-neu py-1 px-2" title="Descargar comprobante en PDF">
+            <i class="fa fa-file-pdf text-danger me-1"></i> PDF
+          </button>
+        `;
+
+        if (['CONFIRMADA', 'APROBADA', 'EN_CURSO', 'ACTIVO'].includes(r.status)) {
+          actionButtons += `
+            <button onclick="App.promptExtendRental('${r.id}', '${r.endDate}')" class="btn btn-sm btn-outline-primary py-1 px-2" title="Solicitar prórroga / extender días">
+              <i class="fa fa-calendar-plus me-1"></i> Prórroga
+            </button>
+            <button onclick="App.cancelarReservaCliente('${r.id}')" class="btn btn-sm btn-outline-danger py-1 px-2" title="Cancelar este alquiler">
+              <i class="fa fa-times me-1"></i> Cancelar
+            </button>
+          `;
+        } else if (r.status === 'PENDIENTE' || r.status === 'PENDIENTE_PAGO') {
+          actionButtons += `
+            <button onclick="App.cancelarReservaCliente('${r.id}')" class="btn btn-sm btn-outline-danger py-1 px-2" title="Cancelar solicitud">
+              <i class="fa fa-times me-1"></i> Cancelar
+            </button>
+          `;
+        } else if (r.status === 'COMPLETADA' || r.status === 'DEVUELTO') {
+          actionButtons += `
+            <button onclick="App.abrirModalCalificar('${r.id}', '${safeToolName}')" class="btn btn-sm btn-warning text-dark fw-semibold py-1 px-2" title="Calificar estado del equipo">
+              <i class="fa fa-star me-1"></i> Calificar
+            </button>
+            <button onclick="App.verCalificacionReserva('${r.id}')" class="btn btn-sm btn-outline-secondary py-1 px-2" title="Ver reseña técnica">
+              <i class="fa fa-eye me-1"></i> Reseña
+            </button>
+          `;
+        } else if (r.status === 'RECHAZADA') {
+          const reasonEsc = (r.rejectionReason || r.notes || 'Rechazada por el proveedor').replace(/'/g, "\\'");
+          actionButtons += `
+            <button onclick="Swal.fire('Motivo de Rechazo', '${reasonEsc}', 'info')" class="btn btn-sm btn-outline-secondary py-1 px-2" title="Ver motivo">
+              <i class="fa fa-info-circle me-1"></i> Motivo
+            </button>
+          `;
+        }
+
         return `
         <tr>
           <td><strong class="text-dark">#${r.id}</strong></td>
           <td><span class="text-dark fw-bold">${toolName}</span></td>
           <td class="text-secondary">${r.startDate} al ${r.endDate} <small class="text-muted">(${r.days} d)</small></td>
           <td class="fw-bold text-dark">${API.formatCurrency(r.total)}</td>
-          <td>
-            <span class="badge ${r.status === 'CONFIRMADA' ? 'badge-available' : (r.status === 'DEVUELTO' || r.status === 'COMPLETADA' ? 'bg-secondary' : 'badge-rented')}">
-              ${r.status}
-            </span>
-          </td>
+          <td>${statusBadge}</td>
           <td>
             <div class="d-flex gap-1 flex-wrap">
-              <button onclick="App.downloadInvoicePdfForRental('${r.id}')" class="btn btn-sm btn-neu py-1 px-2" title="Descargar comprobante en PDF">
-                <i class="fa fa-file-pdf text-danger me-1"></i> PDF
-              </button>
-              ${['CONFIRMADA', 'EN_CURSO', 'ACTIVO'].includes(r.status) ? `
-                <button onclick="App.promptExtendRental('${r.id}', '${r.endDate}')" class="btn btn-sm btn-outline-primary py-1 px-2" title="Solicitar prórroga / extender días">
-                  <i class="fa fa-calendar-plus me-1"></i> Prórroga
-                </button>
-                <button onclick="App.promptCancelRental('${r.id}')" class="btn btn-sm btn-outline-danger py-1 px-2" title="Cancelar este alquiler">
-                  <i class="fa fa-times me-1"></i> Cancelar
-                </button>
-              ` : (r.status === 'PENDIENTE' ? `
-                <button onclick="App.promptCancelRental('${r.id}')" class="btn btn-sm btn-outline-danger py-1 px-2" title="Cancelar solicitud">
-                  <i class="fa fa-times me-1"></i> Cancelar
-                </button>
-              ` : '')}
+              ${actionButtons}
             </div>
           </td>
         </tr>
@@ -3155,6 +3204,9 @@ const App = (() => {
 
     // 5. Cargar solicitudes de arriendo asíncronamente sin bloquear el mapa
     await loadProviderRequests(toolsForMap);
+
+    // 6. Cargar tabla de control de flota y mantenimiento
+    renderProviderFleetTable();
   }
 
   async function loadProviderRequests(providerTools) {
@@ -3172,6 +3224,7 @@ const App = (() => {
       'PENDIENTE': 1,
       'PENDIENTE_PAGO': 1,
       'CONFIRMADA': 2,
+      'APROBADA': 2,
       'EN_CURSO': 2,
       'ACTIVO': 2,
       'COMPLETADA': 3,
@@ -3191,9 +3244,9 @@ const App = (() => {
     const countPendingEl = document.getElementById('prov-count-pending');
     const countCompletedEl = document.getElementById('prov-count-completed');
 
-    const activeList = lastProviderRentals.filter(r => ['CONFIRMADA', 'EN_CURSO', 'ACTIVO'].includes(r.status));
+    const activeList = lastProviderRentals.filter(r => ['CONFIRMADA', 'APROBADA', 'EN_CURSO', 'ACTIVO'].includes(r.status));
     const pendingList = lastProviderRentals.filter(r => ['PENDIENTE', 'PENDIENTE_PAGO'].includes(r.status));
-    const completedList = lastProviderRentals.filter(r => ['COMPLETADA'].includes(r.status));
+    const completedList = lastProviderRentals.filter(r => ['COMPLETADA', 'DEVUELTO'].includes(r.status));
 
     if (countAllEl) countAllEl.textContent = lastProviderRentals.length;
     if (countActiveEl) countActiveEl.textContent = activeList.length;
@@ -3230,11 +3283,11 @@ const App = (() => {
 
     let filtered = lastProviderRentals;
     if (providerCurrentFilter === 'ACTIVE') {
-      filtered = lastProviderRentals.filter(r => ['CONFIRMADA', 'EN_CURSO', 'ACTIVO'].includes(r.status));
+      filtered = lastProviderRentals.filter(r => ['CONFIRMADA', 'APROBADA', 'EN_CURSO', 'ACTIVO'].includes(r.status));
     } else if (providerCurrentFilter === 'PENDING') {
       filtered = lastProviderRentals.filter(r => ['PENDIENTE', 'PENDIENTE_PAGO'].includes(r.status));
     } else if (providerCurrentFilter === 'COMPLETED') {
-      filtered = lastProviderRentals.filter(r => ['COMPLETADA'].includes(r.status));
+      filtered = lastProviderRentals.filter(r => ['COMPLETADA', 'DEVUELTO'].includes(r.status));
     }
 
     if (!filtered || filtered.length === 0) {
@@ -3247,18 +3300,24 @@ const App = (() => {
       const toolName = tool ? tool.name : (r.toolName || `Maquinaria #${r.toolId}`);
       
       let badgeHtml = '';
-      if (['CONFIRMADA', 'EN_CURSO', 'ACTIVO'].includes(r.status)) {
+      if (['CONFIRMADA', 'APROBADA'].includes(r.status)) {
+        badgeHtml = `<span class="badge bg-success py-1 px-2"><i class="fa fa-check-circle me-1"></i>Aprobada / Por Despachar</span>`;
+      } else if (['EN_CURSO', 'ACTIVO'].includes(r.status)) {
         badgeHtml = `<span class="badge bg-warning text-dark border border-warning border-opacity-50 py-1 px-2"><i class="fa fa-hard-hat me-1"></i>En Obra / Alquilada</span>`;
       } else if (r.status === 'PENDIENTE' || r.status === 'PENDIENTE_PAGO') {
         badgeHtml = `<span class="badge bg-info text-dark border border-info border-opacity-50 py-1 px-2"><i class="fa fa-clock me-1"></i>Pendiente Aprobación</span>`;
-      } else if (r.status === 'COMPLETADA') {
+      } else if (r.status === 'COMPLETADA' || r.status === 'DEVUELTO') {
         badgeHtml = `<span class="badge bg-secondary py-1 px-2"><i class="fa fa-check me-1"></i>Completada</span>`;
+      } else if (r.status === 'RECHAZADA') {
+        badgeHtml = `<span class="badge bg-danger py-1 px-2"><i class="fa fa-times-circle me-1"></i>Rechazada</span>`;
+      } else if (r.status === 'CANCELADA') {
+        badgeHtml = `<span class="badge bg-secondary py-1 px-2"><i class="fa fa-ban me-1"></i>Cancelada</span>`;
       } else {
         badgeHtml = `<span class="badge bg-light text-dark border py-1 px-2">${r.status}</span>`;
       }
 
       return `
-      <tr class="${['CONFIRMADA', 'EN_CURSO', 'ACTIVO'].includes(r.status) ? 'table-warning bg-opacity-10' : (['PENDIENTE', 'PENDIENTE_PAGO'].includes(r.status) ? 'table-info bg-opacity-10' : '')}">
+      <tr class="${['CONFIRMADA', 'APROBADA', 'EN_CURSO', 'ACTIVO'].includes(r.status) ? 'table-warning bg-opacity-10' : (['PENDIENTE', 'PENDIENTE_PAGO'].includes(r.status) ? 'table-info bg-opacity-10' : '')}">
         <td><strong class="text-dark">#${r.id}</strong></td>
         <td>
           <div class="fw-bold text-dark">${toolName}</div>
@@ -3274,17 +3333,31 @@ const App = (() => {
         <td>
           <div class="provider-actions-cell d-flex gap-1 flex-wrap">
           ${r.status === 'PENDIENTE_PAGO' || r.status === 'PENDIENTE' ? `
-            <button class="btn btn-sm btn-success py-1 px-2 fw-semibold" onclick="App.updateRentalStatus('${r.id}', 'CONFIRMADA')">
+            <button class="btn btn-sm btn-success py-1 px-2 fw-semibold" onclick="App.aprobarReserva('${r.id}')" title="Aprobar reserva">
               <i class="fa fa-check me-1"></i> Aprobar
             </button>
-            <button class="btn btn-sm btn-outline-danger py-1 px-2" onclick="App.updateRentalStatus('${r.id}', 'RECHAZADA')">
+            <button class="btn btn-sm btn-outline-danger py-1 px-2" onclick="App.rechazarReserva('${r.id}')" title="Rechazar reserva con motivo">
               <i class="fa fa-times me-1"></i> Rechazar
             </button>
-          ` : (['CONFIRMADA', 'EN_CURSO', 'ACTIVO'].includes(r.status) ? `
-            <button class="btn btn-sm btn-neu-cyan py-1 px-2 text-nowrap" onclick="App.openReturnModal('${r.id}')">
+          ` : (['CONFIRMADA', 'APROBADA'].includes(r.status) ? `
+            <button class="btn btn-sm btn-primary py-1 px-2 fw-semibold" onclick="App.dispatchRental('${r.id}')" title="Registrar guía de despacho">
+              <i class="fa fa-truck me-1"></i> Despachar
+            </button>
+            <button class="btn btn-sm btn-neu-cyan py-1 px-2 text-nowrap" onclick="App.openReturnModal('${r.id}')" title="Inspección de devolución">
+              <i class="fa fa-clipboard-check me-1"></i> Devolución
+            </button>
+          ` : (['EN_CURSO', 'ACTIVO'].includes(r.status) ? `
+            <button class="btn btn-sm btn-neu-cyan py-1 px-2 text-nowrap" onclick="App.openReturnModal('${r.id}')" title="Inspección de devolución">
               <i class="fa fa-clipboard-check me-1"></i> Inspección Devolución
             </button>
-          ` : `<span class="small text-muted py-1"><i class="fa fa-archive me-1"></i>Completado</span>`)}
+          ` : (r.status === 'COMPLETADA' || r.status === 'DEVUELTO' ? `
+            <button class="btn btn-sm btn-outline-warning text-dark py-1 px-2" onclick="App.verCalificacionReserva('${r.id}')" title="Ver calificación del cliente">
+              <i class="fa fa-star text-warning me-1"></i> Ver Calificación
+            </button>
+            <button class="btn btn-sm btn-neu py-1 px-2" onclick="App.downloadInvoicePdfForRental('${r.id}')" title="Factura">
+              <i class="fa fa-file-pdf text-danger me-1"></i> PDF
+            </button>
+          ` : `<span class="small text-muted py-1"><i class="fa fa-archive me-1"></i>${r.status}</span>`)))}
           </div>
         </td>
       </tr>
@@ -3310,6 +3383,522 @@ const App = (() => {
     } catch (e) {
       Swal.fire('Error', e.message, 'error');
     }
+  }
+
+  async function aprobarReserva(rentalId) {
+    const confirm = await Swal.fire({
+      title: `<i class="fa fa-clipboard-check text-success me-2"></i>Aprobar Reserva #${rentalId}`,
+      text: '¿Deseas autorizar y confirmar el alquiler de esta maquinaria? Se validará la disponibilidad en las fechas pactadas.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, Aprobar Reserva',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#00843D',
+      cancelButtonColor: '#6c757d'
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    try {
+      await API.reservas.aprobar(rentalId);
+      Swal.fire({
+        icon: 'success',
+        title: '¡Reserva Aprobada!',
+        text: `La solicitud #${rentalId} ha sido aprobada con éxito. Maquinaria reservada para entrega.`,
+        timer: 2400,
+        showConfirmButton: false
+      });
+      await loadTools();
+      await loadProviderRequests();
+      await loadClientRentals();
+      renderProviderFleetTable();
+    } catch (e) {
+      Swal.fire({
+        icon: 'error',
+        title: 'No se pudo aprobar',
+        text: e.message || 'Error al aprobar la reserva. Puede haber un conflicto de fechas o estado no permitido.'
+      });
+    }
+  }
+
+  async function rechazarReserva(rentalId) {
+    const { value: motivo } = await Swal.fire({
+      title: `<i class="fa fa-times-circle text-danger me-2"></i>Rechazar Reserva #${rentalId}`,
+      input: 'textarea',
+      inputLabel: 'Motivo técnico del rechazo',
+      inputPlaceholder: 'ej. Maquinaria en mantenimiento preventivo imprevisto o conflicto de logística...',
+      inputValue: 'No disponible por compromiso logístico u operatividad técnica',
+      showCancelButton: true,
+      confirmButtonText: 'Confirmar Rechazo',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      inputValidator: (val) => {
+        if (!val || !val.trim()) {
+          return 'Debes ingresar un motivo para que el cliente sea informado';
+        }
+      }
+    });
+
+    if (!motivo) return;
+
+    try {
+      await API.reservas.rechazar(rentalId, motivo);
+      Swal.fire({
+        icon: 'warning',
+        title: 'Reserva Rechazada',
+        text: `La solicitud #${rentalId} fue rechazada y se notificó el motivo.`,
+        timer: 2400,
+        showConfirmButton: false
+      });
+      await loadTools();
+      await loadProviderRequests();
+      await loadClientRentals();
+      renderProviderFleetTable();
+    } catch (e) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error al rechazar',
+        text: e.message || 'No fue posible rechazar la reserva.'
+      });
+    }
+  }
+
+  async function dispatchRental(rentalId) {
+    const { value: formValues } = await Swal.fire({
+      title: `<i class="fa fa-truck text-primary me-2"></i>Despachar Maquinaria #${rentalId}`,
+      html: `
+        <div class="text-start">
+          <label class="form-label small fw-bold">Número de Guía de Remisión / Transporte</label>
+          <input type="text" id="swal-dispatch-guide" class="form-control mb-2" placeholder="ej. REM-2026-0045">
+          <label class="form-label small fw-bold">Nombre del Conductor / Operador</label>
+          <input type="text" id="swal-dispatch-driver" class="form-control mb-2" placeholder="ej. Carlos Mendoza - Cama Baja">
+          <label class="form-label small fw-bold">Notas de Inspección Previa al Despacho</label>
+          <input type="text" id="swal-dispatch-notes" class="form-control" placeholder="ej. Tanque al 100%, horómetro verificado, kit de seguridad completo">
+        </div>
+      `,
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: 'Confirmar Salida a Obra',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#00843D',
+      preConfirm: () => {
+        return {
+          guide: document.getElementById('swal-dispatch-guide')?.value || '',
+          driver: document.getElementById('swal-dispatch-driver')?.value || '',
+          notes: document.getElementById('swal-dispatch-notes')?.value || ''
+        };
+      }
+    });
+
+    if (formValues) {
+      try {
+        await API.rentals.dispatch(rentalId, formValues.guide, formValues.driver, formValues.notes);
+        Swal.fire({
+          icon: 'success',
+          title: 'Maquinaria Despachada',
+          text: `La reserva #${rentalId} pasó a estado EN_CURSO y se registró el despacho a obra.`,
+          timer: 2200,
+          showConfirmButton: false
+        });
+        await loadProviderRequests();
+        await loadTools();
+        renderProviderFleetTable();
+      } catch (e) {
+        Swal.fire('Error al despachar', e.message || 'No fue posible registrar el despacho', 'error');
+      }
+    }
+  }
+
+  async function enviarMantenimiento(toolId) {
+    const { value: motivo } = await Swal.fire({
+      title: '<i class="fa fa-wrench text-warning me-2"></i>Enviar a Mantenimiento',
+      input: 'text',
+      inputLabel: 'Motivo o tipo de intervención técnica requerida',
+      inputPlaceholder: 'ej. Mantenimiento preventivo 250h, cambio de filtros y calibración...',
+      inputValue: 'Mantenimiento preventivo de rutina y calibración técnica',
+      showCancelButton: true,
+      confirmButtonText: 'Enviar a Taller',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#f59e0b',
+      inputValidator: (val) => {
+        if (!val || !val.trim()) {
+          return 'Debes especificar el motivo técnico de mantenimiento';
+        }
+      }
+    });
+
+    if (!motivo) return;
+
+    try {
+      await API.herramientas.enviarMantenimiento(toolId, motivo);
+      Swal.fire({
+        icon: 'success',
+        title: 'Equipo en Mantenimiento',
+        text: `La maquinaria #${toolId} cambió su estado a MANTENIMIENTO y se retiró temporalmente del catálogo disponible.`,
+        timer: 2400,
+        showConfirmButton: false
+      });
+      await loadTools();
+      renderProviderFleetTable();
+    } catch (e) {
+      Swal.fire('Error', e.message || 'No se pudo enviar la maquinaria a mantenimiento', 'error');
+    }
+  }
+
+  async function finalizarMantenimiento(toolId) {
+    const confirm = await Swal.fire({
+      title: `<i class="fa fa-tools text-success me-2"></i>Reactivar Maquinaria #${toolId}`,
+      text: '¿Confirmas que el equipo completó su ciclo de mantenimiento, superó la inspección técnica y está 100% operativo?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, Poner Operativa (DISPONIBLE)',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#00843D',
+      cancelButtonColor: '#6c757d'
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    try {
+      await API.herramientas.finalizarMantenimiento(toolId);
+      Swal.fire({
+        icon: 'success',
+        title: '¡Maquinaria Operativa!',
+        text: `El equipo #${toolId} ahora se encuentra DISPONIBLE para nuevos arriendos en el catálogo.`,
+        timer: 2400,
+        showConfirmButton: false
+      });
+      await loadTools();
+      renderProviderFleetTable();
+    } catch (e) {
+      Swal.fire('Error', e.message || 'No se pudo reactivar la maquinaria a estado operativo', 'error');
+    }
+  }
+
+  function renderProviderFleetTable() {
+    const container = document.getElementById('provider-fleet-list');
+    if (!container) return;
+
+    if (!allTools || allTools.length === 0) {
+      container.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4"><i class="fa fa-spinner fa-spin me-2"></i>Cargando flota de maquinaria...</td></tr>`;
+      return;
+    }
+
+    container.innerHTML = allTools.map(t => {
+      const catClass = `RT-${String(t.id).padStart(4, '0')}`;
+      const safeName = (t.name || '').replace(/'/g, "\\'");
+      const encodedName = encodeURIComponent(t.name || '');
+
+      let statusBadge = '';
+      if (t.status === 'MANTENIMIENTO') {
+        statusBadge = `<span class="badge bg-warning text-dark py-1 px-2"><i class="fa fa-wrench me-1"></i>En Mantenimiento</span>`;
+      } else if (t.status === 'DISPONIBLE') {
+        statusBadge = `<span class="badge bg-success py-1 px-2"><i class="fa fa-check-circle me-1"></i>Operativa / Disponible</span>`;
+      } else if (t.status === 'ALQUILADO') {
+        statusBadge = `<span class="badge bg-primary py-1 px-2"><i class="fa fa-hard-hat me-1"></i>En Obra (Alquilada)</span>`;
+      } else {
+        statusBadge = `<span class="badge bg-secondary py-1 px-2">${t.status}</span>`;
+      }
+
+      let actionsHtml = '';
+      if (t.status === 'MANTENIMIENTO') {
+        actionsHtml = `
+          <button class="btn btn-sm btn-success py-1 px-2 fw-semibold" onclick="App.finalizarMantenimiento('${t.id}')" title="Reactivar a estado Disponible tras mantenimiento">
+            <i class="fa fa-tools me-1"></i> Reactivar Operativa
+          </button>
+        `;
+      } else if (t.status === 'DISPONIBLE') {
+        actionsHtml = `
+          <button class="btn btn-sm btn-outline-warning text-dark py-1 px-2 fw-semibold" onclick="App.enviarMantenimiento('${t.id}')" title="Enviar equipo al taller para mantenimiento">
+            <i class="fa fa-wrench me-1"></i> Enviar a Taller
+          </button>
+        `;
+      } else if (t.status === 'ALQUILADO') {
+        actionsHtml = `
+          <span class="small text-muted py-1"><i class="fa fa-lock text-primary me-1"></i>En Obra con Cliente</span>
+        `;
+      } else {
+        actionsHtml = `
+          <button class="btn btn-sm btn-outline-success py-1 px-2" onclick="App.finalizarMantenimiento('${t.id}')">
+            <i class="fa fa-check me-1"></i> Activar
+          </button>
+        `;
+      }
+
+      actionsHtml += `
+        <button class="btn btn-sm btn-neu py-1 px-2 ms-1" onclick="App.openMaintenanceModal('${t.id}', '${encodedName}')" title="Ver bitácora de intervenciones técnicas">
+          <i class="fa fa-history me-1"></i> Bitácora
+        </button>
+      `;
+
+      return `
+        <tr>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <img src="${getToolImageUrl(t)}" alt="${t.name}" class="rounded border" style="width: 48px; height: 48px; object-fit: cover;" onerror="handleToolImageError(this);">
+              <div>
+                <strong class="text-dark d-block">${t.name}</strong>
+                <small class="text-muted"><span class="badge bg-light text-dark border me-1">${catClass}</span> ID #${t.id}</small>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="fw-semibold text-dark">${t.categoryName || t.category || 'Maquinaria'}</div>
+            <small class="text-muted">${t.brand || 'Industrial'} ${t.model || ''}</small>
+          </td>
+          <td>
+            <strong class="text-dark">${API.formatCurrency(t.dailyRate || t.dailyPrice || 0)}</strong>
+            <small class="text-muted d-block">por día</small>
+          </td>
+          <td>${statusBadge}</td>
+          <td>
+            <button class="btn btn-sm btn-outline-warning text-dark py-1 px-2 fw-semibold" onclick="App.verCalificacionesTool('${t.id}', '${safeName}')" title="Ver calificaciones y reseñas de clientes">
+              <i class="fa fa-star text-warning me-1"></i>5.0 <small class="text-muted fw-normal">(Reseñas)</small>
+            </button>
+          </td>
+          <td>
+            <div class="d-flex align-items-center gap-1 flex-wrap">
+              ${actionsHtml}
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  function abrirModalCalificar(rentalId, toolName) {
+    const idInput = document.getElementById('rating-rental-id');
+    if (idInput) idInput.value = rentalId;
+    const nameEl = document.getElementById('rating-tool-name');
+    if (nameEl) nameEl.textContent = toolName ? `Maquinaria: ${toolName} (Reserva #${rentalId})` : `Reserva #${rentalId}`;
+    
+    setRatingScore(5);
+    const commentEl = document.getElementById('rating-comment');
+    if (commentEl) commentEl.value = '';
+
+    const modalEl = document.getElementById('ratingModal');
+    if (modalEl) {
+      bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    }
+  }
+
+  function setRatingScore(score) {
+    const scoreVal = parseInt(score) || 5;
+    const valInput = document.getElementById('rating-score-val');
+    if (valInput) valInput.value = scoreVal;
+
+    const starsContainer = document.getElementById('rating-stars-container');
+    if (starsContainer) {
+      const stars = starsContainer.querySelectorAll('.star-btn');
+      stars.forEach((star, idx) => {
+        if (idx < scoreVal) {
+          star.className = 'fa fa-star text-warning star-btn';
+        } else {
+          star.className = 'far fa-star text-muted star-btn';
+        }
+      });
+    }
+
+    const labelEl = document.getElementById('rating-score-label');
+    if (labelEl) {
+      const labels = {
+        5: '5 Estrellas - Excelente rendimiento técnico y entrega en obra',
+        4: '4 Estrellas - Muy buen desempeño general',
+        3: '3 Estrellas - Desempeño promedio y adecuado',
+        2: '2 Estrellas - Novedades o demoras operativas menores',
+        1: '1 Estrella - Desempeño insatisfactorio o falla mecánica'
+      };
+      labelEl.textContent = labels[scoreVal] || `${scoreVal} Estrellas`;
+      labelEl.className = scoreVal >= 4 ? 'fw-bold text-success mt-2 fs-6' : (scoreVal === 3 ? 'fw-bold text-warning mt-2 fs-6' : 'fw-bold text-danger mt-2 fs-6');
+    }
+  }
+
+  async function submitCalificacion() {
+    const rentalId = document.getElementById('rating-rental-id')?.value;
+    const score = parseInt(document.getElementById('rating-score-val')?.value) || 5;
+    const comment = document.getElementById('rating-comment')?.value?.trim() || '';
+
+    if (!rentalId) {
+      Swal.fire('Error', 'No se identificó el número de reserva a calificar', 'error');
+      return;
+    }
+
+    try {
+      await API.reservas.calificar(rentalId, score, comment);
+      const modalEl = document.getElementById('ratingModal');
+      if (modalEl) {
+        bootstrap.Modal.getInstance(modalEl)?.hide();
+      }
+      Swal.fire({
+        icon: 'success',
+        title: '¡Calificación Registrada!',
+        text: 'Tu evaluación técnica ha sido guardada y contribuye al indicador de calidad de la maquinaria.',
+        timer: 2500,
+        showConfirmButton: false
+      });
+      await loadClientRentals();
+    } catch (e) {
+      Swal.fire('Error', e.message || 'No fue posible registrar la calificación', 'error');
+    }
+  }
+
+  async function verCalificacionReserva(rentalId) {
+    try {
+      const res = await API.reservas.getCalificacion(rentalId);
+      if (!res || !res.score) {
+        Swal.fire({
+          icon: 'info',
+          title: `Reserva #${rentalId}`,
+          text: 'Esta reserva aún no cuenta con una calificación registrada por el cliente.'
+        });
+        return;
+      }
+
+      let starsHtml = '';
+      for (let i = 1; i <= 5; i++) {
+        starsHtml += i <= res.score ? '<i class="fa fa-star text-warning fs-4"></i>' : '<i class="far fa-star text-muted fs-4"></i>';
+      }
+
+      Swal.fire({
+        title: `<div class="d-flex align-items-center justify-content-center gap-2"><i class="fa fa-star text-warning"></i><span>Evaluación Reserva #${rentalId}</span></div>`,
+        html: `
+          <div class="text-center py-2">
+            <div class="mb-2">${starsHtml}</div>
+            <div class="h5 fw-bold text-success mb-3">${res.score} / 5.0</div>
+            <div class="p-3 bg-light rounded text-start border">
+              <strong class="text-dark small d-block mb-1"><i class="fa fa-comment-alt text-muted me-1"></i>Comentario del Contratista / Cliente:</strong>
+              <p class="mb-0 text-muted fst-italic">"${res.comment || 'Sin comentario adicional registrado.'}"</p>
+            </div>
+            ${res.createdAt ? `<div class="small text-muted mt-2">Registrada el: ${res.createdAt.split('T')[0]}</div>` : ''}
+          </div>
+        `,
+        confirmButtonText: 'Entendido',
+        confirmButtonColor: '#00843D'
+      });
+    } catch (e) {
+      Swal.fire({
+        icon: 'info',
+        title: `Reserva #${rentalId}`,
+        text: 'Aún no se ha registrado una calificación para este alquiler completado.'
+      });
+    }
+  }
+
+  async function verCalificacionesTool(toolId, toolNameEscaped) {
+    const toolName = toolNameEscaped ? decodeURIComponent(toolNameEscaped) : `Equipo #${toolId}`;
+    const titleEl = document.getElementById('reviews-tool-title');
+    if (titleEl) titleEl.textContent = toolName;
+
+    const listEl = document.getElementById('reviews-list-container');
+    const scoreEl = document.getElementById('reviews-average-score');
+    const starsEl = document.getElementById('reviews-average-stars');
+    const countEl = document.getElementById('reviews-total-count');
+
+    if (listEl) {
+      listEl.innerHTML = '<div class="text-center py-4 text-muted"><i class="fa fa-spinner fa-spin me-2"></i>Cargando opiniones técnicas...</div>';
+    }
+
+    const modalEl = document.getElementById('toolReviewsModal');
+    if (modalEl) {
+      bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    }
+
+    try {
+      const data = await API.herramientas.getCalificaciones(toolId);
+      const avg = data && data.averageScore !== undefined && data.averageScore !== null ? Number(data.averageScore) : 5.0;
+      const reviews = data && Array.isArray(data.reviews) ? data.reviews : [];
+      const total = data && data.totalReviews !== undefined ? data.totalReviews : reviews.length;
+
+      if (scoreEl) scoreEl.textContent = avg.toFixed(1);
+      if (countEl) countEl.textContent = `${total} calificaciones registradas`;
+      
+      if (starsEl) {
+        let starsStr = '';
+        for (let i = 1; i <= 5; i++) {
+          starsStr += i <= Math.round(avg) ? '★' : '☆';
+        }
+        starsEl.textContent = starsStr;
+      }
+
+      if (!listEl) return;
+
+      if (reviews.length === 0) {
+        listEl.innerHTML = `
+          <div class="text-center py-4 bg-light rounded-3 border">
+            <i class="fa fa-star text-muted fs-2 mb-2 d-block"></i>
+            <h6 class="fw-bold text-dark mb-1">Sin reseñas individuales aún</h6>
+            <p class="text-muted small mb-0">Esta maquinaria mantiene la calificación base de flota certificada (5.0). Cuando los clientes completen alquileres, sus valoraciones aparecerán aquí.</p>
+          </div>
+        `;
+        return;
+      }
+
+      listEl.innerHTML = reviews.map(r => {
+        const score = r.score || 5;
+        let stars = '';
+        for (let i = 1; i <= 5; i++) {
+          stars += i <= score ? '<i class="fa fa-star text-warning"></i>' : '<i class="far fa-star text-muted"></i>';
+        }
+        return `
+          <div class="p-3 mb-2 bg-light rounded border">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-success bg-opacity-25 text-success fw-bold"><i class="fa fa-user me-1"></i>Cliente Verificado</span>
+                <span class="small text-muted">Alquiler #${r.rentalId || ''}</span>
+              </div>
+              <div>${stars}</div>
+            </div>
+            <p class="mb-1 text-dark small">"${r.comment || 'Equipo en óptimas condiciones de operación.'}"</p>
+            <div class="small text-muted">${r.createdAt ? r.createdAt.split('T')[0] : 'Fecha no registrada'}</div>
+          </div>
+        `;
+      }).join('');
+    } catch (e) {
+      if (listEl) {
+        listEl.innerHTML = `<div class="text-center text-muted py-3">Calificación base de flota: 5.0 ★ (${e.message})</div>`;
+      }
+    }
+  }
+
+  async function cancelarReservaCliente(rentalId) {
+    const { value: motivo } = await Swal.fire({
+      title: `<i class="fa fa-times-circle text-danger me-2"></i>Cancelar Reserva #${rentalId}`,
+      input: 'text',
+      inputLabel: 'Motivo de la cancelación',
+      inputPlaceholder: 'ej. Suspensión temporal de obra por lluvias / cambio de requerimiento técnico',
+      showCancelButton: true,
+      confirmButtonText: 'Confirmar Cancelación',
+      cancelButtonText: 'Volver',
+      confirmButtonColor: '#dc3545',
+      inputValidator: (val) => {
+        if (!val || !val.trim()) {
+          return 'Debes indicar el motivo de la cancelación';
+        }
+      }
+    });
+
+    if (motivo) {
+      try {
+        await API.reservas.cancelar(rentalId, motivo);
+        Swal.fire({
+          icon: 'success',
+          title: 'Reserva Cancelada',
+          text: `La reserva #${rentalId} ha sido cancelada satisfactoriamente.`,
+          timer: 2200,
+          showConfirmButton: false
+        });
+        await loadClientRentals();
+        await loadProviderRequests();
+        await loadTools();
+      } catch (e) {
+        Swal.fire('Error al cancelar', e.message || 'No fue posible cancelar el alquiler', 'error');
+      }
+    }
+  }
+
+  async function extenderReservaCliente(rentalId, currentEndDate) {
+    promptExtendRental(rentalId, currentEndDate);
   }
 
   function openReturnModal(rentalId) {
@@ -4765,7 +5354,20 @@ const App = (() => {
     openMaintenanceModal,
     submitMaintenance,
     promptExtendRental,
-    promptCancelRental
+    promptCancelRental,
+    aprobarReserva,
+    rechazarReserva,
+    dispatchRental,
+    enviarMantenimiento,
+    finalizarMantenimiento,
+    renderProviderFleetTable,
+    abrirModalCalificar,
+    setRatingScore,
+    submitCalificacion,
+    verCalificacionReserva,
+    verCalificacionesTool,
+    cancelarReservaCliente,
+    extenderReservaCliente
   };
 })();
 

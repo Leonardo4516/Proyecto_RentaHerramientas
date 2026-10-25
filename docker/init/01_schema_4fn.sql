@@ -124,7 +124,7 @@ CREATE TABLE IF NOT EXISTS rentals (
     daily_rate NUMERIC(12, 2) NOT NULL CHECK (daily_rate > 0),
     deposit_amount NUMERIC(12, 2) NOT NULL CHECK (deposit_amount >= 0),
     subtotal NUMERIC(12, 2) NOT NULL CHECK (subtotal > 0),
-    status VARCHAR(30) DEFAULT 'PENDIENTE' CHECK (status IN ('PENDIENTE', 'CONFIRMADA', 'EN_CURSO', 'COMPLETADA', 'CANCELADA', 'RECHAZADA')),
+    status VARCHAR(30) DEFAULT 'PENDIENTE' CHECK (status IN ('PENDIENTE', 'APROBADA', 'CONFIRMADA', 'EN_CURSO', 'COMPLETADA', 'CANCELADA', 'RECHAZADA')),
     delivery_address VARCHAR(255),
     notes TEXT,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,

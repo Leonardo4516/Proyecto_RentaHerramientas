@@ -229,6 +229,17 @@ const API = (() => {
           method: 'PUT',
           body: JSON.stringify({ status })
         }),
+      aprobar: (id) => request(`/api/reservas/${id}/aprobar`, { method: 'POST' }),
+      rechazar: (id, motivo) => {
+        const query = motivo ? `?motivo=${encodeURIComponent(motivo)}` : '';
+        return request(`/api/reservas/${id}/rechazar${query}`, { method: 'POST' });
+      },
+      calificar: (id, score, comment) =>
+        request(`/api/reservas/${id}/calificar`, {
+          method: 'POST',
+          body: JSON.stringify({ score, comment })
+        }),
+      getCalificacion: (id) => request(`/api/reservas/${id}/calificacion`),
       return: (id, notes, damageDetected, damageCost) =>
         request(`/api/v1/rentals/${id}/return`, {
           method: 'POST',
@@ -241,6 +252,45 @@ const API = (() => {
         }),
       getInspection: (id) => request(`/api/v1/rentals/${id}/return-inspection`),
       getTimeline: (id) => request(`/api/v1/rentals/${id}/timeline`)
+    },
+
+    reservas: {
+      aprobar: (id) => request(`/api/reservas/${id}/aprobar`, { method: 'POST' }),
+      rechazar: (id, motivo) => {
+        const query = motivo ? `?motivo=${encodeURIComponent(motivo)}` : '';
+        return request(`/api/reservas/${id}/rechazar${query}`, { method: 'POST' });
+      },
+      cancelar: (id, motivo) => {
+        const query = motivo ? `?motivo=${encodeURIComponent(motivo)}` : '';
+        return request(`/api/reservas/${id}/cancelar${query}`, { method: 'POST' });
+      },
+      devolver: (id, returnData) =>
+        request(`/api/reservas/${id}/devolver`, {
+          method: 'POST',
+          body: JSON.stringify(returnData || {})
+        }),
+      extender: (id, nuevaFechaFin, motivo) => {
+        const sp = new URLSearchParams();
+        sp.append('nuevaFechaFin', nuevaFechaFin);
+        if (motivo) sp.append('motivo', motivo);
+        return request(`/api/reservas/${id}/extender?${sp.toString()}`, { method: 'POST' });
+      },
+      calificar: (id, score, comment) =>
+        request(`/api/reservas/${id}/calificar`, {
+          method: 'POST',
+          body: JSON.stringify({ score, comment })
+        }),
+      getCalificacion: (id) => request(`/api/reservas/${id}/calificacion`)
+    },
+
+    herramientas: {
+      enviarMantenimiento: (id, motivo) => {
+        const query = motivo ? `?motivo=${encodeURIComponent(motivo)}` : '';
+        return request(`/api/herramientas/${id}/mantenimiento${query}`, { method: 'PUT' });
+      },
+      finalizarMantenimiento: (id) => request(`/api/herramientas/${id}/operativa`, { method: 'PUT' }),
+      getCalificaciones: (id) => request(`/api/herramientas/${id}/calificaciones`),
+      getById: (id) => request(`/api/herramientas/${id}`)
     },
 
     invoices: {
