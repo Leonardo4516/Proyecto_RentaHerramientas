@@ -48,6 +48,7 @@ public class RentalController {
     private final SpringDataUserRepository userRepository;
     private final ToolJpaRepository toolJpaRepository;
     private final SpringDataProviderRepository providerRepository;
+    private final com.rentatools.application.rental.service.ReservaService reservaService;
 
     public RentalController(CreateRentalBookingUseCase createRentalBookingUseCase,
                             CheckAvailabilityUseCase checkAvailabilityUseCase,
@@ -59,7 +60,8 @@ public class RentalController {
                             SpringDataClientRepository clientRepository,
                             SpringDataUserRepository userRepository,
                             ToolJpaRepository toolJpaRepository,
-                            SpringDataProviderRepository providerRepository) {
+                            SpringDataProviderRepository providerRepository,
+                            com.rentatools.application.rental.service.ReservaService reservaService) {
         this.createRentalBookingUseCase = createRentalBookingUseCase;
         this.checkAvailabilityUseCase = checkAvailabilityUseCase;
         this.changeRentalStatusUseCase = changeRentalStatusUseCase;
@@ -71,6 +73,7 @@ public class RentalController {
         this.userRepository = userRepository;
         this.toolJpaRepository = toolJpaRepository;
         this.providerRepository = providerRepository;
+        this.reservaService = reservaService;
     }
 
     @PostMapping
@@ -326,6 +329,47 @@ public class RentalController {
         RentalResponse updated = changeRentalStatusUseCase.execute(id, targetStatus, reason, changedBy);
         var refreshed = rentalRepository.findById(updated.id());
         return ResponseEntity.ok(refreshed.map(this::enrichRental).orElse(updated));
+    }
+
+    @PostMapping("/{id}/approve")
+    @PreAuthorize("hasAnyAuthority('ROLE_PROVEEDOR', 'ROLE_ADMIN')")
+    @Operation(summary = "Aprobar solicitud de reserva", description = "Verifica que el estado sea PENDIENTE, valida la disponibilidad de la maquinaria y transiciona a APROBADA")
+    public ResponseEntity<RentalResponse> approveRental(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        if (authentication != null && !authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+            validateProviderOwnership(id, authentication.getName());
+        }
+        String changedBy = (authentication != null && authentication.isAuthenticated()) ? authentication.getName() : "Proveedor";
+        RentalResponse response = reservaService.aprobarReserva(id, changedBy);
+        var refreshed = rentalRepository.findById(response.id());
+        return ResponseEntity.ok(refreshed.map(this::enrichRental).orElse(response));
+    }
+
+    @PostMapping("/{id}/reject")
+    @PreAuthorize("hasAnyAuthority('ROLE_PROVEEDOR', 'ROLE_ADMIN')")
+    @Operation(summary = "Rechazar solicitud de reserva", description = "Verifica que el estado sea PENDIENTE y transiciona la reserva a RECHAZADA")
+    public ResponseEntity<RentalResponse> rejectRental(
+            @PathVariable Long id,
+            @RequestParam(required = false) String reason,
+            @RequestBody(required = false) java.util.Map<String, String> body,
+            Authentication authentication
+    ) {
+        if (authentication != null && !authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+            validateProviderOwnership(id, authentication.getName());
+        }
+        String effectiveReason = reason;
+        if (effectiveReason == null && body != null) {
+            effectiveReason = body.getOrDefault("reason", body.get("motivo"));
+        }
+        if (effectiveReason == null || effectiveReason.isBlank()) {
+            effectiveReason = "Rechazada por el proveedor";
+        }
+        String changedBy = (authentication != null && authentication.isAuthenticated()) ? authentication.getName() : "Proveedor";
+        RentalResponse response = reservaService.rechazarReserva(id, effectiveReason, changedBy);
+        var refreshed = rentalRepository.findById(response.id());
+        return ResponseEntity.ok(refreshed.map(this::enrichRental).orElse(response));
     }
 
     @PostMapping("/{id}/return")

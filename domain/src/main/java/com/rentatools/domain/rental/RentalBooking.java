@@ -38,9 +38,23 @@ public class RentalBooking {
 
     public static RentalBooking create(Long clientId, Long toolId, DateRange dateRange, BigDecimal dailyRate,
                                        BigDecimal depositAmount, String deliveryAddress, String notes) {
-        BigDecimal subtotal = dailyRate.multiply(BigDecimal.valueOf(dateRange.totalDays()));
+        BigDecimal baseSubtotal = dailyRate.multiply(BigDecimal.valueOf(dateRange.totalDays()));
+        BigDecimal discountFactor = BigDecimal.ONE;
+        String discountNote = "";
+
+        if (dateRange.totalDays() >= 30) {
+            discountFactor = BigDecimal.valueOf(0.75);
+            discountNote = " [Descuento 25% mensual aplicado]";
+        } else if (dateRange.totalDays() >= 7) {
+            discountFactor = BigDecimal.valueOf(0.90);
+            discountNote = " [Descuento 10% semanal aplicado]";
+        }
+
+        BigDecimal subtotal = baseSubtotal.multiply(discountFactor).setScale(2, java.math.RoundingMode.HALF_UP);
+        String finalNotes = ((notes != null ? notes : "") + discountNote).trim();
+
         return new RentalBooking(null, clientId, toolId, dateRange, dailyRate, depositAmount, subtotal,
-                BookingStatus.PENDIENTE, deliveryAddress, notes, Instant.now());
+                BookingStatus.PENDIENTE, deliveryAddress, finalNotes, Instant.now());
     }
 
     public void confirm() {
@@ -50,39 +64,46 @@ public class RentalBooking {
         this.status = BookingStatus.CONFIRMADA;
     }
 
+    public void approve() {
+        if (this.status != BookingStatus.PENDIENTE) {
+            throw new BusinessRuleValidationException("Solo se pueden aprobar reservas en estado PENDIENTE.");
+        }
+        this.status = BookingStatus.APROBADA;
+    }
+
     public void reject(String reason) {
         if (this.status != BookingStatus.PENDIENTE) {
             throw new BusinessRuleValidationException("Solo se pueden rechazar reservas en estado PENDIENTE.");
         }
         this.status = BookingStatus.RECHAZADA;
-        this.notes = (this.notes != null ? this.notes + " | " : "") + "Rechazo: " + reason;
+        this.notes = (this.notes != null ? this.notes + " | " : "") + "Rechazo: " + (reason != null ? reason : "Rechazada por el proveedor");
     }
 
     public void startRental() {
-        if (this.status != BookingStatus.CONFIRMADA) {
-            throw new BusinessRuleValidationException("Solo se puede iniciar un alquiler confirmado.");
+        if (this.status != BookingStatus.CONFIRMADA && this.status != BookingStatus.APROBADA) {
+            throw new BusinessRuleValidationException("Solo se puede iniciar un alquiler confirmado o aprobado.");
         }
         this.status = BookingStatus.EN_CURSO;
     }
 
     public void completeReturn(ReturnInspection inspection) {
-        if (this.status != BookingStatus.EN_CURSO && this.status != BookingStatus.CONFIRMADA) {
-            throw new BusinessRuleValidationException("Solo se pueden devolver alquileres en estado EN_CURSO o CONFIRMADA.");
+        if (this.status != BookingStatus.EN_CURSO && this.status != BookingStatus.CONFIRMADA && this.status != BookingStatus.APROBADA) {
+            throw new BusinessRuleValidationException("Solo se pueden devolver alquileres en estado EN_CURSO, CONFIRMADA o APROBADA.");
         }
         this.status = BookingStatus.COMPLETADA;
         this.inspection = inspection;
     }
 
     public void cancel() {
-        if (this.status != BookingStatus.PENDIENTE && this.status != BookingStatus.CONFIRMADA) {
+        if (this.status != BookingStatus.PENDIENTE && this.status != BookingStatus.CONFIRMADA && this.status != BookingStatus.APROBADA) {
             throw new BusinessRuleValidationException("No se puede cancelar un alquiler que ya está en curso o finalizado.");
         }
         this.status = BookingStatus.CANCELADA;
     }
 
     public RentalBooking extendTo(java.time.LocalDate newEndDate, String extensionNotes) {
-        if (this.status != BookingStatus.CONFIRMADA && this.status != BookingStatus.EN_CURSO && this.status != BookingStatus.PENDIENTE) {
-            throw new BusinessRuleValidationException("Solo se pueden extender alquileres activos (PENDIENTE, CONFIRMADA o EN_CURSO).");
+        if (this.status != BookingStatus.CONFIRMADA && this.status != BookingStatus.APROBADA && this.status != BookingStatus.EN_CURSO && this.status != BookingStatus.PENDIENTE) {
+            throw new BusinessRuleValidationException("Solo se pueden extender alquileres activos (PENDIENTE, CONFIRMADA, APROBADA o EN_CURSO).");
         }
         if (newEndDate == null || !newEndDate.isAfter(this.dateRange.endDate())) {
             throw new BusinessRuleValidationException("La nueva fecha final debe ser posterior a la fecha final actual: " + this.dateRange.endDate());

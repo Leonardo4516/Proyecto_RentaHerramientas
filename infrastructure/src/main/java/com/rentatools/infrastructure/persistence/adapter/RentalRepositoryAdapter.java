@@ -103,6 +103,11 @@ public class RentalRepositoryAdapter implements RentalRepository {
     }
 
     @Override
+    public boolean hasOtherOverlappingConfirmedBooking(Long toolId, Long rentalId, LocalDate startDate, LocalDate endDate) {
+        return rentalJpaRepository.existsOtherOverlappingConfirmedBooking(toolId, rentalId, startDate, endDate);
+    }
+
+    @Override
     public void recordTimelineEvent(RentalTimelineEvent event) {
         if (event == null || event.rentalId() == null) return;
         try {

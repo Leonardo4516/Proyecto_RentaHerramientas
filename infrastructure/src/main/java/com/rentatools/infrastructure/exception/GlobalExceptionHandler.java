@@ -40,6 +40,17 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
     }
 
+    @ExceptionHandler(com.rentatools.domain.rental.exception.HerramientaNoDisponibleException.class)
+    public ResponseEntity<ErrorResponseDto> handleHerramientaNoDisponible(com.rentatools.domain.rental.exception.HerramientaNoDisponibleException ex, HttpServletRequest request) {
+        ErrorResponseDto error = new ErrorResponseDto(
+                HttpStatus.CONFLICT.value(),
+                "Herramienta No Disponible",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
     @ExceptionHandler(com.rentatools.domain.common.BusinessRuleValidationException.class)
     public ResponseEntity<ErrorResponseDto> handleBusinessRuleValidation(com.rentatools.domain.common.BusinessRuleValidationException ex, HttpServletRequest request) {
         HttpStatus status = ex.getMessage().toLowerCase().contains("reserv") || ex.getMessage().toLowerCase().contains("disponib")

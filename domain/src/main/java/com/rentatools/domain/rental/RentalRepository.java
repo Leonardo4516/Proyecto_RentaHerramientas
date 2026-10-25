@@ -16,6 +16,13 @@ public interface RentalRepository {
      */
     boolean hasOverlappingBookings(Long toolId, LocalDate startDate, LocalDate endDate);
 
+    /**
+     * Verifica si existen otras reservas confirmadas o aprobadas que se solapen con el rango, excluyendo una reserva específica.
+     */
+    default boolean hasOtherOverlappingConfirmedBooking(Long toolId, Long rentalId, LocalDate startDate, LocalDate endDate) {
+        return false;
+    }
+
     default void recordTimelineEvent(RentalTimelineEvent event) {}
 
     default List<RentalTimelineEvent> findTimelineByRentalId(Long rentalId) {

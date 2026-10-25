@@ -25,6 +25,7 @@ public class ChangeRentalStatusUseCase {
         BookingStatus previousStatus = rental.getStatus();
 
         switch (newStatus) {
+            case APROBADA -> rental.approve();
             case CONFIRMADA -> rental.confirm();
             case RECHAZADA -> rental.reject(reason != null ? reason : "Rechazado por el proveedor.");
             case EN_CURSO -> rental.startRental();

@@ -33,4 +33,19 @@ public interface RentalJpaRepository extends JpaRepository<RentalEntity, Long> {
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate
     );
+
+    @Query("""
+        SELECT COUNT(r) > 0 FROM RentalEntity r
+        WHERE r.toolId = :toolId
+          AND r.id != :rentalId
+          AND r.status IN ('APROBADA', 'CONFIRMADA', 'EN_CURSO')
+          AND r.startDate <= :endDate
+          AND r.endDate >= :startDate
+    """)
+    boolean existsOtherOverlappingConfirmedBooking(
+            @Param("toolId") Long toolId,
+            @Param("rentalId") Long rentalId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
 }

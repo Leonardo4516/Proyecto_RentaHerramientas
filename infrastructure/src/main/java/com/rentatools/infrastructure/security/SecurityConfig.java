@@ -67,6 +67,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/rentals/check-availability", "/api/v1/rentals/tool/**").permitAll()
                         // Alquileres protegidos
                         .requestMatchers("/api/v1/rentals/**").authenticated()
+                        .requestMatchers("/api/reservas/**").hasAnyAuthority("ROLE_PROVEEDOR", "ROLE_ADMIN")
+                        // Cupones y reseñas públicas
+                        .requestMatchers(HttpMethod.GET, "/api/v1/coupons/**", "/api/v1/reviews/tool/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/reviews").authenticated()
                         // Carrito de compras protegido en la nube
                         .requestMatchers("/api/v1/cart/**").authenticated()
                         // Cualquier otra petición requiere autenticación

@@ -76,6 +76,11 @@ public class BeanConfig {
     }
 
     @Bean
+    public com.rentatools.application.rental.service.ReservaService reservaService(RentalRepository rentalRepository, ToolRepository toolRepository) {
+        return new com.rentatools.application.rental.service.ReservaService(rentalRepository, toolRepository);
+    }
+
+    @Bean
     public RegisterReturnInspectionUseCase registerReturnInspectionUseCase(RentalRepository rentalRepository,
                                                                            ToolRepository toolRepository,
                                                                            PaymentRepository paymentRepository,
