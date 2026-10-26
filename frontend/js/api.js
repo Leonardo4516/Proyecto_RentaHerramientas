@@ -26,6 +26,10 @@ const API = (() => {
     }
   }
 
+  function isAuthenticated() {
+    return Boolean(getToken() && getUser());
+  }
+
   async function request(endpoint, options = {}) {
     const headers = {
       'Content-Type': 'application/json',
@@ -45,20 +49,36 @@ const API = (() => {
     try {
       const response = await fetch(`${BASE_URL}${endpoint}`, config);
       if (response.status === 401) {
-        // Token vencido o inválido
+        // Token vencido o inválido: limpiar sesión local para sincronizar
         if (getToken()) {
-          console.warn('Sesión expirada o token inválido.');
+          console.warn('Sesión expirada o token inválido en endpoint:', endpoint);
         }
+        setToken(null);
+        setUser(null);
       }
 
       if (!response.ok) {
-        let errorData;
+        let errorData = null;
         try {
           errorData = await response.json();
         } catch (_) {
-          errorData = { message: `Error HTTP ${response.status}: ${response.statusText}` };
+          errorData = null;
         }
-        throw new Error(errorData.message || 'Error en la petición al servidor');
+
+        let message = errorData?.message || errorData?.error;
+        if (!message) {
+          if (response.status === 401) {
+            message = 'Sesión expirada o no autenticada. Por favor, inicia sesión nuevamente.';
+          } else if (response.status === 403) {
+            message = 'No tienes permisos suficientes para realizar esta acción.';
+          } else {
+            message = `Error HTTP ${response.status}: ${response.statusText || 'Error en la petición al servidor'}`;
+          }
+        }
+        const err = new Error(message);
+        err.status = response.status;
+        err.data = errorData;
+        throw err;
       }
 
       if (response.headers.get('content-type')?.includes('application/json')) {
@@ -85,6 +105,7 @@ const API = (() => {
     setToken,
     getUser,
     setUser,
+    isAuthenticated,
     formatCurrency,
 
     auth: {
@@ -204,7 +225,18 @@ const API = (() => {
         });
       },
       approve: (id) => request(`/api/reservas/${id}/aprobar`, { method: 'POST' }),
+      aprobar: (id) => request(`/api/reservas/${id}/aprobar`, { method: 'POST' }),
       reject: (id, motivo) => request(`/api/reservas/${id}/rechazar?motivo=${encodeURIComponent(motivo || 'Rechazada por el proveedor')}`, { method: 'POST' }),
+      rechazar: (id, motivo) => {
+        const query = motivo ? `?motivo=${encodeURIComponent(motivo)}` : '';
+        return request(`/api/reservas/${id}/rechazar${query}`, { method: 'POST' });
+      },
+      calificar: (id, score, comment) =>
+        request(`/api/reservas/${id}/calificar`, {
+          method: 'POST',
+          body: JSON.stringify({ score, comment })
+        }),
+      getCalificacion: (id) => request(`/api/reservas/${id}/calificacion`),
       updateStatus: (id, status, reason) => {
         if (status === 'APROBADA' || status === 'CONFIRMADA') {
           return request(`/api/reservas/${id}/aprobar`, { method: 'POST' });
@@ -239,6 +271,45 @@ const API = (() => {
     reviews: {
       create: (data) => request('/api/v1/reviews', { method: 'POST', body: JSON.stringify(data) }),
       getByTool: (toolId) => request(`/api/v1/reviews/tool/${toolId}`)
+    },
+
+    reservas: {
+      aprobar: (id) => request(`/api/reservas/${id}/aprobar`, { method: 'POST' }),
+      rechazar: (id, motivo) => {
+        const query = motivo ? `?motivo=${encodeURIComponent(motivo)}` : '';
+        return request(`/api/reservas/${id}/rechazar${query}`, { method: 'POST' });
+      },
+      cancelar: (id, motivo) => {
+        const query = motivo ? `?motivo=${encodeURIComponent(motivo)}` : '';
+        return request(`/api/reservas/${id}/cancelar${query}`, { method: 'POST' });
+      },
+      devolver: (id, returnData) =>
+        request(`/api/reservas/${id}/devolver`, {
+          method: 'POST',
+          body: JSON.stringify(returnData || {})
+        }),
+      extender: (id, nuevaFechaFin, motivo) => {
+        const sp = new URLSearchParams();
+        sp.append('nuevaFechaFin', nuevaFechaFin);
+        if (motivo) sp.append('motivo', motivo);
+        return request(`/api/reservas/${id}/extender?${sp.toString()}`, { method: 'POST' });
+      },
+      calificar: (id, score, comment) =>
+        request(`/api/reservas/${id}/calificar`, {
+          method: 'POST',
+          body: JSON.stringify({ score, comment })
+        }),
+      getCalificacion: (id) => request(`/api/reservas/${id}/calificacion`)
+    },
+
+    herramientas: {
+      enviarMantenimiento: (id, motivo) => {
+        const query = motivo ? `?motivo=${encodeURIComponent(motivo)}` : '';
+        return request(`/api/herramientas/${id}/mantenimiento${query}`, { method: 'PUT' });
+      },
+      finalizarMantenimiento: (id) => request(`/api/herramientas/${id}/operativa`, { method: 'PUT' }),
+      getCalificaciones: (id) => request(`/api/herramientas/${id}/calificaciones`),
+      getById: (id) => request(`/api/herramientas/${id}`)
     },
 
     invoices: {

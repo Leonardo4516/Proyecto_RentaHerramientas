@@ -49,6 +49,7 @@ public class RentalController {
     private final ToolJpaRepository toolJpaRepository;
     private final SpringDataProviderRepository providerRepository;
     private final com.rentatools.application.rental.service.ReservaService reservaService;
+    private final com.rentatools.infrastructure.persistence.repository.RentalReviewJpaRepository reviewRepository;
 
     public RentalController(CreateRentalBookingUseCase createRentalBookingUseCase,
                             CheckAvailabilityUseCase checkAvailabilityUseCase,
@@ -61,7 +62,8 @@ public class RentalController {
                             SpringDataUserRepository userRepository,
                             ToolJpaRepository toolJpaRepository,
                             SpringDataProviderRepository providerRepository,
-                            com.rentatools.application.rental.service.ReservaService reservaService) {
+                            com.rentatools.application.rental.service.ReservaService reservaService,
+                            com.rentatools.infrastructure.persistence.repository.RentalReviewJpaRepository reviewRepository) {
         this.createRentalBookingUseCase = createRentalBookingUseCase;
         this.checkAvailabilityUseCase = checkAvailabilityUseCase;
         this.changeRentalStatusUseCase = changeRentalStatusUseCase;
@@ -74,6 +76,7 @@ public class RentalController {
         this.toolJpaRepository = toolJpaRepository;
         this.providerRepository = providerRepository;
         this.reservaService = reservaService;
+        this.reviewRepository = reviewRepository;
     }
 
     @PostMapping
@@ -309,7 +312,7 @@ public class RentalController {
     ) {
         if (authentication != null && !authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
             boolean isClient = authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_CLIENTE"));
-            if (isClient) {
+            if (isClient || isRentalClient(id, authentication.getName())) {
                 validateClientOwnership(id, authentication.getName());
             } else {
                 validateProviderOwnership(id, authentication.getName());
@@ -318,7 +321,7 @@ public class RentalController {
 
         BookingStatus targetStatus = newStatus;
         if (targetStatus == null && body != null && body.containsKey("status")) {
-            targetStatus = BookingStatus.valueOf(body.get("status").toUpperCase());
+            targetStatus = BookingStatus.fromString(body.get("status"));
         }
         if (targetStatus == null) {
             targetStatus = BookingStatus.CONFIRMADA;
@@ -331,7 +334,7 @@ public class RentalController {
         return ResponseEntity.ok(refreshed.map(this::enrichRental).orElse(updated));
     }
 
-    @PostMapping("/{id}/approve")
+    @PostMapping({"/{id}/approve", "/{id}/aprobar"})
     @PreAuthorize("hasAnyAuthority('ROLE_PROVEEDOR', 'ROLE_ADMIN')")
     @Operation(summary = "Aprobar solicitud de reserva", description = "Verifica que el estado sea PENDIENTE, valida la disponibilidad de la maquinaria y transiciona a APROBADA")
     public ResponseEntity<RentalResponse> approveRental(
@@ -347,19 +350,24 @@ public class RentalController {
         return ResponseEntity.ok(refreshed.map(this::enrichRental).orElse(response));
     }
 
-    @PostMapping("/{id}/reject")
+    public ResponseEntity<RentalResponse> aprobarReserva(Long id, Authentication authentication) {
+        return approveRental(id, authentication);
+    }
+
+    @PostMapping({"/{id}/reject", "/{id}/rechazar"})
     @PreAuthorize("hasAnyAuthority('ROLE_PROVEEDOR', 'ROLE_ADMIN')")
     @Operation(summary = "Rechazar solicitud de reserva", description = "Verifica que el estado sea PENDIENTE y transiciona la reserva a RECHAZADA")
     public ResponseEntity<RentalResponse> rejectRental(
             @PathVariable Long id,
             @RequestParam(required = false) String reason,
+            @RequestParam(required = false) String motivo,
             @RequestBody(required = false) java.util.Map<String, String> body,
             Authentication authentication
     ) {
         if (authentication != null && !authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
             validateProviderOwnership(id, authentication.getName());
         }
-        String effectiveReason = reason;
+        String effectiveReason = reason != null ? reason : motivo;
         if (effectiveReason == null && body != null) {
             effectiveReason = body.getOrDefault("reason", body.get("motivo"));
         }
@@ -370,6 +378,87 @@ public class RentalController {
         RentalResponse response = reservaService.rechazarReserva(id, effectiveReason, changedBy);
         var refreshed = rentalRepository.findById(response.id());
         return ResponseEntity.ok(refreshed.map(this::enrichRental).orElse(response));
+    }
+
+    public ResponseEntity<RentalResponse> rechazarReserva(Long id, String motivo, java.util.Map<String, String> body, Authentication authentication) {
+        return rejectRental(id, null, motivo, body, authentication);
+    }
+
+    @PostMapping("/{id}/cancelar")
+    @PreAuthorize("hasAnyAuthority('ROLE_CLIENTE', 'ROLE_PROVEEDOR', 'ROLE_ADMIN')")
+    @Operation(summary = "Cancelar reserva de alquiler (alias POST /cancelar)")
+    public ResponseEntity<RentalResponse> cancelarReservaPost(
+            @PathVariable Long id,
+            @RequestParam(required = false, defaultValue = "Cancelada por el usuario") String motivo,
+            Authentication authentication
+    ) {
+        return cancelRental(id, motivo, authentication);
+    }
+
+    @PostMapping("/{id}/devolver")
+    @PreAuthorize("hasAnyAuthority('ROLE_PROVEEDOR', 'ROLE_ADMIN')")
+    @Operation(summary = "Registrar devolución de maquinaria e inspección de daños (alias POST /devolver)")
+    public ResponseEntity<RentalResponse> devolverReservaPost(
+            @PathVariable Long id,
+            @RequestBody(required = false) java.util.Map<String, Object> returnData,
+            Authentication authentication
+    ) {
+        return returnRental(id, returnData, authentication);
+    }
+
+    @PostMapping("/{id}/calificar")
+    @PreAuthorize("hasAnyAuthority('ROLE_CLIENTE', 'ROLE_ADMIN')")
+    @Operation(summary = "Calificar un alquiler completado (1 a 5 estrellas)", description = "Permite al cliente calificar y dejar una reseña para un alquiler finalizado")
+    public ResponseEntity<com.rentatools.infrastructure.persistence.entity.RentalReviewEntity> calificarReserva(
+            @PathVariable Long id,
+            @RequestBody(required = false) java.util.Map<String, Object> reviewData,
+            Authentication authentication
+    ) {
+        RentalBooking rental = rentalRepository.findById(id)
+                .orElseThrow(() -> new com.rentatools.domain.common.EntityNotFoundException("Reserva no encontrada con ID: " + id));
+
+        if (rental.getStatus() != BookingStatus.COMPLETADA) {
+            throw new com.rentatools.domain.common.BusinessRuleValidationException("Solo se pueden calificar alquileres que hayan sido COMPLETADOS.");
+        }
+
+        if (reviewRepository != null && reviewRepository.existsByRentalId(id)) {
+            throw new com.rentatools.domain.common.BusinessRuleValidationException("Esta reserva ya ha sido calificada previamente.");
+        }
+
+        int score = 5;
+        if (reviewData != null && reviewData.containsKey("score")) {
+            score = Integer.parseInt(reviewData.get("score").toString());
+        } else if (reviewData != null && reviewData.containsKey("puntuacion")) {
+            score = Integer.parseInt(reviewData.get("puntuacion").toString());
+        }
+
+        if (score < 1 || score > 5) {
+            throw new com.rentatools.domain.common.BusinessRuleValidationException("La puntuación debe estar comprendida entre 1 y 5 estrellas.");
+        }
+
+        String comment = (reviewData != null && reviewData.containsKey("comment"))
+                ? reviewData.get("comment").toString()
+                : (reviewData != null && reviewData.containsKey("comentario") ? reviewData.get("comentario").toString() : "");
+
+        com.rentatools.infrastructure.persistence.entity.RentalReviewEntity review =
+                new com.rentatools.infrastructure.persistence.entity.RentalReviewEntity(id, rental.getToolId(), rental.getClientId(), score, comment);
+
+        com.rentatools.infrastructure.persistence.entity.RentalReviewEntity saved =
+                reviewRepository != null ? reviewRepository.save(review) : review;
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    }
+
+    @GetMapping("/{id}/calificacion")
+    @Operation(summary = "Consultar calificación de una reserva")
+    public ResponseEntity<com.rentatools.infrastructure.persistence.entity.RentalReviewEntity> getCalificacionReserva(@PathVariable Long id) {
+        if (reviewRepository == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return reviewRepository.findByRentalId(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+>>>>>>> origin/feat/security-billing-ui
     }
 
     @PostMapping("/{id}/return")
@@ -600,5 +689,17 @@ public class RentalController {
         if (!isOwner && !userId.equals(rentalClientId)) {
             throw new UnauthorizedException("No tienes autorización para gestionar reservas de otro cliente.");
         }
+    }
+
+    private boolean isRentalClient(Long rentalId, String username) {
+        var userOpt = userRepository.findByUsername(username);
+        if (userOpt.isEmpty()) return false;
+        var rentalOpt = rentalRepository.findById(rentalId);
+        if (rentalOpt.isEmpty()) return false;
+        Long userId = userOpt.get().getId();
+        Long rentalClientId = rentalOpt.get().getClientId();
+        if (userId.equals(rentalClientId)) return true;
+        var clientOpt = clientRepository.findByUserId(userId);
+        return clientOpt.isPresent() && clientOpt.get().getId().equals(rentalClientId);
     }
 }

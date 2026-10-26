@@ -36,32 +36,29 @@ public class RentalBooking {
         this.createdAt = createdAt != null ? createdAt : Instant.now();
     }
 
-    public static RentalBooking create(Long clientId, Long toolId, DateRange dateRange, BigDecimal dailyRate,
-                                       BigDecimal depositAmount, String deliveryAddress, String notes) {
-        BigDecimal baseSubtotal = dailyRate.multiply(BigDecimal.valueOf(dateRange.totalDays()));
-        BigDecimal discountFactor = BigDecimal.ONE;
-        String discountNote = "";
-
-        if (dateRange.totalDays() >= 30) {
-            discountFactor = BigDecimal.valueOf(0.75);
-            discountNote = " [Descuento 25% mensual aplicado]";
-        } else if (dateRange.totalDays() >= 7) {
-            discountFactor = BigDecimal.valueOf(0.90);
-            discountNote = " [Descuento 10% semanal aplicado]";
+    public static BigDecimal calculateSubtotal(BigDecimal dailyRate, int totalDays) {
+        if (dailyRate == null) return BigDecimal.ZERO;
+        BigDecimal base = dailyRate.multiply(BigDecimal.valueOf(totalDays));
+        if (totalDays >= 30) {
+            return base.multiply(new BigDecimal("0.80")).setScale(2, java.math.RoundingMode.HALF_UP);
+        } else if (totalDays >= 7) {
+            return base.multiply(new BigDecimal("0.90")).setScale(2, java.math.RoundingMode.HALF_UP);
         }
-
-        BigDecimal subtotal = baseSubtotal.multiply(discountFactor).setScale(2, java.math.RoundingMode.HALF_UP);
-        String finalNotes = ((notes != null ? notes : "") + discountNote).trim();
-
-        return new RentalBooking(null, clientId, toolId, dateRange, dailyRate, depositAmount, subtotal,
-                BookingStatus.PENDIENTE, deliveryAddress, finalNotes, Instant.now());
+        return base;
     }
 
-    public void confirm() {
-        if (this.status != BookingStatus.PENDIENTE) {
-            throw new BusinessRuleValidationException("Solo se pueden confirmar reservas en estado PENDIENTE.");
+    public static RentalBooking create(Long clientId, Long toolId, DateRange dateRange, BigDecimal dailyRate,
+                                       BigDecimal depositAmount, String deliveryAddress, String notes) {
+        BigDecimal subtotal = calculateSubtotal(dailyRate, dateRange.totalDays());
+        String discountNote = "";
+        if (dateRange.totalDays() >= 30) {
+            discountNote = " [Descuento 20% aplicado >= 30 días]";
+        } else if (dateRange.totalDays() >= 7) {
+            discountNote = " [Descuento 10% aplicado >= 7 días]";
         }
-        this.status = BookingStatus.CONFIRMADA;
+        String combinedNotes = (notes != null && !notes.isBlank()) ? notes + discountNote : (discountNote.isBlank() ? notes : discountNote.trim());
+        return new RentalBooking(null, clientId, toolId, dateRange, dailyRate, depositAmount, subtotal,
+                BookingStatus.PENDIENTE, deliveryAddress, combinedNotes, Instant.now());
     }
 
     public void approve() {
@@ -69,6 +66,13 @@ public class RentalBooking {
             throw new BusinessRuleValidationException("Solo se pueden aprobar reservas en estado PENDIENTE.");
         }
         this.status = BookingStatus.APROBADA;
+    }
+
+    public void confirm() {
+        if (this.status != BookingStatus.PENDIENTE) {
+            throw new BusinessRuleValidationException("Solo se pueden confirmar reservas en estado PENDIENTE.");
+        }
+        this.status = BookingStatus.CONFIRMADA;
     }
 
     public void reject(String reason) {
@@ -88,7 +92,7 @@ public class RentalBooking {
 
     public void completeReturn(ReturnInspection inspection) {
         if (this.status != BookingStatus.EN_CURSO && this.status != BookingStatus.CONFIRMADA && this.status != BookingStatus.APROBADA) {
-            throw new BusinessRuleValidationException("Solo se pueden devolver alquileres en estado EN_CURSO, CONFIRMADA o APROBADA.");
+            throw new BusinessRuleValidationException("Solo se pueden devolver alquileres en estado EN_CURSO, APROBADA o CONFIRMADA.");
         }
         this.status = BookingStatus.COMPLETADA;
         this.inspection = inspection;
@@ -103,7 +107,7 @@ public class RentalBooking {
 
     public RentalBooking extendTo(java.time.LocalDate newEndDate, String extensionNotes) {
         if (this.status != BookingStatus.CONFIRMADA && this.status != BookingStatus.APROBADA && this.status != BookingStatus.EN_CURSO && this.status != BookingStatus.PENDIENTE) {
-            throw new BusinessRuleValidationException("Solo se pueden extender alquileres activos (PENDIENTE, CONFIRMADA, APROBADA o EN_CURSO).");
+            throw new BusinessRuleValidationException("Solo se pueden extender alquileres activos (PENDIENTE, APROBADA, CONFIRMADA o EN_CURSO).");
         }
         if (newEndDate == null || !newEndDate.isAfter(this.dateRange.endDate())) {
             throw new BusinessRuleValidationException("La nueva fecha final debe ser posterior a la fecha final actual: " + this.dateRange.endDate());

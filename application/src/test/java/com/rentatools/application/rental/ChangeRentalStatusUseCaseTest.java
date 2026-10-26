@@ -104,4 +104,44 @@ class ChangeRentalStatusUseCaseTest {
         );
         verify(rentalRepository, never()).save(any());
     }
+
+    @Test
+    @DisplayName("Examen: Debe aprobar una reserva pendiente cambiando su estado a APROBADA")
+    void shouldApprovePendingRentalSuccessfully() {
+        RentalBooking booking = createSampleBooking(10L, BookingStatus.PENDIENTE);
+        when(rentalRepository.findById(10L)).thenReturn(Optional.of(booking));
+        when(rentalRepository.hasOverlappingBookingsExcluding(any(), any(), any(), any())).thenReturn(false);
+        when(rentalRepository.save(any(RentalBooking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        RentalResponse response = changeRentalStatusUseCase.execute(10L, BookingStatus.APROBADA, "Aprobada por proveedor", "proveedor_valle");
+
+        assertNotNull(response);
+        assertEquals("APROBADA", response.status());
+        verify(rentalRepository).save(booking);
+    }
+
+    @Test
+    @DisplayName("Examen: Debe lanzar HerramientaNoDisponibleException al aprobar si hay solapamiento de fechas")
+    void shouldThrowHerramientaNoDisponibleExceptionWhenToolHasOverlapOnApproval() {
+        RentalBooking booking = createSampleBooking(11L, BookingStatus.PENDIENTE);
+        when(rentalRepository.findById(11L)).thenReturn(Optional.of(booking));
+        when(rentalRepository.hasOverlappingBookingsExcluding(any(), any(), any(), any())).thenReturn(true);
+
+        assertThrows(com.rentatools.domain.common.exception.HerramientaNoDisponibleException.class, () ->
+                changeRentalStatusUseCase.execute(11L, BookingStatus.APROBADA, null, "proveedor")
+        );
+        verify(rentalRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Examen: Debe rechazar la aprobación si el estado actual no es PENDIENTE")
+    void shouldRejectApprovalWhenNotPending() {
+        RentalBooking booking = createSampleBooking(12L, BookingStatus.RECHAZADA);
+        when(rentalRepository.findById(12L)).thenReturn(Optional.of(booking));
+
+        assertThrows(com.rentatools.domain.common.BusinessRuleValidationException.class, () ->
+                changeRentalStatusUseCase.execute(12L, BookingStatus.APROBADA, null, "proveedor")
+        );
+        verify(rentalRepository, never()).save(any());
+    }
 }

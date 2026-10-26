@@ -1,153 +1,91 @@
 package com.rentatools.infrastructure.rest.controller;
 
 import com.rentatools.application.rental.dto.RentalResponse;
-import com.rentatools.application.rental.service.ReservaService;
-import com.rentatools.domain.common.exception.UnauthorizedException;
-import com.rentatools.domain.rental.RentalBooking;
-import com.rentatools.domain.rental.RentalRepository;
-import com.rentatools.infrastructure.persistence.repository.ToolJpaRepository;
-import com.rentatools.infrastructure.persistence.user.SpringDataClientRepository;
-import com.rentatools.infrastructure.persistence.user.SpringDataProviderRepository;
-import com.rentatools.infrastructure.persistence.user.SpringDataUserRepository;
+import com.rentatools.infrastructure.persistence.entity.RentalReviewEntity;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/reservas")
-@Tag(name = "Gestión de Reservas (Examen)", description = "Endpoints para que el Proveedor acepte o rechace solicitudes de alquiler")
+@Tag(name = "Reservas (Examen y Alias en Español)", description = "Controlador alias para compatibilidad exacta con enunciados y colecciones de prueba de evaluación técnica")
 public class ReservaController {
 
-    private final ReservaService reservaService;
-    private final RentalRepository rentalRepository;
-    private final ToolJpaRepository toolJpaRepository;
-    private final SpringDataProviderRepository providerRepository;
-    private final SpringDataUserRepository userRepository;
-    private final SpringDataClientRepository clientRepository;
+    private final RentalController rentalController;
 
-    public ReservaController(ReservaService reservaService,
-                             RentalRepository rentalRepository,
-                             ToolJpaRepository toolJpaRepository,
-                             SpringDataProviderRepository providerRepository,
-                             SpringDataUserRepository userRepository,
-                             SpringDataClientRepository clientRepository) {
-        this.reservaService = reservaService;
-        this.rentalRepository = rentalRepository;
-        this.toolJpaRepository = toolJpaRepository;
-        this.providerRepository = providerRepository;
-        this.userRepository = userRepository;
-        this.clientRepository = clientRepository;
+    public ReservaController(RentalController rentalController) {
+        this.rentalController = rentalController;
     }
 
     @PostMapping("/{id}/aprobar")
     @PreAuthorize("hasAnyAuthority('ROLE_PROVEEDOR', 'ROLE_ADMIN')")
-    @Operation(summary = "Aprobar solicitud de reserva", description = "Verifica que el estado sea PENDIENTE, valida la disponibilidad de la maquinaria sin solapamiento y transiciona a APROBADA")
-    public ResponseEntity<RentalResponse> aprobarReserva(
-            @PathVariable Long id,
-            Authentication authentication
-    ) {
-        validateProviderOwnershipIfApplicable(id, authentication);
-        String username = authentication != null ? authentication.getName() : "Proveedor";
-        RentalResponse response = reservaService.aprobarReserva(id, username);
-        return ResponseEntity.ok(enrichRental(response));
+    @Operation(summary = "Aprobar reserva (Rol: Proveedor)", description = "Verifica estado PENDIENTE, disponibilidad de la herramienta y cambia estado a APROBADA")
+    public ResponseEntity<RentalResponse> aprobarReserva(@PathVariable Long id, Authentication authentication) {
+        return rentalController.aprobarReserva(id, authentication);
     }
 
     @PostMapping("/{id}/rechazar")
     @PreAuthorize("hasAnyAuthority('ROLE_PROVEEDOR', 'ROLE_ADMIN')")
-    @Operation(summary = "Rechazar solicitud de reserva", description = "Verifica que el estado sea PENDIENTE y transiciona la reserva a RECHAZADA")
+    @Operation(summary = "Rechazar reserva (Rol: Proveedor)", description = "Verifica estado PENDIENTE y cambia estado a RECHAZADA con motivo opcional")
     public ResponseEntity<RentalResponse> rechazarReserva(
             @PathVariable Long id,
-            @RequestParam(required = false) String motivo,
+            @RequestParam(required = false, defaultValue = "Rechazada por el proveedor") String motivo,
             @RequestBody(required = false) Map<String, String> body,
-            Authentication authentication
-    ) {
-        validateProviderOwnershipIfApplicable(id, authentication);
-        String reason = motivo;
-        if (reason == null && body != null) {
-            reason = body.getOrDefault("motivo", body.get("reason"));
-        }
-        if (reason == null || reason.isBlank()) {
-            reason = "Rechazada por el proveedor";
-        }
-        String username = authentication != null ? authentication.getName() : "Proveedor";
-        RentalResponse response = reservaService.rechazarReserva(id, reason, username);
-        return ResponseEntity.ok(enrichRental(response));
+            Authentication authentication) {
+        return rentalController.rechazarReserva(id, motivo, body, authentication);
     }
 
-    private void validateProviderOwnershipIfApplicable(Long rentalId, Authentication authentication) {
-        // En el examen se valida el rol Proveedor a nivel de endpoint con @PreAuthorize
+    @PostMapping("/{id}/cancelar")
+    @PreAuthorize("hasAnyAuthority('ROLE_CLIENTE', 'ROLE_PROVEEDOR', 'ROLE_ADMIN')")
+    @Operation(summary = "Cancelar reserva (Rol: Cliente)")
+    public ResponseEntity<RentalResponse> cancelarReserva(
+            @PathVariable Long id,
+            @RequestParam(required = false, defaultValue = "Cancelada por el cliente") String motivo,
+            Authentication authentication) {
+        return rentalController.cancelarReservaPost(id, motivo, authentication);
     }
 
-    private RentalResponse enrichRental(RentalResponse r) {
-        String toolName = "Maquinaria #" + r.toolId();
-        Long providerId = null;
-        String providerName = "Proveedor Verificado";
+    @PostMapping("/{id}/devolver")
+    @PreAuthorize("hasAnyAuthority('ROLE_PROVEEDOR', 'ROLE_ADMIN')")
+    @Operation(summary = "Devolver maquinaria e inspección de daños (Rol: Proveedor)")
+    public ResponseEntity<RentalResponse> devolverReserva(
+            @PathVariable Long id,
+            @RequestBody(required = false) Map<String, Object> returnData,
+            Authentication authentication) {
+        return rentalController.devolverReservaPost(id, returnData, authentication);
+    }
 
-        if (toolJpaRepository != null && r.toolId() != null) {
-            var toolOpt = toolJpaRepository.findById(r.toolId());
-            if (toolOpt.isPresent()) {
-                var tool = toolOpt.get();
-                if (tool.getName() != null) toolName = tool.getName();
-                providerId = tool.getProviderId();
-                if (providerRepository != null && providerId != null) {
-                    var provOpt = providerRepository.findById(providerId);
-                    if (provOpt.isPresent() && provOpt.get().getCompanyName() != null) {
-                        providerName = provOpt.get().getCompanyName();
-                    }
-                }
-            }
-        }
+    @PostMapping("/{id}/extender")
+    @PreAuthorize("hasAnyAuthority('ROLE_CLIENTE', 'ROLE_PROVEEDOR', 'ROLE_ADMIN')")
+    @Operation(summary = "Extender plazo de reserva (Rol: Cliente)")
+    public ResponseEntity<RentalResponse> extenderReserva(
+            @PathVariable Long id,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate nuevaFechaFin,
+            @RequestParam(required = false) String motivo,
+            Authentication authentication) {
+        return rentalController.extendRental(id, nuevaFechaFin, motivo, authentication);
+    }
 
-        String clientName = "Cliente Constructora";
-        String clientPhone = "+57 320 000 0023";
-        String clientEmail = "cliente@constructora.com";
-        String clientDocument = "NIT 900.123.456-7";
+    @PostMapping("/{id}/calificar")
+    @PreAuthorize("hasAnyAuthority('ROLE_CLIENTE', 'ROLE_ADMIN')")
+    @Operation(summary = "Calificar reserva completada (Rol: Cliente)")
+    public ResponseEntity<RentalReviewEntity> calificarReserva(
+            @PathVariable Long id,
+            @RequestBody(required = false) Map<String, Object> reviewData,
+            Authentication authentication) {
+        return rentalController.calificarReserva(id, reviewData, authentication);
+    }
 
-        if (clientRepository != null && r.clientId() != null) {
-            var clientOpt = clientRepository.findById(r.clientId());
-            if (clientOpt.isEmpty()) {
-                clientOpt = clientRepository.findByUserId(r.clientId());
-            }
-            if (clientOpt.isPresent()) {
-                var client = clientOpt.get();
-                if (client.getDocumentNumber() != null) clientDocument = client.getDocumentNumber();
-                if (client.getUserId() != null) {
-                    var uOpt = userRepository.findById(client.getUserId());
-                    if (uOpt.isPresent()) {
-                        clientName = uOpt.get().getFullName();
-                        clientEmail = uOpt.get().getEmail();
-                        if (uOpt.get().getPhone() != null) clientPhone = uOpt.get().getPhone();
-                    }
-                }
-            }
-        }
-
-        return new RentalResponse(
-                r.id(),
-                r.clientId(),
-                r.toolId(),
-                r.startDate(),
-                r.endDate(),
-                r.totalDays(),
-                r.dailyRate(),
-                r.depositAmount(),
-                r.subtotal(),
-                r.status(),
-                r.deliveryAddress(),
-                r.notes(),
-                r.createdAt(),
-                clientName,
-                clientPhone,
-                clientEmail,
-                clientDocument,
-                toolName,
-                providerId,
-                providerName
-        );
+    @GetMapping("/{id}/calificacion")
+    @Operation(summary = "Consultar calificación de una reserva")
+    public ResponseEntity<RentalReviewEntity> getCalificacionReserva(@PathVariable Long id) {
+        return rentalController.getCalificacionReserva(id);
     }
 }

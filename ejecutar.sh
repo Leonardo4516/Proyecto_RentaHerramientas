@@ -34,50 +34,37 @@ while is_port_in_use $PORT; do
     PORT=$((PORT + 1))
 done
 
-# 4. Verificación de Base de Datos (PostgreSQL / Docker / Fallback H2)
+# 4. Verificación de Base de Datos (Docker PostgreSQL puerto 5434 / Fallback)
 DB_OPTS=""
-DB_INFO="PostgreSQL Local / Docker (localhost:5432)"
+DB_INFO="PostgreSQL Docker (localhost:5434)"
 
 if [ "$1" == "--h2" ]; then
     echo "💾 Modo H2 en memoria solicitado explícitamente."
     DB_OPTS="-Dspring.datasource.url=jdbc:h2:mem:rentatools;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH -Dspring.datasource.driver-class-name=org.h2.Driver -Dspring.datasource.username=sa -Dspring.datasource.password="
     DB_INFO="H2 In-Memory (Autónomo)"
-elif ! is_port_in_use 5432; then
-    echo "⚠️  El puerto 5432 de PostgreSQL no está respondiendo."
+elif is_port_in_use 5434 && PGPASSWORD="postgres" psql -h localhost -p 5434 -U postgres -d renta_herramientas_db -c "SELECT 1;" >/dev/null 2>&1; then
+    echo "🐳 Conectado a PostgreSQL en contenedor Docker (puerto 5434, base de datos 'renta_herramientas_db')."
+    DB_OPTS="-Dspring.datasource.url=jdbc:postgresql://localhost:5434/renta_herramientas_db -Dspring.datasource.username=postgres -Dspring.datasource.password=postgres"
+    DB_INFO="Docker PostgreSQL (rentatools_postgres en localhost:5434)"
+elif is_port_in_use 5432 && PGPASSWORD="postgres" psql -h localhost -p 5432 -U postgres -d renta_herramientas_db -c "SELECT 1;" >/dev/null 2>&1; then
+    echo "🐘 Conectado a PostgreSQL local (puerto 5432)."
+    DB_OPTS="-Dspring.datasource.url=jdbc:postgresql://localhost:5432/renta_herramientas_db -Dspring.datasource.username=postgres -Dspring.datasource.password=postgres"
+    DB_INFO="PostgreSQL Local (localhost:5432)"
+else
+    # Si Docker no está arriba, intentar levantarlo
     if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
         echo "🐳 Intentando iniciar PostgreSQL vía Docker Compose..."
         docker compose up -d postgres_db 2>/dev/null || docker-compose up -d postgres_db 2>/dev/null
         sleep 3
+        if is_port_in_use 5434; then
+            DB_OPTS="-Dspring.datasource.url=jdbc:postgresql://localhost:5434/renta_herramientas_db -Dspring.datasource.username=postgres -Dspring.datasource.password=postgres"
+            DB_INFO="Docker PostgreSQL (rentatools_postgres en localhost:5434)"
+        fi
     fi
-    # Si después de intentar con Docker sigue sin responder el puerto 5432:
-    if ! is_port_in_use 5432; then
-        echo "💡 No se detectó PostgreSQL ni Docker en el puerto 5432."
-        echo "🛡️  Activando automáticamente modo de respaldo H2 (sin fallos ni dependencias externas)..."
+    if [ -z "$DB_OPTS" ]; then
+        echo "🛡️  No se detectó contenedor Docker en puerto 5434 ni 5432. Activando respaldo H2..."
         DB_OPTS="-Dspring.datasource.url=jdbc:h2:mem:rentatools;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH -Dspring.datasource.driver-class-name=org.h2.Driver -Dspring.datasource.username=sa -Dspring.datasource.password="
         DB_INFO="H2 In-Memory (Modo Respaldo Autónomo)"
-    fi
-else
-    # El puerto 5432 está ocupado. Verificar si la clave 'postgres' es aceptada
-    if command -v psql >/dev/null 2>&1; then
-        if ! PGPASSWORD="postgres" psql -h localhost -p 5432 -U postgres -d postgres -c "SELECT 1;" >/dev/null 2>&1 && \
-           ! PGPASSWORD="postgres" psql -h localhost -p 5432 -U postgres -d renta_herramientas_db -c "SELECT 1;" >/dev/null 2>&1; then
-            echo "⚠️  El puerto 5432 tiene PostgreSQL, pero la clave 'postgres' fue rechazada."
-            AUTHSUCCESS=0
-            for pwd in "campus2023" "root" "admin" "123456" "1234" ""; do
-                if PGPASSWORD="$pwd" psql -h localhost -p 5432 -U postgres -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
-                    echo "🔑 Conectado con éxito a PostgreSQL usando clave: '$pwd'"
-                    DB_OPTS="-Dspring.datasource.password=$pwd"
-                    AUTHSUCCESS=1
-                    break
-                fi
-            done
-            if [ $AUTHSUCCESS -eq 0 ]; then
-                echo "🛡️  PostgreSQL local requiere una clave desconocida (FATAL: password authentication failed)."
-                echo "🛡️  Activando modo de respaldo H2 (autónomo, offline y 100% operativo)..."
-                DB_OPTS="-Dspring.datasource.url=jdbc:h2:mem:rentatools;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH -Dspring.datasource.driver-class-name=org.h2.Driver -Dspring.datasource.username=sa -Dspring.datasource.password="
-                DB_INFO="H2 In-Memory (Modo Respaldo Autónomo)"
-            fi
-        fi
     fi
 fi
 

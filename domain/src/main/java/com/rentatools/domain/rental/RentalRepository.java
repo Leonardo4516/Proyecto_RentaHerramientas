@@ -16,11 +16,23 @@ public interface RentalRepository {
      */
     boolean hasOverlappingBookings(Long toolId, LocalDate startDate, LocalDate endDate);
 
+    default boolean hasOverlappingBookingsExcluding(Long toolId, LocalDate startDate, LocalDate endDate, Long excludeRentalId) {
+        if (excludeRentalId == null) {
+            return hasOverlappingBookings(toolId, startDate, endDate);
+        }
+        DateRange requested = new DateRange(startDate, endDate);
+        return findActiveRentalsByToolId(toolId).stream()
+                .filter(r -> r.getId() != null && !r.getId().equals(excludeRentalId))
+                .filter(r -> r.getStatus() == BookingStatus.APROBADA || r.getStatus() == BookingStatus.CONFIRMADA || r.getStatus() == BookingStatus.EN_CURSO)
+                .anyMatch(r -> r.getDateRange().overlapsWith(requested));
+    }
+
     /**
      * Verifica si existen otras reservas confirmadas o aprobadas que se solapen con el rango, excluyendo una reserva específica.
      */
     default boolean hasOtherOverlappingConfirmedBooking(Long toolId, Long rentalId, LocalDate startDate, LocalDate endDate) {
-        return false;
+        return hasOverlappingBookingsExcluding(toolId, startDate, endDate, rentalId);
+    }
     }
 
     default void recordTimelineEvent(RentalTimelineEvent event) {}

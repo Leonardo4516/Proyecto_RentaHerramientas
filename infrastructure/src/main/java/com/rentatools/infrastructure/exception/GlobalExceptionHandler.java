@@ -40,8 +40,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
     }
 
-    @ExceptionHandler(com.rentatools.domain.rental.exception.HerramientaNoDisponibleException.class)
-    public ResponseEntity<ErrorResponseDto> handleHerramientaNoDisponible(com.rentatools.domain.rental.exception.HerramientaNoDisponibleException ex, HttpServletRequest request) {
+    @ExceptionHandler({
+        com.rentatools.domain.common.exception.HerramientaNoDisponibleException.class,
+        com.rentatools.domain.rental.exception.HerramientaNoDisponibleException.class
+    })
+    public ResponseEntity<ErrorResponseDto> handleHerramientaNoDisponible(RuntimeException ex, HttpServletRequest request) {
         ErrorResponseDto error = new ErrorResponseDto(
                 HttpStatus.CONFLICT.value(),
                 "Herramienta No Disponible",

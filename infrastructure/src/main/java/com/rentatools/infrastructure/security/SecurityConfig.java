@@ -44,6 +44,30 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.setStatus(jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setContentType(org.springframework.http.MediaType.APPLICATION_JSON_VALUE);
+                            response.setCharacterEncoding(java.nio.charset.StandardCharsets.UTF_8.name());
+                            String json = String.format(
+                                    "{\"status\":401,\"error\":\"No autorizado\",\"message\":\"Sesión expirada o no autenticada. Por favor, inicia sesión nuevamente.\",\"path\":\"%s\",\"timestamp\":\"%s\"}",
+                                    request.getRequestURI(),
+                                    java.time.Instant.now()
+                            );
+                            response.getWriter().write(json);
+                        })
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            response.setStatus(jakarta.servlet.http.HttpServletResponse.SC_FORBIDDEN);
+                            response.setContentType(org.springframework.http.MediaType.APPLICATION_JSON_VALUE);
+                            response.setCharacterEncoding(java.nio.charset.StandardCharsets.UTF_8.name());
+                            String json = String.format(
+                                    "{\"status\":403,\"error\":\"Acceso denegado\",\"message\":\"No tienes permisos suficientes para realizar esta acción.\",\"path\":\"%s\",\"timestamp\":\"%s\"}",
+                                    request.getRequestURI(),
+                                    java.time.Instant.now()
+                            );
+                            response.getWriter().write(json);
+                        })
+                )
                 .authorizeHttpRequests(auth -> auth
                         // Consola H2 en memoria para entornos de prueba
                         .requestMatchers("/h2-console/**").permitAll()
@@ -55,9 +79,10 @@ public class SecurityConfig {
                         .requestMatchers("/ws-rentatools/**").permitAll()
                         // Autenticación pública
                         .requestMatchers("/api/v1/auth/**").permitAll()
-                        // Catálogo público de herramientas (Dev A y fallback)
-                        .requestMatchers(HttpMethod.GET, "/api/v1/tools/**").permitAll()
+                        // Catálogo público de herramientas (Dev A y alias en español)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/tools/**", "/api/herramientas/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/tools/**").hasAnyAuthority("ROLE_PROVEEDOR", "ROLE_ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/herramientas/**").hasAnyAuthority("ROLE_PROVEEDOR", "ROLE_ADMIN")
                         // Descarga pública o autorizada de facturas PDF
                         .requestMatchers(HttpMethod.GET, "/api/v1/invoices/*/pdf").permitAll()
                         // Endpoints de reportes protegidos
@@ -68,9 +93,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/invoices/**").authenticated()
                         // Alquileres públicos de consulta de disponibilidad y agenda
                         .requestMatchers(HttpMethod.GET, "/api/v1/rentals/check-availability", "/api/v1/rentals/tool/**").permitAll()
-                        // Alquileres protegidos
-                        .requestMatchers("/api/v1/rentals/**").authenticated()
-                        .requestMatchers("/api/reservas/**").hasAnyAuthority("ROLE_PROVEEDOR", "ROLE_ADMIN")
+                        // Alquileres protegidos (estándar y alias en español)
+                        .requestMatchers("/api/v1/rentals/**", "/api/reservas/**").authenticated()
                         // Cupones y reseñas públicas
                         .requestMatchers(HttpMethod.GET, "/api/v1/coupons/**", "/api/v1/reviews/tool/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/reviews").authenticated()

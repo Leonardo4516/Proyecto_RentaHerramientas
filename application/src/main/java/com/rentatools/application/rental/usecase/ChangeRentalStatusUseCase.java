@@ -25,8 +25,27 @@ public class ChangeRentalStatusUseCase {
         BookingStatus previousStatus = rental.getStatus();
 
         switch (newStatus) {
-            case APROBADA -> rental.approve();
-            case CONFIRMADA -> rental.confirm();
+            case APROBADA, CONFIRMADA -> {
+                if (previousStatus != BookingStatus.PENDIENTE) {
+                    throw new com.rentatools.domain.common.BusinessRuleValidationException("Solo se pueden aprobar reservas en estado PENDIENTE.");
+                }
+                boolean hasConflict = rentalRepository.hasOverlappingBookingsExcluding(
+                        rental.getToolId(),
+                        rental.getDateRange().startDate(),
+                        rental.getDateRange().endDate(),
+                        rental.getId()
+                );
+                if (hasConflict) {
+                    throw new com.rentatools.domain.common.exception.HerramientaNoDisponibleException(
+                            "La herramienta ya no tiene disponibilidad para las fechas solicitadas."
+                    );
+                }
+                if (newStatus == BookingStatus.APROBADA) {
+                    rental.approve();
+                } else {
+                    rental.confirm();
+                }
+            }
             case RECHAZADA -> rental.reject(reason != null ? reason : "Rechazado por el proveedor.");
             case EN_CURSO -> rental.startRental();
             case COMPLETADA -> rental.completeReturn(null);

@@ -213,7 +213,7 @@ public class RentalRepositoryAdapter implements RentalRepository {
 
     private RentalBooking toDomain(RentalEntity e) {
         DateRange dateRange = new DateRange(e.getStartDate(), e.getEndDate());
-        BookingStatus status = BookingStatus.valueOf(e.getStatus());
+        BookingStatus status = BookingStatus.fromString(e.getStatus());
         return new RentalBooking(
                 e.getId(),
                 e.getClientId(),
