@@ -42,8 +42,11 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
+                .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // Consola H2 en memoria para entornos de prueba
+                        .requestMatchers("/h2-console/**").permitAll()
                         // Frontend estático y recursos web
                         .requestMatchers("/", "/index.html", "/css/**", "/js/**", "/images/**", "/assets/**", "/models/**", "/favicon.ico").permitAll()
                         // Documentación Swagger / OpenAPI
