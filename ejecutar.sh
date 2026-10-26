@@ -59,6 +59,9 @@ else
         if is_port_in_use 5434; then
             DB_OPTS="-Dspring.datasource.url=jdbc:postgresql://localhost:5434/renta_herramientas_db -Dspring.datasource.username=postgres -Dspring.datasource.password=postgres"
             DB_INFO="Docker PostgreSQL (rentatools_postgres en localhost:5434)"
+        elif is_port_in_use 5432; then
+            DB_OPTS="-Dspring.datasource.url=jdbc:postgresql://localhost:5432/renta_herramientas_db -Dspring.datasource.username=postgres -Dspring.datasource.password=postgres"
+            DB_INFO="Docker PostgreSQL (rentatools_postgres en localhost:5432)"
         fi
     fi
     if [ -z "$DB_OPTS" ]; then
@@ -73,6 +76,12 @@ echo "🚀 Iniciando RentaTools en puerto $PORT"
 echo "🗄️  Base de Datos:      $DB_INFO"
 echo "👉 Abre en tu navegador: http://localhost:$PORT/"
 echo "👉 Swagger UI:          http://localhost:$PORT/swagger-ui.html"
+if [[ "$DB_INFO" == *"H2"* ]]; then
+    echo "👉 Consola Web H2:      http://localhost:$PORT/h2-console"
+    echo "   * JDBC URL:          jdbc:h2:mem:rentatools"
+    echo "   * Usuario:           sa  |  Contraseña: (vacía)"
+    echo "👉 Conexión DBeaver:    jdbc:h2:tcp://localhost:9092/mem:rentatools"
+fi
 echo "=========================================================="
 
 java -Dserver.port=$PORT $DB_OPTS -jar infrastructure/target/rentatools.war

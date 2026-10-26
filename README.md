@@ -210,6 +210,157 @@ Una vez que la terminal indique `Tomcat started on port 8080 (http) with context
 
 ---
 
+## 🛡️ Guía de Portabilidad, Respaldo Autónomo H2 y Ejecución en PC Ajeno (Laboratorio / Evaluador)
+
+Esta sección garantiza que **RentaTools** funcione al 100% en cualquier computador de evaluación o laboratorio (Windows, Linux, macOS) sin requerir configuraciones complejas, sin depender de bases de datos preinstaladas y resolviendo automáticamente conflictos de puertos.
+
+---
+
+### 1. ⚡ Respaldo Autónomo H2 en Memoria (Zero-Config / Offline)
+
+¿Qué pasa si el computador del evaluador **no tiene PostgreSQL instalado**, el servicio está apagado, o la contraseña local de `postgres` es diferente?
+
+* **Detección Automática:** Los scripts inteligentes `ejecutar.sh` y `ejecutar.bat` prueban la conectividad contra los puertos 5434 y 5432. Si PostgreSQL o Docker no responden o rechazan las credenciales, el sistema activa automáticamente el **Modo de Respaldo H2 In-Memory**.
+* **Ejecución Forzada Manual:** Puedes forzar el modo autónomo H2 en cualquier momento ejecutando:
+  * **Linux / macOS:** `./ejecutar.sh --h2`
+  * **Windows:** `ejecutar.bat --h2`
+* **Auto-Población de Datos:** Al iniciar en H2, Hibernate genera automáticamente la estructura completa de tablas y la aplicación precarga de inmediato el catálogo de **25 maquinarias pesadas**, categorías, imágenes, especificaciones y los usuarios semilla (`admin`, `proveedor`, `cliente`, etc.). ¡El sistema queda 100% operativo sin tocar una sola línea de comandos SQL!
+
+---
+
+### 2. 🔍 Acceso a la Consola Web H2 (`/h2-console`) y Evidencia para el Examen
+
+Si el evaluador te solicita abrir la base de datos o necesitas tomar capturas de las tablas pobladas:
+
+1. Abre en tu navegador: **`http://localhost:<PORT>/h2-console`** *(reemplaza `<PORT>` por el puerto en el que arrancó el sistema, e.g., 8080 o 8081)*.
+2. En la pantalla de inicio de sesión de H2 Console, ingresa los siguientes parámetros exactos:
+
+| Campo en H2 Console | Valor Requerido | Nota Crítica |
+|---|---|---|
+| **Saved Settings** | `Generic H2 (Embedded)` | Seleccionar del menú desplegable |
+| **Driver Class** | `org.h2.Driver` | Viene por defecto |
+| **JDBC URL** | `jdbc:h2:mem:rentatools` | ⚠️ **Borrar `jdbc:h2:~/test`** y colocar exactamente `jdbc:h2:mem:rentatools` |
+| **User Name** | `sa` | Usuario administrador en minúsculas |
+| **Password** | *(dejar en blanco)* | No escribir nada, dejar la caja vacía |
+
+3. Haz clic en el botón **Connect**.
+4. **Consultas SQL recomendadas para la captura del examen:**
+   * **Ver catálogo de herramientas cargadas:**
+     ```sql
+     SELECT id, code, name, brand, model, daily_price, deposit_amount, status FROM tools ORDER BY id ASC;
+     ```
+   * **Ver usuarios y roles registrados:**
+     ```sql
+     SELECT id, username, email, full_name, role, active FROM users;
+     ```
+   * **Ver proveedores registrados con calificaciones:**
+     ```sql
+     SELECT p.id, u.full_name, p.company_name, p.city, p.rating, p.verified FROM providers p JOIN users u ON p.user_id = u.id;
+     ```
+   * **Ver facturas emitidas:**
+     ```sql
+     SELECT id, invoice_number, client_name, total_amount, deposit_amount, issue_date FROM invoices;
+     ```
+
+---
+
+### 3. 🐘 Conectar DBeaver a la Base de Datos H2 en Memoria (Puerto TCP 9092)
+
+Si el evaluador **exige** inspeccionar la base de datos a través de una herramienta de escritorio externa como **DBeaver**, **IntelliJ Database Tools** o **DataGrip**:
+
+> [!TIP]
+> Normalmente una base de datos en memoria (`mem:rentatools`) es inaccesible fuera de su propio proceso Java. Para solucionar esto, **RentaTools inicia automáticamente un servidor H2 TCP en el puerto 9092**, permitiendo que clientes de escritorio externos se conecten transparentemente a la memoria de la aplicación.
+
+**Pasos de conexión en DBeaver:**
+1. En DBeaver, haz clic en **Nueva Conexión** (icono de enchufe con signo `+`).
+2. Selecciona **H2 GIS** o **H2 Embedded / Server** y pulsa *Siguiente*.
+3. En la pestaña de configuración:
+   * **Tipo de Conexión / Connect by:** Selecciona `URL` (o `Server`).
+   * **JDBC URL:**
+     ```text
+     jdbc:h2:tcp://localhost:9092/mem:rentatools
+     ```
+   * **Username:** `sa`
+   * **Password:** *(dejar completamente vacío)*
+4. Haz clic en **Test Connection ...** (DBeaver descargará el driver H2 automáticamente si no lo tiene).
+5. Pulsa **Finalizar** y podrás explorar todas las tablas, esquemas y relaciones en tiempo real.
+
+---
+
+### 4. 🔀 Resolución Automática de Conflictos de Puertos (Puerto 8080 Ocupado)
+
+En computadores de laboratorio o servidores compartidos, el puerto `8080` frecuentemente está ocupado por otros servicios (Oracle, Apache Tomcat, Jenkins, IIS, otro backend).
+
+* **Comportamiento del Script:** `ejecutar.sh` y `ejecutar.bat` escanean los puertos de forma incremental (`8080`, `8081`, `8082`, etc.) y asignan automáticamente el primer puerto libre disponible.
+* **Banner de Terminal:** Al arrancar, el script imprime claramente en pantalla el puerto asignado:
+  ```text
+  ==========================================================
+  🚀 Iniciando RentaTools en puerto 8081
+  🗄️  Base de Datos:      H2 In-Memory (Modo Respaldo Autónomo)
+  👉 Abre en tu navegador: http://localhost:8081/
+  👉 Swagger UI:          http://localhost:8081/swagger-ui.html
+  👉 Consola Web H2:      http://localhost:8081/h2-console
+     * JDBC URL:          jdbc:h2:mem:rentatools
+     * Usuario:           sa  |  Contraseña: (vacía)
+  👉 Conexión DBeaver:    jdbc:h2:tcp://localhost:9092/mem:rentatools
+  ==========================================================
+  ```
+* **Ajuste en Postman y Frontend:**
+  * Si el puerto seleccionado fue el `8081`, abre tu navegador en: `http://localhost:8081/`.
+  * En **Postman**, ve a la colección `RentaTools` -> Pestaña **Variables** -> Cambia el valor actual de `baseUrl` a `http://localhost:8081`.
+  * **CORS:** La configuración de seguridad ya tiene habilitados los orígenes `http://localhost:8080`, `http://localhost:8081`, `http://localhost:8085` y `http://127.0.0.1:5500`.
+
+---
+
+### 5. 🐧 Permisos y Compatibilidad de Sistema Operativo (Linux vs Windows)
+
+#### En Linux / macOS:
+* Si clonaste o descomprimiste el proyecto desde una memoria USB o archivo ZIP, los scripts pueden carecer de permisos de ejecución:
+  ```bash
+  chmod +x mvnw ejecutar.sh
+  ```
+* Si el archivo fue editado en Windows y Linux reporta error de fin de línea `\r: command not found`:
+  ```bash
+  sed -i 's/\r$//' ejecutar.sh mvnw
+  ```
+* Ejecución:
+  ```bash
+  ./ejecutar.sh
+  ```
+
+#### En Windows (CMD o PowerShell):
+* Ejecutar directamente el archivo por lotes desde la raíz del proyecto:
+  ```cmd
+  ejecutar.bat
+  ```
+  *(O en PowerShell: `.\ejecutar.bat`)*
+
+---
+
+### 6. ✅ Checklist Paso a Paso para la Sustentación / Examen Técnico
+
+Sigue este checklist secuencial para garantizar cero errores durante tu presentación:
+
+- [ ] **1. Verificar versión de Java en el equipo:**
+  Ejecuta `java -version`. Debe ser Java 17 o Java 21 (LTS).
+- [ ] **2. Otorgar permisos (solo Linux / macOS):**
+  Ejecuta `chmod +x mvnw ejecutar.sh`.
+- [ ] **3. Iniciar la aplicación:**
+  Ejecuta `./ejecutar.sh` (Linux) o `ejecutar.bat` (Windows). Si no deseas depender de bases de datos locales, añade `--h2`.
+- [ ] **4. Anotar el puerto asignado:**
+  Revisa la consola: si indicó puerto `8080`, navega en `http://localhost:8080/`; si indicó `8081`, navega en `http://localhost:8081/`.
+- [ ] **5. Validar la interfaz gráfica web:**
+  Abre la URL base en el navegador y verifica que el catálogo cargue las retroexcavadoras, plantas eléctricas y filtros de búsqueda.
+- [ ] **6. Iniciar sesión de prueba:**
+  Usa `admin` / `Admin123!` para el panel administrativo, o `cliente` / `Cliente123!` para realizar una reserva.
+- [ ] **7. Si el evaluador solicita evidencia de base de datos:**
+  - **Vía Web:** Abre `http://localhost:<PORT>/h2-console`, coloca `jdbc:h2:mem:rentatools`, usuario `sa`, contraseña vacía, y corre `SELECT count(*) FROM tools;` (debe mostrar 25).
+  - **Vía DBeaver:** Conéctate a `jdbc:h2:tcp://localhost:9092/mem:rentatools`.
+- [ ] **8. Si el evaluador solicita pruebas con Postman:**
+  Asegúrate de que la variable `baseUrl` coincida con el puerto activo antes de ejecutar los requests.
+
+---
+
 ## 💾 Opciones de Base de Datos Local (Opcional)
 
 Si en lugar de la base de datos en la nube de Supabase deseas trabajar con una base de datos local:
@@ -294,7 +445,12 @@ Se incluye la colección oficial con todas las peticiones organizadas por carpet
 | **Herramientas** | `GET` | `/api/v1/tools` | Catálogo de maquinaria (filtros por categoría y estado) | Público |
 | **Herramientas** | `GET` | `/api/v1/tools/{id}` | Detalle de herramienta y especificaciones | Público |
 | **Herramientas** | `GET` | `/api/v1/tools/nearby` | Búsqueda geoespacial por radio (`lat`, `lng`, `radiusKm`) | Público |
-| **Herramientas** | `POST` | `/api/v1/tools` | Registrar nueva herramienta en inventario | Proveedor / Admin |
+| **Reservas (Examen)** | `POST` | `/api/reservas/{id}/aprobar` | Aprobar reserva pendiente validando disponibilidad | Proveedor / Admin |
+| **Reservas (Examen)** | `POST` | `/api/reservas/{id}/rechazar` | Rechazar reserva pendiente con motivo opcional | Proveedor / Admin |
+| **Reservas (Alias)** | `POST` | `/api/reservas/{id}/cancelar` | Cancelar reserva (alias) | Cliente / Proveedor |
+| **Reservas (Alias)** | `POST` | `/api/reservas/{id}/devolver` | Registrar devolución e inspección (alias) | Proveedor / Admin |
+| **Reservas (Alias)** | `POST` | `/api/reservas/{id}/calificar` | Calificar reserva completada de 1 a 5 estrellas | Cliente |
+| **Reservas (Alias)** | `GET` | `/api/reservas/{id}/calificacion` | Consultar calificación de la reserva | Autenticado |
 | **Reservas** | `GET` | `/api/v1/rentals` | Listado general de alquileres | Autenticado |
 | **Reservas** | `GET` | `/api/v1/rentals/my-rentals` | Alquileres del usuario en sesión | Cliente / Proveedor |
 | **Reservas** | `GET` | `/api/v1/rentals/check-availability` | Comprobar disponibilidad en rango de fechas | Público |
@@ -302,6 +458,11 @@ Se incluye la colección oficial con todas las peticiones organizadas por carpet
 | **Reservas** | `PUT` | `/api/v1/rentals/{id}/status` | Confirmar o rechazar alquiler | Proveedor / Admin |
 | **Reservas** | `POST` | `/api/v1/rentals/{id}/return` | Registrar devolución, inspección y daños | Proveedor / Admin |
 | **Reservas** | `GET` | `/api/v1/rentals/{id}/timeline` | Timeline de auditoría de estados de la reserva | Autenticado |
+| **Comercial** | `GET` | `/api/v1/coupons/validate` | Validar cupón de descuento promocional | Público |
+| **Comercial** | `POST` | `/api/v1/reviews` | Crear reseña y calificación técnica | Cliente / Admin |
+| **Comercial** | `GET` | `/api/v1/reviews/tool/{toolId}` | Listar reseñas técnicas de una herramienta | Público |
+| **Herramientas (Alias)** | `PUT` | `/api/herramientas/{id}/mantenimiento` | Enviar maquinaria a mantenimiento técnico | Proveedor / Admin |
+| **Herramientas (Alias)** | `PUT` | `/api/herramientas/{id}/operativa` | Retornar maquinaria a estado operativa | Proveedor / Admin |
 | **Carrito** | `GET` | `/api/v1/cart` | Obtener ítems del carrito en la nube | Cliente |
 | **Carrito** | `POST` | `/api/v1/cart/items` | Agregar maquinaria al carrito | Cliente |
 | **Carrito** | `DELETE`| `/api/v1/cart/items/{toolId}` | Eliminar ítem del carrito | Cliente |
@@ -360,3 +521,105 @@ Una vez iniciada la aplicación, puedes interactuar directamente con todos los e
 * [**Seguridad JWT, Roles y Matriz de Acceso**](docs/JWT_SECURITY_ROLES.md)
 * [**Contratos de la API REST y Swagger**](docs/SWAGGER_API_CONTRACTS.md)
 * [**Colección Oficial de Postman**](docs/postman/RentaTools.postman_collection.json)
+
+---
+
+## 🎯 Guía Maestra para la Evaluación Técnica (Examen de Gestión de Reservas)
+
+### 1. Enunciado y Requerimiento Clave
+> **Objetivo:** Implementar la lógica de negocio que permite a un Proveedor aceptar o rechazar las solicitudes de alquiler pendientes, cumpliendo con la funcionalidad clave del proyecto.
+> 
+> **Instrucciones Técnicas:**
+> 1. **Modificar Entidad Reserva:** Asegurarse de que `RentalBooking` tenga el enum `BookingStatus` con los estados `PENDIENTE`, `APROBADA` y `RECHAZADA`. Por defecto, una reserva creada inicia en `PENDIENTE`.
+> 2. **Lógica en Servicio (`ReservaService`):**
+>    - `aprobarReserva(Long idReserva)`: Buscar la reserva, verificar que esté en `PENDIENTE`, validar disponibilidad (si no hay, lanzar `HerramientaNoDisponibleException`) y cambiar el estado a `APROBADA`.
+>    - `rechazarReserva(Long idReserva, String motivo)`: Buscar la reserva, verificar que esté en `PENDIENTE` y cambiar el estado a `RECHAZADA`.
+> 3. **Controladores REST:**
+>    - `POST /api/reservas/{id}/aprobar` (Rol: Proveedor / Admin).
+>    - `POST /api/reservas/{id}/rechazar` (Rol: Proveedor / Admin).
+
+---
+
+### 2. Arquitectura de la Solución Implementada
+
+```
+                                  PETICIÓN REST (HTTP)
+                                          │
+            ┌─────────────────────────────┴─────────────────────────────┐
+            ▼                                                           ▼
+POST /api/reservas/{id}/aprobar                             POST /api/reservas/{id}/rechazar
+    [ReservaController]                                         [ReservaController]
+            │                                                           │
+            ▼                                                           ▼
+ReservaService.aprobarReserva(id)                           ReservaService.rechazarReserva(id, motivo)
+            │                                                           │
+    ┌───────┴──────────────────────────┐                                │
+    ▼                                  ▼                                ▼
+¿Está PENDIENTE?              ¿Herramienta disponible?            ¿Está PENDIENTE?
+  NO ➜ 409 Conflict              NO ➜ 409 Conflict                  NO ➜ 409 Conflict
+  SI ➜ booking.approve()         (HerramientaNoDisponible)          SI ➜ booking.reject()
+            │                                                           │
+            ▼                                                           ▼
+RentalRepository.save(APROBADA)                             RentalRepository.save(RECHAZADA)
+            │                                                           │
+            ▼                                                           ▼
+PostgreSQL / H2: status='APROBADA'                          PostgreSQL / H2: status='RECHAZADA'
+```
+
+---
+
+### 3. Evidencias de Ejecución en Navegador Web (Playwright Chromium)
+
+Las pruebas manuales y automatizadas fueron ejecutadas sobre la interfaz web en vivo en `http://localhost:8080/`:
+
+#### A. Catálogo General y Portal Principal
+![01. Catálogo General](docs/screenshots/browser_01_catalog.png)
+
+#### B. Sesión Autenticada de Cliente
+![02. Sesión Cliente](docs/screenshots/browser_02_client_session.png)
+
+#### C. Bandeja de Solicitudes Pendientes del Proveedor (Botones de Acción)
+![03. Solicitudes del Proveedor](docs/screenshots/browser_03_provider_requests_table.png)
+
+#### D. Reserva Aprobada en Vivo (`POST /api/reservas/{id}/aprobar` ➜ Status: `APROBADA`)
+![04. Reserva Aprobada](docs/screenshots/browser_04_reservation_approved.png)
+
+#### E. Reserva Rechazada en Vivo (`POST /api/reservas/{id}/rechazar` ➜ Status: `RECHAZADA`)
+![05. Reserva Rechazada](docs/screenshots/browser_05_reservation_rejected.png)
+
+#### F. Modal de Reseñas y Calificaciones Técnicas
+![06. Reseñas](docs/screenshots/browser_06_reviews_modal.png)
+
+---
+
+### 4. Guía Rápida de Comandos para Sustentación con Postman y SQL
+
+#### Paso 1: Autenticarse como Proveedor
+```bash
+curl -X POST "http://localhost:8080/api/v1/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{"usernameOrEmail":"proveedor","password":"Proveedor123!"}'
+```
+*Copia el token JWT retornado.*
+
+#### Paso 2: Aprobar una Reserva
+```bash
+curl -X POST "http://localhost:8080/api/reservas/1015/aprobar" \
+  -H "Authorization: Bearer <TOKEN_PROVEEDOR>"
+```
+*Respuesta esperada:* `200 OK` con `"status": "APROBADA"`.
+
+#### Paso 3: Rechazar una Reserva
+```bash
+curl -X POST "http://localhost:8080/api/reservas/1017/rechazar?motivo=Mantenimiento+preventivo" \
+  -H "Authorization: Bearer <TOKEN_PROVEEDOR>"
+```
+*Respuesta esperada:* `200 OK` con `"status": "RECHAZADA"`.
+
+#### Paso 4: Validación en Base de Datos (PostgreSQL o H2 Console)
+```sql
+SELECT id, client_id, tool_id, start_date, end_date, status, notes
+FROM rentals
+WHERE id IN (1015, 1017)
+ORDER BY id ASC;
+```

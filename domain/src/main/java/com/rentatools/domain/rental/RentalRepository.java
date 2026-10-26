@@ -33,7 +33,6 @@ public interface RentalRepository {
     default boolean hasOtherOverlappingConfirmedBooking(Long toolId, Long rentalId, LocalDate startDate, LocalDate endDate) {
         return hasOverlappingBookingsExcluding(toolId, startDate, endDate, rentalId);
     }
-    }
 
     default void recordTimelineEvent(RentalTimelineEvent event) {}
 

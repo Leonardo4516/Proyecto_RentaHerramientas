@@ -70,7 +70,7 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         // Consola H2 en memoria para entornos de prueba
-                        .requestMatchers("/h2-console/**").permitAll()
+                        .requestMatchers("/h2-console", "/h2-console/**").permitAll()
                         // Frontend estático y recursos web
                         .requestMatchers("/", "/index.html", "/css/**", "/js/**", "/images/**", "/assets/**", "/models/**", "/favicon.ico").permitAll()
                         // Documentación Swagger / OpenAPI

@@ -458,7 +458,6 @@ public class RentalController {
         return reviewRepository.findByRentalId(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
->>>>>>> origin/feat/security-billing-ui
     }
 
     @PostMapping("/{id}/return")
