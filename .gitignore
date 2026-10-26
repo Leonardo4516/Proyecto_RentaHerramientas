@@ -33,3 +33,7 @@ Thumbs.db
 # Docker persistent data
 postgres_data/
 pgadmin_data/
+
+# Scratch & test scripts
+scratch/
+

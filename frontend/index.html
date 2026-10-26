@@ -1,0 +1,1911 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RentaTools PRO | Alquiler de Maquinaria Pesada y Herramientas</title>
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- FontAwesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Leaflet Map CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <!-- SweetAlert2 CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
+  <!-- Estilos Base y Tema Sunbelt Rentals -->
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/sunbelt-theme.css?v=3">
+
+  <!-- Three.js (Modelo 3D del Hero) vía Import Map -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+
+  <!-- ==================== 1. BARRA SUPERIOR DE UTILIDADES (UTILITY BAR) ==================== -->
+  <div class="sb-utility-bar">
+    <div class="container-fluid px-3 px-xl-4 d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center gap-2 gap-md-3 text-nowrap">
+        <a href="#" onclick="App.showCoverageModal(); return false;" class="text-white text-decoration-none sb-utility-hover text-nowrap" title="Ver patios y zonas de cobertura en Bogotá y Sabana">
+          <i class="fa fa-map-marker-alt text-warning me-1"></i>
+          <span class="d-none d-sm-inline"><strong>Sede:</strong> </span><strong>Bogotá & Sabana</strong>
+          <span class="sb-utility-badge text-warning ms-1 d-none d-sm-inline-flex"><i class="fa fa-chevron-down me-1" style="font-size: 0.65rem;"></i>Patios</span>
+        </a>
+        <span class="d-none d-md-inline text-white-50">|</span>
+        <a href="tel:6017459000" class="text-white text-decoration-none d-none d-md-inline sb-utility-hover text-nowrap" title="Llamar a línea de atención en obras">
+          <i class="fa fa-phone-alt text-warning me-1"></i> <span class="d-none d-xxl-inline">Línea Obras: </span><strong>(601) 745-9000</strong>
+        </a>
+        <span class="d-none d-lg-inline text-white-50">|</span>
+        <a href="https://wa.me/573168598300?text=Hola,%20quisiera%20reportar%20un%20insidente%20con%20la%20pagina%20y/o%20con%20mi%20producto.%20Muchas%20gracias!!" target="_blank" rel="noopener" class="d-none d-lg-inline-flex sb-whatsapp-btn text-nowrap" title="Chatear con asesor técnico por WhatsApp">
+          <i class="fab fa-whatsapp me-1"></i> WhatsApp: <strong>316 8598300</strong>
+        </a>
+      </div>
+      <div class="d-flex align-items-center gap-2 gap-md-3 text-nowrap">
+        <a href="#" onclick="App.navigateToSection('section-industries'); return false;" class="d-none d-xxl-inline text-white text-decoration-none sb-utility-hover text-nowrap">
+          <i class="fa fa-hard-hat text-warning me-1"></i> Soluciones por Industria
+        </a>
+        <span class="d-none d-xxl-inline text-white-50">|</span>
+        <a href="#" onclick="App.handleContractorQuickAccess(); return false;" class="sb-utility-badge text-warning text-decoration-none text-nowrap" title="Acceso para contratistas y empresas de maquinaria">
+          <i class="fa fa-dolly-flatbed me-1"></i> <span class="d-none d-xl-inline">Acceso </span><span class="d-none d-md-inline">Contratistas & </span>Proveedores
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 2. NAVBAR PRINCIPAL (MAIN HEADER) ==================== -->
+  <header class="sb-main-nav">
+    <div class="container-xl py-2">
+      <div class="d-flex align-items-center justify-content-between gap-3">
+        
+        <!-- Logo RentaTools -->
+        <a class="sb-logo-container" href="#" onclick="App.switchView('catalog'); return false;">
+          <div class="sb-logo-icon">
+            <i class="fa fa-cog"></i>
+          </div>
+          <div class="sb-logo-text">
+            RENTATOOLS
+            <span>ALQUILER DE MAQUINARIA</span>
+          </div>
+        </a>
+
+        <!-- Buscador Central Tipo Píldora -->
+        <div class="sb-search-form d-none d-md-block flex-grow-1 mx-3">
+          <input type="text" id="search-input" class="sb-search-input" placeholder="¿Qué maquinaria o herramienta buscas para tu obra? (ej. Excavadora, Rodillo, Planta)..." autocomplete="off">
+          <button class="sb-search-btn" type="button" title="Buscar">
+            <i class="fa fa-search"></i>
+          </button>
+        </div>
+
+        <!-- Acciones del Usuario a la Derecha -->
+        <div class="d-flex align-items-center gap-2">
+          
+          <!-- Campana de Notificaciones -->
+          <div class="dropdown">
+            <button class="btn btn-sb-pill-outline p-2 px-3 dropdown-toggle" type="button" id="notifDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+              <i class="fa fa-bell text-warning"></i>
+              <span id="notif-badge" class="badge bg-danger rounded-pill ms-1" style="display: none;">0</span>
+            </button>
+            <div class="dropdown-menu dropdown-menu-end shadow-lg p-0" style="min-width: 300px; border-radius: 8px;">
+              <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
+                <strong class="small"><i class="fa fa-bell text-warning me-1"></i> Notificaciones</strong>
+                <button type="button" class="btn btn-link btn-sm text-decoration-none p-0" onclick="RealtimeManager.clearNotifications(); return false;">
+                  <small>Limpiar</small>
+                </button>
+              </div>
+              <ul class="list-unstyled mb-0 p-2" id="notif-list" style="max-height: 250px; overflow-y: auto;">
+                <li class="dropdown-item text-muted text-center py-2 small">Sin notificaciones</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Acciones Invitado -->
+          <div id="nav-guest-actions" class="d-flex gap-2">
+            <button class="btn-sb-pill-outline" onclick="App.openAuthModal('login')">
+              <i class="fa fa-user me-1"></i> Iniciar Sesión / Registro
+            </button>
+          </div>
+
+          <!-- Botón rápido Añadir Maquinaria para Proveedor -->
+          <button class="sb-nav-add-tool-pill d-none" id="nav-add-tool-btn" style="display: none !important;" onclick="App.openAddToolModal()">
+            <i class="fa fa-plus-circle me-1"></i> Añadir Maquinaria
+          </button>
+
+          <!-- Acciones de Usuario Logueado (Menú Dinámico) -->
+          <div id="nav-user-actions" class="dropdown" style="display: none;">
+            <button class="btn btn-sb-pill-outline dropdown-toggle d-flex align-items-center gap-2" type="button" id="userMenuBtn" data-bs-toggle="dropdown" aria-expanded="false">
+              <span class="badge rounded-circle d-flex align-items-center justify-content-center fw-bold" id="nav-user-avatar" style="width: 28px; height: 28px; background-color: var(--sb-green); color: #fff; font-size: 0.85rem;">U</span>
+              <span class="text-truncate fw-bold" id="nav-user-short-name" style="max-width: 120px;">Usuario</span>
+              <span id="nav-user-role-badge-pill" class="badge rounded-pill bg-light text-dark border ms-1" style="font-size: 0.7rem;">ROL</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-lg p-2" aria-labelledby="userMenuBtn" style="border-radius: 10px; min-width: 250px;">
+              <li class="px-3 py-2 border-bottom mb-2 bg-light rounded-top">
+                <div class="fw-bold text-dark text-truncate" id="nav-user-dropdown-name">Nombre de Usuario</div>
+                <div class="d-flex justify-content-between align-items-center mt-1">
+                  <span class="small text-muted text-truncate me-2" id="nav-user-dropdown-email">correo@rentatools.com</span>
+                  <span id="nav-user-role-badge" class="badge bg-success">CLIENTE</span>
+                </div>
+              </li>
+              <li id="dropdown-client-item">
+                <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="#" onclick="App.switchView('client-dashboard'); return false;">
+                  <i class="fa fa-history text-success" style="width: 18px;"></i>
+                  <span id="dropdown-client-label">Mis Alquileres & Facturas</span>
+                </a>
+              </li>
+              <li id="dropdown-provider-item" style="display: none;">
+                <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="#" onclick="App.handleProviderDashboardAccess(); return false;">
+                  <i class="fa fa-dolly-flatbed text-warning" style="width: 18px;"></i>
+                  <span>Gestión Proveedor</span>
+                </a>
+              </li>
+              <li id="dropdown-add-tool-item" style="display: none;">
+                <a class="dropdown-item py-2 d-flex align-items-center gap-2 text-success fw-bold" href="#" onclick="App.handleAddToolAccess(); return false;">
+                  <i class="fa fa-plus-circle" style="width: 18px;"></i>
+                  <span>Añadir Maquinaria</span>
+                </a>
+              </li>
+              <li id="dropdown-admin-item" style="display: none;">
+                <a class="dropdown-item py-2 d-flex align-items-center gap-2 text-primary" href="#" onclick="App.switchView('admin-dashboard'); return false;">
+                  <i class="fa fa-chart-line" style="width: 18px;"></i>
+                  <span>Panel Administrador</span>
+                </a>
+              </li>
+              <li><hr class="dropdown-divider my-2"></li>
+              <li>
+                <a class="dropdown-item py-2 d-flex align-items-center gap-2 text-danger fw-bold" href="#" onclick="App.logout(); return false;">
+                  <i class="fa fa-sign-out-alt" style="width: 18px;"></i>
+                  <span>Cerrar Sesión</span>
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Carrito de Alquiler -->
+          <a href="#" class="sb-cart-btn" onclick="App.openCartModal(); return false;" title="Ver mi carrito de alquiler">
+            <i class="fa fa-shopping-cart"></i>
+            <span class="sb-cart-badge" id="sb-cart-count">0</span>
+          </a>
+
+        </div>
+      </div>
+      <!-- Buscador en Móvil (Píldora con botón amarillo Sunbelt) -->
+      <div class="d-md-none pt-2 pb-1">
+        <div class="sb-search-form">
+          <input type="text" id="search-input-mobile" class="sb-search-input" placeholder="¿Qué maquinaria o equipo buscas?..." oninput="const mVal = this.value; const s = document.getElementById('search-input'); if(s) s.value = mVal; App.filterTools(mVal);" autocomplete="off">
+          <button class="sb-search-btn" type="button" title="Buscar" onclick="document.getElementById('search-input-mobile').focus();">
+            <i class="fa fa-search"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 3. SUBNAV / MENÚ DE CATEGORÍAS ==================== -->
+    <div class="sb-subnav">
+      <div class="container-xl">
+        <ul class="sb-subnav-list">
+          <li><a href="#" class="sb-subnav-link active" data-nav="section-catalog" onclick="App.navigateToSection('section-catalog'); return false;"><i class="fa fa-th-large me-1"></i> Catálogo Completo</a></li>
+          <li class="sb-nav-hover-dropdown dropdown position-relative">
+            <a href="#" class="sb-subnav-link" data-nav="section-directory" onclick="App.navigateToSection('section-directory'); return false;"><i class="fa fa-layer-group me-1"></i> Categorías ⌵</a>
+            <ul class="dropdown-menu sb-nav-hover-menu shadow-lg" id="nav-categories-dropdown"></ul>
+          </li>
+          <li class="sb-nav-hover-dropdown dropdown position-relative">
+            <a href="#" class="sb-subnav-link" data-nav="section-industries" onclick="App.navigateToSection('section-industries'); return false;"><i class="fa fa-hard-hat me-1"></i> Industrias ⌵</a>
+            <ul class="dropdown-menu sb-nav-hover-menu shadow-lg" id="nav-industries-dropdown"></ul>
+          </li>
+          <li><a href="#" class="sb-subnav-link" data-nav="section-experience" onclick="App.navigateToSection('section-experience'); return false;"><i class="fa fa-shield-alt me-1"></i> Seguridad & Servicio</a></li>
+          <li><a href="#" class="sb-subnav-link text-success fw-bold" data-nav="section-map" onclick="App.navigateToSection('section-map'); return false;"><i class="fa fa-map-marked-alt me-1"></i> Mapa en Vivo</a></li>
+          <li id="nav-client-tab-link" style="display: none;"><a href="#" class="sb-subnav-link" data-nav="client-dashboard" onclick="App.switchView('client-dashboard'); return false;">Mis Alquileres</a></li>
+          <li id="nav-provider-tab-link" style="display: none;"><a href="#" class="sb-subnav-link fw-bold" data-nav="provider-dashboard" onclick="App.switchView('provider-dashboard'); return false;"><i class="fa fa-dolly-flatbed me-1"></i> Portal Proveedor</a></li>
+        </ul>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== VISTA 1: CATÁLOGO Y HOME SUNBELT ==================== -->
+  <div id="view-catalog" class="app-view">
+
+    <!-- ==================== 4. HERO A PANTALLA COMPLETA CON RETROEXCAVADORA 3D ==================== -->
+    <section class="sb-hero sb-hero-3d" id="sb-hero">
+      <!-- Fondo minimalista: degradado de marca + cuadrícula técnica tenue + halos de luz -->
+      <div class="sb-hero-bg" aria-hidden="true">
+        <span class="sb-hero-glow sb-hero-glow-green"></span>
+        <span class="sb-hero-glow sb-hero-glow-yellow"></span>
+      </div>
+
+      <!-- Escenario 3D interactivo (Three.js): abarca el lateral derecho de forma fluida sin división de columnas -->
+      <div id="hero-3d-canvas" class="sb-hero-3d-stage" role="img" aria-label="Modelo 3D interactivo de una retroexcavadora"></div>
+
+      <!-- Contenedor del contenido textual alineado a la izquierda -->
+      <div class="container-xl sb-hero-container">
+        <div class="sb-hero-copy">
+          <span class="sb-hero-eyebrow sb-unfold-down"><i class="fa fa-hard-hat me-2"></i>Alquiler de maquinaria en Colombia</span>
+          <h1 class="sb-hero-title sb-unfold-down">Encuentra la Maquinaria y Herramientas <span class="sb-hero-highlight">Precisas</span> para tu Proyecto</h1>
+          <p class="sb-hero-lead sb-unfold-lead">Disponibilidad en tiempo real en toda Colombia, tarifas transparentes por día, semana y mes con facturación electrónica DIAN.</p>
+
+          <div class="sb-hero-actions sb-unfold-lead">
+            <a href="#section-catalog" class="sb-hero-btn sb-hero-btn-primary" onclick="App.navigateToSection('section-catalog'); return false;">
+              Explorar Catálogo <i class="fa fa-arrow-right ms-2"></i>
+            </a>
+            <a href="#section-directory" class="sb-hero-btn sb-hero-btn-outline" onclick="App.navigateToSection('section-directory'); return false;">
+              <i class="fa fa-layer-group me-2"></i>Ver Categorías
+            </a>
+          </div>
+
+          <ul class="sb-hero-trust sb-unfold-lead">
+            <li><i class="fa fa-check-circle"></i> Flota certificada</li>
+            <li><i class="fa fa-truck-moving"></i> Entrega el mismo día</li>
+            <li><i class="fa fa-file-invoice-dollar"></i> Factura DIAN</li>
+          </ul>
+        </div>
+      </div>
+
+      <span class="sb-hero-3d-hint" aria-hidden="true"><i class="fa fa-hand-pointer me-1"></i>Arrastra para girar</span>
+    </section>
+
+    <main class="container-xl my-5">
+
+      <!-- ==================== 6. SECCIÓN "THE RENTATOOLS EXPERIENCE" ==================== -->
+      <section class="mb-5" id="section-experience">
+        <div class="text-center mb-4">
+          <span class="sb-section-eyebrow">LA EXPERIENCIA RENTATOOLS</span>
+          <h2 class="sb-section-title">Ten Menos Activos Ociosos, Construye Más – El Poder del Alquiler</h2>
+        </div>
+
+        <div class="row g-4 sb-value-cards-container">
+          <!-- Tarjeta 1: Asesoría Técnica -->
+          <div class="col-12 col-md-4">
+            <div class="sb-value-card">
+              <div class="sb-value-icon-circle">
+                <i class="fa fa-users-cog"></i>
+              </div>
+              <h4 class="sb-value-title">Asesoría Técnica Especializada</h4>
+              <p class="sb-value-card-text">Ingenieros mecánicos y especialistas en obra te asesoran para calcular la capacidad de balde, tonelaje, caudal y potencia exacta para el terreno de tu proyecto.</p>
+              <span class="sb-value-tag"><i class="fa fa-clock me-1"></i> Acompañamiento 24/7 en Obra</span>
+            </div>
+          </div>
+
+          <!-- Tarjeta 2: Equipos Inspeccionados -->
+          <div class="col-12 col-md-4">
+            <div class="sb-value-card">
+              <div class="sb-value-icon-circle">
+                <i class="fa fa-clipboard-check"></i>
+              </div>
+              <h4 class="sb-value-title">Equipos 100% Inspeccionados</h4>
+              <p class="sb-value-card-text">Seguridad operativa garantizada: maquinaria pesada con horómetros certificados, protocolos de inspección ISO pre-entrega y pólizas todo riesgo activas en cada alquiler.</p>
+              <span class="sb-value-tag"><i class="fa fa-check-double me-1"></i> Checklist ISO / RUNT / DIAN</span>
+            </div>
+          </div>
+
+          <!-- Tarjeta 3: Cero Mantenimiento -->
+          <div class="col-12 col-md-4">
+            <div class="sb-value-card">
+              <div class="sb-value-icon-circle">
+                <i class="fa fa-coins"></i>
+              </div>
+              <h4 class="sb-value-title">Cero Costos de Mantenimiento</h4>
+              <p class="sb-value-card-text">Impulsa tus proyectos con herramientas de última generación sin costos de mantenimiento, depreciación ni bodegaje. Canon 100% deducible de impuestos como gasto operativo (OPEX).</p>
+              <span class="sb-value-tag"><i class="fa fa-file-invoice-dollar me-1"></i> 100% Deducible de Renta (OPEX)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Split Banner Guía Técnica & Descarga Catálogo PDF -->
+        <div class="sb-split-banner">
+          <div class="row g-0 align-items-center">
+            <div class="col-12 col-md-7 sb-split-banner-content">
+              <span class="sb-section-eyebrow">DOCUMENTACIÓN TÉCNICA OFICIAL</span>
+              <h3 class="fw-bold text-dark mb-3">Catálogo de Maquinaria Pesada & Guía de Selección 2026</h3>
+              <p class="text-muted mb-4">Elegir la maquinaria adecuada optimiza los tiempos de ciclo y ahorra hasta un 35% en combustible en obra. Conoce curvas de rendimiento, capacidades de balde (CAT vs JCB), potencias diésel y descarga el catálogo completo en PDF.</p>
+              <div class="d-flex flex-wrap gap-2">
+                <button type="button" class="btn btn-sb-yellow text-dark fw-bold px-4 py-2" onclick="App.downloadCatalogPdf()">
+                  <i class="fa fa-file-pdf text-danger me-2"></i> Descargar Catálogo en PDF
+                </button>
+                <a href="#section-catalog" class="btn btn-sb-green px-4 py-2">
+                  <i class="fa fa-th-large me-2"></i> Explorar Catálogo Online
+                </a>
+              </div>
+            </div>
+            <div class="col-12 col-md-5">
+              <img src="assets/img/machinery/Retroexcavadora-Oruga-CAT-320D.png" alt="Excavadora de Oruga CAT 320D" class="sb-split-banner-img" width="500" height="340" loading="lazy" decoding="async">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== 7. SECCIÓN "JUST RESERVE, RENT AND RETURN" (TIMELINE) ==================== -->
+      <section class="sb-steps-section bg-white p-4 p-md-5 rounded-3 border mb-5 shadow-sm">
+        <div class="text-center mb-4">
+          <span class="sb-section-eyebrow">PROCESO EN 3 PASOS</span>
+          <h2 class="sb-section-title">Solo Reserva, Renta y Devuelve</h2>
+          <p class="text-muted">Proceso digital ágil y transparente diseñado para constructores, contratistas y proveedores de maquinaria.</p>
+        </div>
+
+        <div class="row g-4 sb-steps-timeline">
+          <!-- Paso 1 -->
+          <div class="col-12 col-md-4">
+            <div class="sb-step-card">
+              <div class="sb-step-badge">1</div>
+              <h4 class="sb-step-title">1. Reserva Online</h4>
+              <p class="sb-step-desc">Explora nuestro catálogo de 25 maquinarias en tiempo real, fija tus fechas en el widget y cotiza online con desglose fiscal transparente e IVA 19%.</p>
+              <div class="mt-3 text-success small fw-bold"><i class="fa fa-laptop-code me-1"></i> Cotización Instantánea</div>
+            </div>
+          </div>
+          <!-- Paso 2 -->
+          <div class="col-12 col-md-4">
+            <div class="sb-step-card">
+              <div class="sb-step-badge">2</div>
+              <h4 class="sb-step-title">2. Despacho en Cama Baja o Retiro en Patio</h4>
+              <p class="sb-step-desc">Coordinamos transporte logístico en cama baja hasta el frente de tu obra o retira inmediatamente en patios certificados de Bogotá y Sabana.</p>
+              <div class="mt-3 text-success small fw-bold"><i class="fa fa-truck-moving me-1"></i> Despacho en &lt; 4 Horas</div>
+            </div>
+          </div>
+          <!-- Paso 3 -->
+          <div class="col-12 col-md-4">
+            <div class="sb-step-card">
+              <div class="sb-step-badge">3</div>
+              <h4 class="sb-step-title">3. Inspección y Devolución de Garantía</h4>
+              <p class="sb-step-desc">Al terminar tus trabajos, realizamos la verificación técnica de horómetro en terreno y liberamos automáticamente tu depósito de garantía sin demoras.</p>
+              <div class="mt-3 text-success small fw-bold"><i class="fa fa-shield-alt me-1"></i> Devolución Inmediata</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="text-center mt-4">
+          <a href="#section-catalog" class="btn-sb-pill-outline px-4 py-2">
+            <i class="fa fa-arrow-down me-1"></i> Comenzar a Rentar Ahora
+          </a>
+        </div>
+      </section>
+
+      <!-- ==================== 8. SOLUCIONES POR INDUSTRIA (6 TARJETAS INTERACTIVAS) ==================== -->
+      <section class="mb-5" id="section-industries">
+        <div class="text-center mb-4">
+          <span class="sb-section-eyebrow">SECTORES PRODUCTIVOS</span>
+          <h2 class="sb-section-title">Soluciones Especializadas para tu Industria</h2>
+          <p class="text-muted small">Haz clic en tu industria para filtrar la maquinaria pesada y herramientas recomendadas con disponibilidad inmediata en Bogotá & Sabana.</p>
+        </div>
+
+        <div class="row g-3">
+          <!-- 1. Construcción Civil -->
+          <div class="col-6 col-md-4 col-lg-2">
+            <div class="sb-industry-card sb-unfold-item" style="--unfold-delay: 0ms;" data-industry="construccion-civil" onclick="App.filterByIndustry('construccion-civil')">
+              <div class="sb-industry-img-wrap">
+                <img src="assets/img/machinery/allanadora-concreto.jpeg" alt="Construcción Civil" class="sb-industry-img" width="280" height="180" loading="lazy" decoding="async">
+              </div>
+              <div class="sb-industry-body">
+                <h5 class="sb-industry-title">Construcción Civil</h5>
+                <p class="sb-industry-subtitle">Edificación, Concreto, Formaletas y Andamios</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Infraestructura Vial -->
+          <div class="col-6 col-md-4 col-lg-2">
+            <div class="sb-industry-card sb-unfold-item" style="--unfold-delay: 70ms;" data-industry="infraestructura-vial" onclick="App.filterByIndustry('infraestructura-vial')">
+              <div class="sb-industry-img-wrap">
+                <img src="assets/img/machinery/rodillo-compactador.jpg" alt="Infraestructura Vial" class="sb-industry-img" width="280" height="180" loading="lazy" decoding="async">
+              </div>
+              <div class="sb-industry-body">
+                <h5 class="sb-industry-title">Infraestructura Vial</h5>
+                <p class="sb-industry-subtitle">Pavimentación, Asfalto, Rodillos y Señalización</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Minería y Agregados -->
+          <div class="col-6 col-md-4 col-lg-2">
+            <div class="sb-industry-card sb-unfold-item" style="--unfold-delay: 140ms;" data-industry="mineria-agregados" onclick="App.filterByIndustry('mineria-agregados')">
+              <div class="sb-industry-img-wrap">
+                <img src="assets/img/machinery/Retroexcavadora-Oruga-CAT-320D.png" alt="Minería y Agregados" class="sb-industry-img" width="280" height="180" loading="lazy" decoding="async">
+              </div>
+              <div class="sb-industry-body">
+                <h5 class="sb-industry-title">Minería y Agregados</h5>
+                <p class="sb-industry-subtitle">Orugas, Canteras, Martillos y Achique Pesado</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. Energía y Utilities -->
+          <div class="col-6 col-md-4 col-lg-2">
+            <div class="sb-industry-card sb-unfold-item" style="--unfold-delay: 210ms;" data-industry="energia-utilities" onclick="App.filterByIndustry('energia-utilities')">
+              <div class="sb-industry-img-wrap">
+                <img src="assets/img/machinery/planta-electrica-cummins.jpg" alt="Energía y Utilities" class="sb-industry-img" width="280" height="180" loading="lazy" decoding="async">
+              </div>
+              <div class="sb-industry-body">
+                <h5 class="sb-industry-title">Energía y Utilities</h5>
+                <p class="sb-industry-subtitle">Plantas Diésel, Torres de Luz y Motosoldadoras</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5. Eventos y Montajes -->
+          <div class="col-6 col-md-4 col-lg-2">
+            <div class="sb-industry-card sb-unfold-item" style="--unfold-delay: 280ms;" data-industry="eventos-montajes" onclick="App.filterByIndustry('eventos-montajes')">
+              <div class="sb-industry-img-wrap">
+                <img src="assets/img/machinery/plataforma-tijera.jpg" alt="Eventos y Montajes" class="sb-industry-img" width="280" height="180" loading="lazy" decoding="async">
+              </div>
+              <div class="sb-industry-body">
+                <h5 class="sb-industry-title">Eventos y Montajes</h5>
+                <p class="sb-industry-subtitle">Plataformas de Tijera, Andamios y Generación</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 6. Agroindustria -->
+          <div class="col-6 col-md-4 col-lg-2">
+            <div class="sb-industry-card sb-unfold-item" style="--unfold-delay: 350ms;" data-industry="agroindustria" onclick="App.filterByIndustry('agroindustria')">
+              <div class="sb-industry-img-wrap">
+                <img src="assets/img/machinery/motobomba-lodos.jpg" alt="Agroindustria" class="sb-industry-img" width="280" height="180" loading="lazy" decoding="async">
+              </div>
+              <div class="sb-industry-body">
+                <h5 class="sb-industry-title">Agroindustria</h5>
+                <p class="sb-industry-subtitle">Riego, Achique de Agua, Descapote y Bobcat</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="text-center mt-4">
+          <a href="#" onclick="App.navigateToSection('section-catalog'); return false;" class="btn-sb-pill-outline px-4 py-2">
+            Explorar Todas las Industrias
+          </a>
+        </div>
+      </section>
+
+      <!-- ==================== 9. DIRECTORIO VISUAL DE CATEGORÍAS (GRID) ==================== -->
+      <section class="mb-5" id="section-directory">
+        <div class="text-center mb-3">
+          <span class="sb-section-eyebrow">CATÁLOGO POR ESPECIALIDAD</span>
+          <h2 class="sb-section-title">Renta Maquinaria y Herramientas para Cualquier Proyecto</h2>
+        </div>
+
+        <!-- Grid de Categorías Dinámicas / Frecuentes -->
+        <div class="sb-category-grid" id="sb-category-grid">
+          <!-- Renderizado dinámicamente o con categorías oficiales -->
+        </div>
+      </section>
+
+      <!-- ==================== 10. CATÁLOGO EN TIEMPO REAL (HORIZONTE SUNBELT) ==================== -->
+      <section class="mb-5" id="section-catalog">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <div>
+            <span class="sb-section-eyebrow">INVENTARIO OFICIAL EN VIVO</span>
+            <h2 class="sb-section-title mb-0">Catálogo de Maquinaria y Equipos</h2>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1" type="button" data-bs-toggle="collapse" data-bs-target="#map-collapse-container" aria-expanded="false" aria-controls="map-collapse-container" id="btn-toggle-map">
+              <i class="fa fa-map-marked-alt text-success"></i>
+              <span id="map-toggle-status">Ver mapa</span>
+              <i class="fa fa-chevron-down ms-1" id="map-toggle-chevron"></i>
+            </button>
+            <span class="badge bg-success px-3 py-2 fs-6">
+              <i class="fa fa-cubes me-1"></i> <span id="tools-counter-num">25</span> Equipos Listos
+            </span>
+          </div>
+        </div>
+
+        <!-- Filtros Rápidos y Radio de Cobertura -->
+        <div class="bg-white border rounded-3 p-3 mb-4 shadow-sm">
+          <div class="row g-3 align-items-center">
+            <!-- Píldoras de Categorías con navegación suave y sin scrollbar visible -->
+            <div class="col-12 col-lg-8">
+              <div class="category-pills-wrapper">
+                <button class="sb-pill-nav-btn sb-pill-nav-prev" type="button" aria-label="Anterior" onclick="App.scrollCategoryPills(-220)" title="Ver categorías anteriores" style="display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; min-width: 34px; border-radius: 50%; border: 1px solid #cbd5e1; background: #ffffff; color: #475569; cursor: pointer; flex-shrink: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 0;">
+                  <i class="fa fa-chevron-left" aria-hidden="true"></i>
+                </button>
+                <div class="category-pills-scroll-area">
+                  <div class="category-pills" id="category-pills-container" style="overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none;">
+                    <div class="category-pill active" data-category="TODAS"><i class="fa fa-layer-group me-1"></i> Todas</div>
+                  </div>
+                </div>
+                <button class="sb-pill-nav-btn sb-pill-nav-next" type="button" aria-label="Siguiente" onclick="App.scrollCategoryPills(220)" title="Ver más categorías" style="display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; min-width: 34px; border-radius: 50%; border: 1px solid #cbd5e1; background: #ffffff; color: #475569; cursor: pointer; flex-shrink: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 0;">
+                  <i class="fa fa-chevron-right" aria-hidden="true"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Slider Cobertura Geográfica -->
+            <div class="col-12 col-lg-4">
+              <div class="d-flex align-items-center justify-content-lg-end gap-2">
+                <span class="small text-muted fw-bold"><i class="fa fa-crosshairs text-success me-1"></i> Radio obra:</span>
+                <span id="radius-value" class="badge bg-light text-dark border fw-bold">20 km</span>
+                <input type="range" class="form-range" id="radius-slider" min="5" max="50" step="5" value="20" style="max-width: 140px;">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Contenedor Desplegable del Mapa -->
+        <div class="collapse mb-4" id="map-collapse-container">
+          <div class="bg-white p-3 rounded-3 border shadow-sm">
+            <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+              <div>
+                <strong class="text-dark"><i class="fa fa-map-pin text-success me-2"></i>Ubicación de Equipos y Cobertura en Bogotá</strong>
+                <div class="small text-muted">El círculo azul delimita el radio de entrega desde tu obra real. Ubica tus equipos contratados y disponibles.</div>
+              </div>
+              <div class="d-flex align-items-center gap-2 small flex-wrap">
+                <button type="button" class="btn btn-sm btn-outline-info text-dark fw-bold px-3 py-1 shadow-sm" onclick="MapManager.requestRealLocation(true)" title="Solicitar permisos de ubicación y centrar el mapa en tu obra actual">
+                  <i class="fa fa-crosshairs text-info me-1"></i> Detectar mi ubicación real (GPS)
+                </button>
+                <span class="badge bg-info bg-opacity-10 text-dark border border-info border-opacity-25 py-1 px-2">
+                  <i class="fa fa-circle text-info me-1 small"></i> Círculo Azul: Tu Obra y Radio
+                </span>
+                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 py-1 px-2">
+                  <i class="fa fa-circle text-success me-1 small"></i> A tu disposición (Arriendo activo)
+                </span>
+                <span class="badge bg-warning bg-opacity-10 text-warning text-dark border border-warning border-opacity-25 py-1 px-2">
+                  <i class="fa fa-circle text-warning me-1 small"></i> Disponible para cotizar
+                </span>
+              </div>
+            </div>
+            <div id="map-container" style="height: 380px; border-radius: 8px;"></div>
+          </div>
+        </div>
+
+        <!-- Banner Informativo de Filtro por Industria -->
+        <div id="industry-active-banner" class="alert alert-success d-flex justify-content-between align-items-center mb-4 shadow-sm" style="display: none !important;">
+          <div class="d-flex align-items-center gap-2">
+            <i class="fa fa-filter text-success fa-lg"></i>
+            <span>Filtrando por Sector: <strong id="industry-banner-title">Construcción Civil</strong> (<span id="industry-banner-count" class="badge bg-success">0</span> maquinarias y equipos encontrados)</span>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-success fw-bold" onclick="App.clearIndustryFilter()">
+            <i class="fa fa-times me-1"></i> Mostrar Todo el Catálogo
+          </button>
+        </div>
+
+        <!-- LISTA DE MAQUINARIA (RENDERIZADO ESTILO SUNBELT ROW CARDS) -->
+        <div class="sb-tools-container" id="tools-grid">
+          <!-- Renderizado dinámicamente con JavaScript -->
+        </div>
+
+        <!-- Paginación del Catálogo -->
+        <div id="tools-pagination" class="sb-pagination-wrapper d-flex justify-content-center align-items-center gap-2 mt-4 mb-3 flex-wrap"></div>
+      </section>
+
+      <!-- ==================== 11. BANNER DE FIDELIZACIÓN ("RENT, MANAGE, PAY") ==================== -->
+      <section class="sb-account-banner" id="sb-account-banner-cta">
+        <div class="row align-items-center">
+          <div class="col-12 col-md-6 mb-4 mb-md-0">
+            <h2 class="sb-account-title">
+              Crea tu Cuenta para
+              <span>Alquilar, Administrar y Pagar</span>
+            </h2>
+            <p class="text-muted mt-2 mb-4">Centraliza tus alquileres, factura electrónicamente tus obras y ahorra hasta un 25% con contratos semanales y mensuales.</p>
+            <div class="d-flex gap-2 flex-wrap">
+              <button class="btn btn-sb-green px-4 py-2" onclick="App.openAuthModal('register')">
+                <i class="fa fa-user-plus me-1"></i> Crear Cuenta Gratis
+              </button>
+              <button class="btn-sb-pill-outline px-4 py-2" onclick="App.openAuthModal('login')">
+                Iniciar Sesión
+              </button>
+            </div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="row g-2">
+              <div class="col-sm-6">
+                <div class="sb-benefit-item"><i class="fa fa-check-circle"></i> Tablero unificado de obras</div>
+                <div class="sb-benefit-item"><i class="fa fa-check-circle"></i> Alertas y notificaciones push</div>
+                <div class="sb-benefit-item"><i class="fa fa-check-circle"></i> Métodos de pago guardados</div>
+              </div>
+              <div class="col-sm-6">
+                <div class="sb-benefit-item"><i class="fa fa-check-circle"></i> Descarga de facturas en PDF</div>
+                <div class="sb-benefit-item"><i class="fa fa-check-circle"></i> Alquiler express de maquinaria</div>
+                <div class="sb-benefit-item"><i class="fa fa-check-circle"></i> Soporte técnico especializado</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <!-- ==================== VISTA 2: DASHBOARD CLIENTE (ALQUILERES & FACTURAS) ==================== -->
+  <div id="view-client-dashboard" class="app-view container-xl my-4" style="display: none;">
+    <div class="bg-white border rounded-3 p-4 mb-4 shadow-sm">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h3 class="fw-bold text-dark mb-1"><i class="fa fa-file-invoice text-success me-2"></i>Mis Alquileres & Facturación</h3>
+          <p class="text-muted small mb-0">Consulta el estado de tus alquileres, confirma reservas y descarga tus facturas electrónicas oficiales en PDF.</p>
+        </div>
+        <button class="btn-sb-pill-outline" onclick="App.switchView('catalog')">
+          <i class="fa fa-arrow-left me-1"></i> Volver al Catálogo
+        </button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th># RESERVA</th>
+              <th>EQUIPO / MAQUINARIA</th>
+              <th>PERIODO</th>
+              <th>TOTAL FACTURADO</th>
+              <th>ESTADO</th>
+              <th>ACCIONES & CALIFICACIÓN</th>
+            </tr>
+          </thead>
+          <tbody id="client-rentals-list">
+            <!-- Renderizado dinámicamente -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== VISTA 3: DASHBOARD PROVEEDOR ==================== -->
+  <div id="view-provider-dashboard" class="app-view container-xl my-4" style="display: none;">
+    <div class="bg-white border rounded-3 p-4 mb-4 shadow-sm">
+      <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+          <h3 class="fw-bold text-dark mb-1"><i class="fa fa-dolly text-warning me-2"></i>Panel de Control del Proveedor</h3>
+          <p class="text-muted small mb-0">Gestión de inventario de maquinaria, aprobación de arriendos entrantes y control operativo de flota.</p>
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-sb-green" onclick="App.openAddToolModal()">
+            <i class="fa fa-plus-circle me-1"></i> Publicar Nueva Maquinaria
+          </button>
+          <button class="btn-sb-pill-outline" onclick="App.switchView('catalog')">
+            <i class="fa fa-arrow-left me-1"></i> Catálogo
+          </button>
+        </div>
+      </div>
+
+      <!-- MAPA GEOESPACIAL DE FLOTA DEL PROVEEDOR -->
+      <div class="bg-white border rounded-3 p-3 mb-4 shadow-sm provider-map-card">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <div>
+            <h5 class="fw-bold text-dark mb-1">
+              <i class="fa fa-map-marked-alt text-success me-2"></i>Mapa de Flota y Dispersión en Obra
+            </h5>
+            <p class="text-muted small mb-0">
+              Ubicación de tu maquinaria. Equipos en verde están en patio listos para renta; equipos en naranja están alquilados en obra (haz clic sobre ellos para ver los datos completos del cliente que los alquiló).
+            </p>
+          </div>
+          <div class="d-flex align-items-center gap-2 small flex-wrap">
+            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 py-1 px-2">
+              <i class="fa fa-circle text-success me-1 small"></i> En Patio / Disponible
+            </span>
+            <span class="badge bg-warning bg-opacity-10 text-warning text-dark border border-warning border-opacity-25 py-1 px-2">
+              <i class="fa fa-circle text-warning me-1 small"></i> En Obra / Alquilada (Clic para ver Cliente)
+            </span>
+          </div>
+        </div>
+        <div id="provider-map-container" style="height: 420px; border-radius: 8px; z-index: 1;"></div>
+      </div>
+      <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div>
+          <h5 class="fw-bold text-dark mb-0"><i class="fa fa-list-check text-success me-2"></i>Historial y Solicitudes de Alquiler</h5>
+          <span class="text-muted small">Revisa tus solicitudes entrantes, aprueba o rechaza solicitudes pendientes y registra devoluciones de maquinaria</span>
+        </div>
+        <div class="btn-group btn-group-sm" role="group">
+          <button type="button" class="btn btn-outline-secondary active fw-semibold" id="btn-filter-prov-all" onclick="App.filterProviderRequests('ALL')">Todas (<span id="prov-count-all">0</span>)</button>
+          <button type="button" class="btn btn-outline-warning fw-semibold" id="btn-filter-prov-active" onclick="App.filterProviderRequests('ACTIVE')"><i class="fa fa-hard-hat me-1"></i>En Obra (<span id="prov-count-active">0</span>)</button>
+          <button type="button" class="btn btn-outline-info fw-semibold" id="btn-filter-prov-pending" onclick="App.filterProviderRequests('PENDING')"><i class="fa fa-clock me-1"></i>Por Aprobar (<span id="prov-count-pending">0</span>)</button>
+          <button type="button" class="btn btn-outline-secondary" id="btn-filter-prov-completed" onclick="App.filterProviderRequests('COMPLETED')">Completadas (<span id="prov-count-completed">0</span>)</button>
+        </div>
+      </div>
+
+      <div class="table-responsive mb-5">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th># ID</th>
+              <th>EQUIPO</th>
+              <th>CLIENTE</th>
+              <th>DÍAS</th>
+              <th>VALOR TOTAL</th>
+              <th>ESTADO</th>
+              <th>ACCIONES DE APROBACIÓN</th>
+            </tr>
+          </thead>
+          <tbody id="provider-requests-list">
+            <!-- Renderizado dinámicamente -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- SECCIÓN GESTIÓN DE FLOTA Y MANTENIMIENTO TÉCNICO -->
+      <div class="pt-4 border-top">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <div>
+            <h5 class="fw-bold text-dark mb-0">
+              <i class="fa fa-wrench text-warning me-2"></i>Gestión de Flota y Control de Mantenimiento
+            </h5>
+            <span class="text-muted small">Supervisa el estado operativo de tu maquinaria, envía equipos a mantenimiento o reactívalos a disponibilidad</span>
+          </div>
+          <button class="btn btn-sm btn-outline-success fw-semibold" onclick="App.loadTools(); App.renderProviderFleetTable();">
+            <i class="fa fa-sync-alt me-1"></i> Actualizar Flota
+          </button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>MAQUINARIA / CÓDIGO</th>
+                <th>CATEGORÍA & MARCA</th>
+                <th>TARIFA / DÍA</th>
+                <th>ESTADO OPERATIVO</th>
+                <th>CALIFICACIÓN</th>
+                <th>ACCIONES DE MANTENIMIENTO</th>
+              </tr>
+            </thead>
+            <tbody id="provider-fleet-list">
+              <!-- Renderizado dinámicamente con App.renderProviderFleetTable() -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== VISTA 4: DASHBOARD ADMINISTRADOR ==================== -->
+  <div id="view-admin-dashboard" class="app-view container-xl my-4" style="display: none;">
+    <div class="bg-white border rounded-3 p-4 mb-4 shadow-sm">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h3 class="fw-bold text-dark mb-1"><i class="fa fa-chart-pie text-success me-2"></i>Métricas de Negocio & KPIs Globales</h3>
+          <p class="text-muted small mb-0">Visión gerencial de ingresos, ocupación de flota y actividad en tiempo real.</p>
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-sm btn-sb-green" onclick="App.openCreateCategoryModal()">
+            <i class="fa fa-folder-plus me-1"></i> Nueva Categoría
+          </button>
+          <button class="btn-sb-pill-outline" onclick="App.switchView('catalog')">
+            <i class="fa fa-arrow-left me-1"></i> Catálogo
+          </button>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-4">
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="p-3 border rounded-3 bg-light">
+            <span class="text-muted small text-uppercase fw-bold">Ingresos Totales</span>
+            <div class="h3 fw-bold text-success mb-1" id="admin-total-revenue">$ 18.450.000</div>
+            <span class="small text-success"><i class="fa fa-arrow-up me-1"></i>+14.2% este mes</span>
+          </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="p-3 border rounded-3 bg-light">
+            <span class="text-muted small text-uppercase fw-bold">Alquileres Activos</span>
+            <div class="h3 fw-bold text-primary mb-1" id="admin-active-rentals">14</div>
+            <span class="small text-muted">En obra actualmente</span>
+          </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="p-3 border rounded-3 bg-light">
+            <span class="text-muted small text-uppercase fw-bold">Tasa de Ocupación</span>
+            <div class="h3 fw-bold text-dark mb-1" id="admin-occupancy">76.5%</div>
+            <span class="small text-warning fw-bold">Flota en operación</span>
+          </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="p-3 border rounded-3 bg-light">
+            <span class="text-muted small text-uppercase fw-bold">Usuarios Registrados</span>
+            <div class="h3 fw-bold text-info mb-1" id="admin-total-users">45</div>
+            <span class="small text-muted">Clientes y Proveedores</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 🏆 BLOQUE BI: MÁXIMO RENDIMIENTO & TOP PERFORMANCE -->
+      <div class="row g-3 mb-4">
+        <div class="col-12 col-md-4">
+          <div class="p-3 border rounded-3 bg-white shadow-sm h-100 border-start border-4 border-warning">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="text-muted small text-uppercase fw-bold"><i class="fa fa-trophy text-warning me-1"></i> Maquinaria Más Rentable</span>
+              <span class="badge bg-warning text-dark" id="top-tool-rentals">0 rentas</span>
+            </div>
+            <h5 class="fw-bold text-dark mb-1" id="top-tool-name">Cargando...</h5>
+            <div class="small text-muted">Facturación generada: <strong class="text-success" id="top-tool-revenue">$ 0</strong></div>
+          </div>
+        </div>
+        <div class="col-12 col-md-4">
+          <div class="p-3 border rounded-3 bg-white shadow-sm h-100 border-start border-4 border-primary">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="text-muted small text-uppercase fw-bold"><i class="fa fa-building text-primary me-1"></i> Cliente Corporativo Top</span>
+              <span class="badge bg-primary text-white">VIP</span>
+            </div>
+            <h5 class="fw-bold text-dark mb-1" id="top-client-name">Cargando...</h5>
+            <div class="small text-muted">Inversión acumulada: <strong class="text-primary" id="top-client-spend">$ 0</strong></div>
+          </div>
+        </div>
+        <div class="col-12 col-md-4">
+          <div class="p-3 border rounded-3 bg-white shadow-sm h-100 border-start border-4 border-success">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="text-muted small text-uppercase fw-bold"><i class="fa fa-chart-line text-success me-1"></i> Ocupación del Parque</span>
+              <span class="badge bg-success" id="top-occupancy-badge">0%</span>
+            </div>
+            <h5 class="fw-bold text-dark mb-1" id="top-occupancy-text">0% en Obra</h5>
+            <div class="progress mt-2" style="height: 8px;">
+              <div class="progress-bar bg-success" id="top-occupancy-bar" role="progressbar" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MAPA GLOBAL DE TELEMETRÍA Y CONTROL DE FLOTA (ADMIN) -->
+      <div class="bg-white border rounded-3 p-3 mb-4 shadow-sm admin-map-card">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <div>
+            <h5 class="fw-bold text-dark mb-1">
+              <i class="fa fa-satellite-dish text-primary me-2"></i>Centro de Control Geoespacial & Monitoreo Global de Flota
+            </h5>
+            <p class="text-muted small mb-0">
+              Supervisión en tiempo real del 100% de la maquinaria en el país, estado de disponibilidad, asignación de proveedores y clientes en obra.
+            </p>
+          </div>
+          <!-- Filtros de Marcadores del Admin -->
+          <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-dark active" id="btn-admin-map-all" onclick="App.filterAdminMap('ALL')">
+              <i class="fa fa-border-all me-1"></i> Todas (<span id="admin-map-count-all">0</span>)
+            </button>
+            <button type="button" class="btn btn-outline-success" id="btn-admin-map-avail" onclick="App.filterAdminMap('DISPONIBLE')">
+              <i class="fa fa-check-circle me-1"></i> En Patio (<span id="admin-map-count-avail">0</span>)
+            </button>
+            <button type="button" class="btn btn-outline-danger" id="btn-admin-map-rented" onclick="App.filterAdminMap('ALQUILADO')">
+              <i class="fa fa-truck-moving me-1"></i> En Obra (<span id="admin-map-count-rented">0</span>)
+            </button>
+          </div>
+        </div>
+        <div id="admin-map-container" style="height: 460px; border-radius: 8px; z-index: 1;"></div>
+      </div>
+
+      <!-- 🏢 SECCIÓN: DIRECTORIO DE EMPRESAS PROVEEDORAS & HOMOLOGACIÓN -->
+      <div class="bg-white border rounded-3 p-3 mb-4 shadow-sm">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <div>
+            <h5 class="fw-bold text-dark mb-1">
+              <i class="fa fa-building text-success me-2"></i>Directorio de Empresas Proveedoras & Homologación
+            </h5>
+            <p class="text-muted small mb-0">Supervisión de aliados de maquinaria, tamaño de flota y validación legal.</p>
+          </div>
+          <button class="btn btn-sm btn-outline-secondary" onclick="App.loadAdminProviders()">
+            <i class="fa fa-sync-alt me-1"></i> Actualizar Proveedores
+          </button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>ID</th>
+                <th>EMPRESA</th>
+                <th>NIT</th>
+                <th>CIUDAD</th>
+                <th>FLOTA</th>
+                <th>CALIFICACIÓN</th>
+                <th>ESTADO</th>
+                <th>ACCIÓN</th>
+              </tr>
+            </thead>
+            <tbody id="admin-providers-list">
+              <tr><td colspan="8" class="text-center text-muted py-3">Cargando directorio de proveedores...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 📄 SECCIÓN: CARTERA VENCIDA (FACTURAS EN MORA) -->
+      <div class="bg-white border rounded-3 p-3 mb-4 shadow-sm">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <div>
+            <h5 class="fw-bold text-dark mb-1">
+              <i class="fa fa-file-invoice-dollar text-danger me-2"></i>Cartera Vencida (Facturación en Mora)
+            </h5>
+            <p class="text-muted small mb-0">Facturas impagas cuya fecha límite de pago ya expiró.</p>
+          </div>
+          <button class="btn btn-sm btn-outline-secondary" onclick="App.loadOverdueInvoices()">
+            <i class="fa fa-sync-alt me-1"></i> Actualizar Cartera
+          </button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th># FACTURA</th>
+                <th>CLIENTE</th>
+                <th>NIT</th>
+                <th>VENCIMIENTO</th>
+                <th>TOTAL</th>
+                <th>ESTADO</th>
+                <th>ACCIONES</th>
+              </tr>
+            </thead>
+            <tbody id="admin-overdue-list">
+              <tr><td colspan="7" class="text-center text-muted py-3">Cargando cartera vencida...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <h5 class="fw-bold text-dark mb-3"><i class="fa fa-history text-success me-2"></i>Flujo de Actividades del Marketplace</h5>
+      <ul class="list-group list-group-flush" id="admin-activities-list">
+        <!-- Renderizado dinámicamente -->
+      </ul>
+    </div>
+  </div>
+
+  <!-- ==================== 12. FOOTER CORPORATIVO (ESTILO SUNBELT) ==================== -->
+  <footer class="sb-footer">
+    <div class="container-xl">
+      <div class="row g-4">
+        <div class="col-12 col-md-3 sb-footer-col sb-unfold-item" style="--unfold-delay: 0ms;">
+          <h5 class="sb-footer-heading">Equipos y Servicios</h5>
+          <ul class="sb-footer-links">
+            <li><a href="#" onclick="App.navigateToSection('section-catalog'); return false;">Ver Todo el Catálogo</a></li>
+            <li><a href="#" onclick="App.navigateToSection('section-directory'); return false;">Categorías Principales</a></li>
+            <li><a href="#" onclick="App.navigateToSection('section-industries'); return false;">Soluciones por Industria</a></li>
+            <li><a href="#" onclick="App.navigateToSection('section-map'); return false;">Sedes y Patios en Bogotá</a></li>
+            <li><a href="#" onclick="App.showCoverageModal(); return false;">Calculadora de Flete a Obra</a></li>
+          </ul>
+        </div>
+        <div class="col-12 col-md-3 sb-footer-col sb-unfold-item" style="--unfold-delay: 90ms;">
+          <h5 class="sb-footer-heading">Soporte y Herramientas</h5>
+          <ul class="sb-footer-links">
+            <li><a href="#" onclick="App.openAuthModal('login'); return false;">Portal del Cliente</a></li>
+            <li><a href="#" onclick="App.openAuthModal('login'); return false;">Mis Alquileres & Facturación</a></li>
+            <li><a href="#">Pólizas de Protección y Garantías</a></li>
+            <li><a href="#">Preguntas Frecuentes (FAQ)</a></li>
+            <li><a href="#">Línea de Asistencia Técnica 24/7</a></li>
+          </ul>
+        </div>
+        <div class="col-12 col-md-3 sb-footer-col sb-unfold-item" style="--unfold-delay: 180ms;">
+          <h5 class="sb-footer-heading">RentaTools Corporativo</h5>
+          <ul class="sb-footer-links">
+            <li><a href="#">Acerca de RentaTools</a></li>
+            <li><a href="#">Sostenibilidad y Equipos Eléctricos</a></li>
+            <li><a href="#">Normas de Seguridad en Faena</a></li>
+            <li><a href="#">Términos y Condiciones Legales</a></li>
+            <li><a href="#">Facturación Electrónica DIAN</a></li>
+          </ul>
+        </div>
+        <div class="col-12 col-md-3 sb-footer-col sb-unfold-item" style="--unfold-delay: 270ms;">
+          <h5 class="sb-footer-heading">Proveedores y Aliados</h5>
+          <ul class="sb-footer-links">
+            <li><a href="#" onclick="App.openAddToolModal(); return false;" class="text-success fw-bold">Publicar Mi Maquinaria</a></li>
+            <li><a href="#">Programa de Monetización P2P</a></li>
+            <li><a href="#">Red de Transporte en Cama Baja</a></li>
+            <li><a href="#">Alianza con Talleres Certificados</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="sb-footer-bottom sb-unfold-item d-flex justify-content-between align-items-center flex-wrap gap-2" style="--unfold-delay: 360ms;">
+        <div>
+          &copy; 2026 RentaTools PRO Colombia. Todos los derechos reservados. Plataforma empresarial de alquiler de maquinaria pesada.
+        </div>
+        <div class="d-flex gap-3">
+          <a href="#" class="text-muted text-decoration-none">Privacidad</a>
+          <a href="#" class="text-muted text-decoration-none">Seguridad</a>
+          <a href="#" class="text-muted text-decoration-none">Accesibilidad</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ==================== MODALES COMPATIBLES CON BACKEND (ESTILO SUNBELT) ==================== -->
+
+  <!-- MODAL DE RESERVA & COTIZACIÓN DINÁMICA -->
+  <div class="modal fade" id="bookingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content sb-modal">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fa fa-calculator text-success me-2"></i>Cotización & Reserva de Maquinaria</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-4">
+            <div class="col-md-5">
+              <img id="book-tool-img" src="" class="img-fluid rounded-3 mb-3 border" style="width: 100%; height: 180px; object-fit: contain; background: #f8fafc;" alt="Equipo" onerror="this.onerror=null; this.src=window.TOOL_FALLBACK_IMG;">
+              <h5 id="book-tool-name" class="fw-bold text-dark mb-1">Nombre</h5>
+              <div class="mb-2 p-2 rounded bg-light border small">
+                <i class="fa fa-building text-success me-1"></i> <strong>Proveedor Aliado:</strong> <span id="book-tool-provider" class="text-dark fw-bold"></span>
+              </div>
+              <div class="text-muted small mb-1">Tarifa base diaria: <strong id="book-tool-rate" class="text-success"></strong></div>
+              <div class="text-muted small mb-3">Garantía retornable: <strong id="book-tool-deposit" class="text-dark"></strong></div>
+              <div class="p-2 rounded bg-light border text-muted small">
+                <i class="fa fa-shield-alt text-success me-1"></i> Garantía 100% reembolsable al finalizar el acta técnica de devolución sin averías.
+              </div>
+            </div>
+            <div class="col-md-7">
+              <h6 class="fw-bold text-dark mb-2">Periodo de Alquiler y Logística de Obra:</h6>
+              <div id="book-dispatch-note" class="alert alert-light border py-2 px-3 small mb-3 d-flex align-items-center gap-2">
+                <i class="fa fa-truck-moving text-success"></i>
+                <span id="book-dispatch-note-text">Modalidad: <strong>Despacho a Obra</strong> &bull; Destino: <strong>Bogotá D.C. & Sabana</strong></span>
+              </div>
+              <div class="row g-2 mb-3">
+                <div class="col-12 col-sm-6">
+                  <label class="sb-form-label" for="book-start-date">Fecha de Inicio <span class="text-danger">*</span>:</label>
+                  <input type="date" id="book-start-date" class="sb-form-control">
+                </div>
+                <div class="col-12 col-sm-6">
+                  <label class="sb-form-label" for="book-end-date">Fecha de Devolución <span class="text-danger">*</span>:</label>
+                  <input type="date" id="book-end-date" class="sb-form-control">
+                </div>
+              </div>
+
+              <!-- Banner Visual de Disponibilidad en Tiempo Real -->
+              <div id="booking-availability-alert" class="alert py-2 px-3 small mb-3 align-items-center justify-content-between gap-2 shadow-sm" style="display: none;"></div>
+
+              <!-- Dirección de obra y logística cama baja -->
+              <div class="mb-3">
+                <label class="sb-form-label" for="book-delivery-address">
+                  <i class="fa fa-map-marker-alt text-danger me-1"></i> Dirección o Frente de Obra <span class="text-danger">*</span>:
+                </label>
+                <input type="text" id="book-delivery-address" class="sb-form-control" list="cundinamarca-locations-list" placeholder="Ej. Calle 100 # 15-20, Chapinero o Autopista Norte Km 21, Chía">
+                <datalist id="cundinamarca-locations-list">
+                  <option value="Bogotá D.C. - Usaquén (Cra 7 # 127, Obra Residencial)">
+                  <option value="Bogotá D.C. - Chapinero (Calle 72 # 11, Torre Corporativa)">
+                  <option value="Bogotá D.C. - Suba (Av. Boyacá con Calle 170, Urbanización)">
+                  <option value="Bogotá D.C. - Fontibón (Zona Franca, Parque Industrial)">
+                  <option value="Bogotá D.C. - Kennedy (Av. Américas # 68D, Obra Vial)">
+                  <option value="Bogotá D.C. - Engativá (Calle 80 # 100, Centro Logístico)">
+                  <option value="Bogotá D.C. - Puente Aranda (Cra 68 # 19, Zona Industrial)">
+                  <option value="Bogotá D.C. - Teusaquillo (Av. El Dorado # 45, Infraestructura)">
+                  <option value="Bogotá D.C. - Bosa (Autopista Sur con Av. Bosa, Vía Arteria)">
+                  <option value="Chía, Cundinamarca - Autopista Norte Km 21, Condominio Campestre">
+                  <option value="Cajicá, Cundinamarca - Variante Manas, Proyecto Multifamiliar">
+                  <option value="Zipaquirá, Cundinamarca - Parque Industrial Valle de Zaquencipá">
+                  <option value="Tocancipá, Cundinamarca - Parque Industrial Gran Sabana">
+                  <option value="Sopó, Cundinamarca - Sector Briceño, Parque Agroindustrial">
+                  <option value="Cota, Cundinamarca - Glorieta Siberia / Vía Cota">
+                  <option value="Funza, Cundinamarca - Km 3 Vía Siberia, Parque Empresarial">
+                  <option value="Mosquera, Cundinamarca - Parque Agroindustrial de Occidente">
+                  <option value="Madrid, Cundinamarca - Autopista Medellín Km 18, Bodegas">
+                  <option value="Facatativá, Cundinamarca - Calle 13 Vía Occidente">
+                  <option value="Soacha, Cundinamarca - Autopista Sur # 30, Ciudad Verde">
+                  <option value="La Calera, Cundinamarca - Km 8 Vía Choachí">
+                  <option value="Tabio, Cundinamarca - Vía Cajicá Sector Termales">
+                  <option value="Tenjo, Cundinamarca - Parque Industrial San Isidro">
+                </datalist>
+                <div class="form-text text-muted small">Sugerencias para Bogotá D.C. y municipios de la Sabana de Cundinamarca.</div>
+              </div>
+
+              <div class="mb-3">
+                <label class="sb-form-label" for="book-cama-baja-notes">
+                  <i class="fa fa-truck-pickup text-primary me-1"></i> Instrucciones para Operador de Cama Baja / Transporte Pesado:
+                </label>
+                <textarea id="book-cama-baja-notes" class="sb-form-control" rows="2" placeholder="Ej. Acceso en vía destapada, restricción de altura (puente &lt; 4.2m), horario de descargue 6:00 AM - 10:00 PM, contacto del maestro de obra en sitio..."></textarea>
+              </div>
+
+              <!-- Desglose de Liquidación Dinámica -->
+              <div class="p-3 rounded-3 bg-light border">
+                <div class="d-flex justify-content-between mb-1">
+                  <span class="text-muted small">Días de uso:</span>
+                  <span id="quote-days" class="text-dark fw-bold">0 días</span>
+                </div>
+                <div class="d-flex justify-content-between mb-1">
+                  <span class="text-muted small">Subtotal Alquiler:</span>
+                  <span id="quote-subtotal" class="text-dark fw-bold">$ 0</span>
+                </div>
+                <div class="d-flex justify-content-between mb-1">
+                  <span class="text-muted small">IVA (19% Factura DIAN):</span>
+                  <span id="quote-iva" class="text-dark fw-bold">$ 0</span>
+                </div>
+                <div class="d-flex justify-content-between mb-1">
+                  <span class="text-muted small">Depósito de Garantía (Retornable):</span>
+                  <span id="quote-deposit" class="text-primary fw-bold">$ 0</span>
+                </div>
+                <hr class="my-2">
+                <div class="d-flex justify-content-between align-items-center">
+                  <span class="fw-bold text-dark">GRAN TOTAL COP:</span>
+                  <span id="quote-total" class="h4 text-success fw-bold mb-0">$ 0</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-outline-success" onclick="App.addActiveBookingToCart()">
+            <i class="fa fa-cart-plus me-1"></i> Guardar en Carrito
+          </button>
+          <button type="button" class="btn btn-sb-green px-4" onclick="App.proceedToPaymentFromBooking()">
+            <i class="fa fa-credit-card me-2"></i> Confirmar y Proceder al Pago
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE PAGO SIMULADO (CHECKOUT & FACTURACIÓN) -->
+  <div class="modal fade" id="paymentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content sb-modal">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fa fa-shield-alt text-success me-2"></i>Pasarela de Pago Segura</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3 text-center p-3 bg-light rounded-3 border">
+            <h6 id="pay-tool-title" class="text-dark fw-bold mb-1">Equipo</h6>
+            <div id="pay-summary-total" class="h3 text-success fw-bold mb-1">$ 0</div>
+            <div id="pay-summary-breakdown" class="small text-muted">Desglose</div>
+            <div id="pay-summary-delivery" class="small text-dark mt-1" style="display: none;"></div>
+          </div>
+
+          <label class="sb-form-label mb-2">Selecciona Medio de Pago:</label>
+          <div class="row g-2 mb-3">
+            <div class="col-4">
+              <input type="radio" class="btn-check" name="paymentMethod" id="pay-pse" value="PSE" checked>
+              <label class="sb-pay-tab w-100" for="pay-pse">
+                <i class="fa fa-university text-success"></i> PSE
+              </label>
+            </div>
+            <div class="col-4">
+              <input type="radio" class="btn-check" name="paymentMethod" id="pay-card" value="CREDIT_CARD">
+              <label class="sb-pay-tab w-100" for="pay-card">
+                <i class="fa fa-credit-card text-primary"></i> Tarjeta
+              </label>
+            </div>
+            <div class="col-4">
+              <input type="radio" class="btn-check" name="paymentMethod" id="pay-trans" value="BANK_TRANSFER">
+              <label class="sb-pay-tab w-100" for="pay-trans">
+                <i class="fa fa-exchange-alt text-warning"></i> Transf.
+              </label>
+            </div>
+          </div>
+
+          <!-- Campos PSE -->
+          <div id="pse-fields">
+            <div class="mb-3">
+              <label class="sb-form-label" for="pse-bank">Entidad Bancaria en Colombia <span class="text-danger">*</span>:</label>
+              <select id="pse-bank" class="sb-form-control">
+                <option value="">-- Selecciona tu entidad bancaria --</option>
+                <option value="Bancolombia" selected>Bancolombia</option>
+                <option value="Davivienda">Davivienda</option>
+                <option value="BBVA Colombia">BBVA Colombia</option>
+                <option value="Nequi">Nequi</option>
+                <option value="DaviPlata">DaviPlata</option>
+                <option value="Banco de Bogotá">Banco de Bogotá</option>
+                <option value="Banco de Occidente">Banco de Occidente</option>
+                <option value="Scotiabank Colpatria">Scotiabank Colpatria</option>
+                <option value="Banco AV Villas">Banco AV Villas</option>
+                <option value="Banco Popular">Banco Popular</option>
+                <option value="Banco Caja Social">Banco Caja Social</option>
+                <option value="Banco Falabella">Banco Falabella</option>
+                <option value="Itaú Colombia">Itaú Corpbanca Colombia</option>
+                <option value="Nu Colombia">Nu Colombia (Cuenta Nu)</option>
+                <option value="Lulo Bank">Lulo Bank</option>
+                <option value="RappiPay">RappiPay / Dale!</option>
+              </select>
+            </div>
+            <div class="row g-2 mb-3">
+              <div class="col-6">
+                <label class="sb-form-label" for="pse-type">Tipo de Cliente:</label>
+                <select id="pse-type" class="sb-form-control">
+                  <option value="NATURAL">Persona Natural</option>
+                  <option value="JURIDICA">Persona Jurídica (Empresa)</option>
+                </select>
+              </div>
+              <div class="col-6">
+                <label class="sb-form-label" for="pse-email">Correo Registrado en PSE <span class="text-danger">*</span>:</label>
+                <input type="email" id="pse-email" class="sb-form-control" placeholder="tu-correo@banco.com" value="cliente@constructora.com">
+              </div>
+            </div>
+            <div class="p-2 rounded bg-light border small text-muted">
+              <i class="fa fa-lock text-success me-1"></i> Conexión cifrada de 256 bits directa con ACH Colombia y facturación DIAN.
+            </div>
+          </div>
+
+          <!-- Campos Tarjeta -->
+          <div id="card-fields" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="small text-muted"><i class="fa fa-credit-card me-1 text-success"></i> Datos de Tarjeta</span>
+              <button type="button" class="btn btn-sm btn-outline-success py-0 px-2" style="font-size: 0.75rem;" onclick="App.fillTestCard()">
+                <i class="fa fa-magic me-1"></i> Rellenar con Tarjeta de Prueba
+              </button>
+            </div>
+            <div class="mb-2">
+              <label class="sb-form-label" for="card-holder-name">Titular de la Tarjeta <span class="text-danger">*</span>:</label>
+              <input type="text" id="card-holder-name" class="sb-form-control" placeholder="Nombre tal como figura en la tarjeta" autocomplete="cc-name">
+            </div>
+            <div class="mb-2">
+              <label class="sb-form-label" for="card-number">Número de Tarjeta <span class="text-danger">*</span>:</label>
+              <div class="sb-card-input-wrap position-relative">
+                <input type="text" id="card-number" class="sb-form-control pe-5" placeholder="4532 0000 0000 0000" maxlength="19" autocomplete="cc-number" inputmode="numeric">
+                <i id="card-brand-icon" class="fa fa-credit-card sb-card-brand-icon text-muted"></i>
+              </div>
+            </div>
+            <div class="row g-2 mb-2">
+              <div class="col-6">
+                <label class="sb-form-label" for="card-expiry">Expiración (MM/AA) <span class="text-danger">*</span>:</label>
+                <input type="text" id="card-expiry" class="sb-form-control" placeholder="MM/AA" maxlength="5" autocomplete="cc-exp" inputmode="numeric">
+              </div>
+              <div class="col-6">
+                <label class="sb-form-label" for="card-cvc">CVC / CVV <span class="text-danger">*</span>:</label>
+                <input type="password" id="card-cvc" class="sb-form-control" placeholder="123" maxlength="4" autocomplete="cc-csc" inputmode="numeric">
+              </div>
+            </div>
+            <div class="p-2 rounded bg-light border small text-muted">
+              <i class="fa fa-shield-alt text-success me-1"></i> Procesamiento con tokenización PCI-DSS y validación 3D Secure.
+            </div>
+          </div>
+
+          <!-- Campos Transferencia -->
+          <div id="transfer-fields" style="display: none;">
+            <div class="p-3 rounded-3 bg-light border mb-2 small text-dark">
+              <div><strong>Cuenta Corriente Bancolombia:</strong> 123-456789-01</div>
+              <div><strong>Titular:</strong> RentaTools Colombia S.A.S.</div>
+              <div><strong>NIT:</strong> 901.234.567-8</div>
+              <div><strong>Convenio Empresarial:</strong> 98412</div>
+            </div>
+            <div class="small text-muted">
+              Al confirmar, tu reserva quedará reservada y validaremos el comprobante bancario en menos de 15 minutos.
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" id="btn-submit-payment" class="btn btn-sb-green px-4" onclick="App.submitPayment()">
+            <i class="fa fa-lock me-1"></i> Pagar y Confirmar Reserva
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE AUTENTICACIÓN (LOGIN & REGISTRO CONDICIONAL) -->
+  <div class="modal fade" id="authModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content sb-modal">
+        <div class="modal-header">
+          <h5 class="modal-title" id="auth-modal-title">Iniciar Sesión</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar" onclick="App.closeAuthModal()"></button>
+        </div>
+        <form id="auth-form" onsubmit="App.submitAuth(); return false;" novalidate>
+        <div class="modal-body">
+          <!-- Campos de Login -->
+          <div id="login-fields">
+            <div class="mb-3">
+              <label for="login-id" class="sb-form-label">Usuario o Correo:</label>
+              <input type="text" id="login-id" class="sb-form-control" placeholder="cliente, proveedor o admin" value="cliente" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+            </div>
+            <div class="mb-3">
+              <label for="login-pass" class="sb-form-label">Contraseña:</label>
+              <input type="password" id="login-pass" class="sb-form-control" placeholder="Contraseña" value="Cliente123!" autocomplete="current-password" required>
+            </div>
+            <div class="p-3 rounded-3 bg-light border mb-3">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="small fw-bold text-dark"><i class="fa fa-key text-warning me-1"></i> Accesos Rápidos Demo:</span>
+                <span class="badge bg-secondary-subtle text-secondary border" style="font-size: 0.7rem;">Click para auto-completar</span>
+              </div>
+              <div class="d-flex flex-wrap gap-1">
+                <button type="button" class="btn btn-sm btn-outline-success py-1 px-2" style="font-size: 0.78rem;" onclick="document.getElementById('login-id').value='cliente'; document.getElementById('login-pass').value='Cliente123!';">
+                  🏗️ Cliente (Hábitat SAS)
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-primary py-1 px-2" style="font-size: 0.78rem;" onclick="document.getElementById('login-id').value='proveedor'; document.getElementById('login-pass').value='Proveedor123!';">
+                  🚜 Proveedor (Maquinaria Andina)
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-dark py-1 px-2" style="font-size: 0.78rem;" onclick="document.getElementById('login-id').value='admin'; document.getElementById('login-pass').value='Admin123!';">
+                  🛡️ Admin General
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2" style="font-size: 0.78rem;" onclick="document.getElementById('login-id').value='proveedor2'; document.getElementById('login-pass').value='Proveedor123!';">
+                  🚜 Proveedor 2 (Gecolsa)
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2" style="font-size: 0.78rem;" onclick="document.getElementById('login-id').value='cliente2'; document.getElementById('login-pass').value='Cliente123!';">
+                  🏗️ Cliente 2 (Amarilo)
+                </button>
+              </div>
+              <div class="mt-2 text-muted" style="font-size: 0.72rem;">
+                Todos los clientes usan <code>Cliente123!</code> y todos los proveedores <code>Proveedor123!</code>.
+              </div>
+            </div>
+          </div>
+
+          <!-- Campos de Registro -->
+          <div id="register-fields" style="display: none;">
+            <div class="row g-2 mb-2">
+              <div class="col-6">
+                <label for="reg-username" class="sb-form-label">Usuario:</label>
+                <input type="text" id="reg-username" class="sb-form-control" placeholder="usuario123" autocomplete="username" autocapitalize="none" spellcheck="false">
+              </div>
+              <div class="col-6">
+                <label for="reg-role" class="sb-form-label">Rol:</label>
+                <select id="reg-role" class="sb-form-control" onchange="App.handleRoleChange()">
+                  <option value="ROLE_CLIENTE">Cliente Arrendatario</option>
+                  <option value="ROLE_PROVEEDOR">Proveedor Maquinaria</option>
+                </select>
+              </div>
+            </div>
+            <div class="mb-2">
+              <label for="reg-fullname" class="sb-form-label" id="reg-fullname-label">Nombre Completo:</label>
+              <input type="text" id="reg-fullname" class="sb-form-control" placeholder="Ej. Juan Pérez" autocomplete="name">
+            </div>
+            <div class="row g-2 mb-2">
+              <div class="col-6">
+                <label for="reg-email" class="sb-form-label">Correo Electrónico:</label>
+                <input type="email" id="reg-email" class="sb-form-control" placeholder="correo@obra.com" inputmode="email" autocomplete="email">
+              </div>
+              <div class="col-6">
+                <label for="reg-password" class="sb-form-label">Contraseña:</label>
+                <input type="password" id="reg-password" class="sb-form-control" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+              </div>
+            </div>
+            <div class="row g-2 mb-2">
+              <div class="col-6">
+                <label for="reg-taxid" class="sb-form-label">NIT / Cédula:</label>
+                <input type="text" id="reg-taxid" class="sb-form-control" placeholder="900.123.456-7" inputmode="numeric">
+              </div>
+              <div class="col-6">
+                <label for="reg-phone" class="sb-form-label">Teléfono:</label>
+                <input type="tel" id="reg-phone" class="sb-form-control" placeholder="+57 300 0000000" inputmode="tel" autocomplete="tel">
+              </div>
+            </div>
+            <div class="mb-2" id="reg-company-container" style="display: none;">
+              <label for="reg-company" class="sb-form-label">Nombre de Empresa / Razón Social <span class="text-danger">*</span>:</label>
+              <input type="text" id="reg-company" class="sb-form-control" placeholder="Ej. Maquinarias del Norte SAS" autocomplete="organization">
+            </div>
+            <div class="mb-3">
+              <label for="reg-address" class="sb-form-label">Dirección en Obra:</label>
+              <input type="text" id="reg-address" class="sb-form-control" placeholder="Calle 100 # 15-20" autocomplete="street-address">
+            </div>
+          </div>
+
+          <div class="text-center mt-3">
+            <a href="#" id="auth-mode-toggle" class="text-success text-decoration-none fw-bold small" onclick="App.toggleAuthMode(); return false;">
+              ¿No tienes cuenta? Regístrate aquí
+            </a>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" onclick="App.closeAuthModal()">Cerrar</button>
+          <button type="submit" class="btn btn-sb-green px-4" id="btn-auth-submit">
+            Entrar
+          </button>
+        </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE INSPECCIÓN DE DEVOLUCIÓN (PROVEEDOR & PATIO TÉCNICO) -->
+  <div class="modal fade" id="returnInspectionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content sb-modal">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fa fa-clipboard-check text-warning me-2"></i>Acta de Devolución & Inspección Técnica de Maquinaria</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="return-rental-id">
+
+          <!-- Resumen de Alquiler en Devolución -->
+          <div id="return-info-banner" class="p-3 mb-3 bg-light rounded-3 border">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <span class="badge bg-secondary mb-1" id="return-badge-id">Reserva #</span>
+                <h6 class="fw-bold text-dark mb-0" id="return-tool-name">Maquinaria</h6>
+                <div class="small text-muted" id="return-client-info">Cliente Arrendatario</div>
+              </div>
+              <div class="text-end">
+                <span class="small text-muted d-block">Garantía en Custodia:</span>
+                <strong class="text-primary h5 mb-0" id="return-deposit-val">$ 0</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ficha Técnica de Inspección -->
+          <h6 class="fw-bold text-dark mb-3"><i class="fa fa-tools text-success me-1"></i> Ficha Técnica de Recepción:</h6>
+          <div class="row g-3 mb-3">
+            <!-- 1. Horómetro -->
+            <div class="col-md-6">
+              <label class="sb-form-label" for="return-horometro">
+                <i class="fa fa-tachometer-alt text-warning me-1"></i> Lectura Horómetro Final (Horas) <span class="text-danger">*</span>:
+              </label>
+              <input type="number" id="return-horometro" class="sb-form-control" placeholder="Ej. 1345.5" step="0.1" required>
+              <div class="form-text text-muted small">Registra las horas acumuladas de motor al apagar la máquina en obra.</div>
+            </div>
+
+            <!-- 2. Nivel de Combustible Diésel -->
+            <div class="col-md-6">
+              <label class="sb-form-label">
+                <i class="fa fa-gas-pump text-danger me-1"></i> Nivel de Combustible Diésel / Gasolina <span class="text-danger">*</span>:
+              </label>
+              <div class="sb-fuel-grid mb-1">
+                <input type="radio" class="btn-check" name="returnFuelLevel" id="fuel-100" value="100% (Lleno)" checked>
+                <label class="sb-fuel-chip" for="fuel-100">100%</label>
+
+                <input type="radio" class="btn-check" name="returnFuelLevel" id="fuel-75" value="75% (3/4)">
+                <label class="sb-fuel-chip" for="fuel-75">75%</label>
+
+                <input type="radio" class="btn-check" name="returnFuelLevel" id="fuel-50" value="50% (1/2)">
+                <label class="sb-fuel-chip" for="fuel-50">50%</label>
+
+                <input type="radio" class="btn-check" name="returnFuelLevel" id="fuel-25" value="25% (1/4)">
+                <label class="sb-fuel-chip" for="fuel-25">25%</label>
+
+                <input type="radio" class="btn-check" name="returnFuelLevel" id="fuel-res" value="Reserva (&lt;10%)">
+                <label class="sb-fuel-chip" for="fuel-res">Reserva</label>
+              </div>
+              <div class="form-text text-muted small">Se compara con el nivel de entrega para cobro o reembolso.</div>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <!-- 3. Estado Hidráulico -->
+            <div class="col-md-6">
+              <label class="sb-form-label" for="return-hydraulic-status">
+                <i class="fa fa-cogs text-primary me-1"></i> Estado del Sistema Hidráulico & Presión:
+              </label>
+              <select id="return-hydraulic-status" class="sb-form-control">
+                <option value="Óptimo - Sin fugas ni pérdida de presión" selected>Óptimo - Sin fugas ni pérdida de presión</option>
+                <option value="Fugas leves en racores / mangueras (Requiere apriete)">Fugas leves en racores / mangueras (Requiere apriete)</option>
+                <option value="Fuga crítica o pérdida de fuerza en cilindro">Fuga crítica o pérdida de fuerza en cilindro</option>
+                <option value="No Aplica (Equipo Eléctrico o Manual)">No Aplica (Equipo Eléctrico o Manual)</option>
+              </select>
+            </div>
+
+            <!-- 4. Inspector Técnico -->
+            <div class="col-md-6">
+              <label class="sb-form-label" for="return-inspector-name">
+                <i class="fa fa-user-check text-success me-1"></i> Inspector Técnico de Patio / Sede:
+              </label>
+              <input type="text" id="return-inspector-name" class="sb-form-control" placeholder="Ej. Ing. Carlos Mendoza - Jefe de Mantenimiento">
+            </div>
+          </div>
+
+          <!-- 5. Daños Fuera de Uso Normal -->
+          <div class="p-3 bg-light rounded-3 border mb-3">
+            <div class="form-check form-switch mb-2">
+              <input class="form-check-input" type="checkbox" id="damage-check" onchange="document.getElementById('damage-cost-container').style.display = this.checked ? 'block' : 'none';">
+              <label class="form-check-label text-dark fw-bold" for="damage-check">
+                <i class="fa fa-exclamation-triangle text-warning me-1"></i> ¿Se detectaron averías, golpes o daños fuera del desgaste normal de uso?
+              </label>
+            </div>
+            <div id="damage-cost-container" style="display: none;" class="mt-3 pt-3 border-top">
+              <div class="row g-2 mb-2">
+                <div class="col-md-6">
+                  <label class="sb-form-label text-danger" for="return-damage-type">Categoría del daño detectado:</label>
+                  <select id="return-damage-type" class="sb-form-control">
+                    <option value="Impacto estructural o abolladura en cabina/chasis">Impacto estructural o abolladura en cabina/chasis</option>
+                    <option value="Corte o desgarro en orugas / neumáticos">Corte o desgarro en orugas / neumáticos</option>
+                    <option value="Daño por contaminación de combustible / lubricante">Daño por contaminación de combustible / lubricante</option>
+                    <option value="Fisura o rotura en balde, brazo o aditamentos">Fisura o rotura en balde, brazo o aditamentos</option>
+                    <option value="Faltante de piezas, cables o pasadores de seguridad">Faltante de piezas, cables o pasadores de seguridad</option>
+                    <option value="Otro daño extraordinario imputable a operación">Otro daño extraordinario imputable a operación</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label class="sb-form-label text-danger" for="damage-cost">Valor estimado de reparación (a descontar de la garantía COP) <span class="text-danger">*</span>:</label>
+                  <input type="number" id="damage-cost" class="sb-form-control" placeholder="0">
+                </div>
+              </div>
+              <div class="small text-danger">
+                <i class="fa fa-info-circle me-1"></i> Este valor se descontará del depósito de garantía retenido al cliente. El excedente será reembolsado.
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="sb-form-label" for="return-notes">Observaciones Mecánicas y Físicas del Equipo:</label>
+            <textarea id="return-notes" class="sb-form-control" rows="2" placeholder="Detalles de inspección: equipo limpio, horómetro verificado, pruebas hidrostáticas, estado de pasadores..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-sb-green px-4" onclick="App.submitReturnInspection()">
+            <i class="fa fa-save me-1"></i> Guardar Acta & Finalizar Devolución
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE AÑADIR MAQUINARIA (PROVEEDOR) -->
+  <div class="modal fade" id="addToolModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content sb-modal">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fa fa-truck-monster text-success me-2"></i>Publicar Nueva Maquinaria en Catálogo</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="form-add-tool" onsubmit="App.submitNewTool(event); return false;">
+            <div class="row g-3 mb-3">
+              <div class="col-md-7">
+                <label class="sb-form-label" for="add-tool-name">Nombre Comercial del Equipo <span class="text-danger">*</span>:</label>
+                <input type="text" id="add-tool-name" class="sb-form-control" placeholder="Ej. Retroexcavadora CAT 420F2 IT" required>
+              </div>
+              <div class="col-md-5">
+                <label class="sb-form-label" for="add-tool-category">Categoría <span class="text-danger">*</span>:</label>
+                <select id="add-tool-category" class="sb-form-control" required>
+                  <option value="1">Excavación y Movimiento de Tierras</option>
+                  <option value="2">Compactación y Pavimentación</option>
+                  <option value="3">Concreto y Mezclado</option>
+                  <option value="4">Generación Eléctrica e Iluminación</option>
+                  <option value="5">Demolición y Perforación</option>
+                  <option value="6">Altura y Andamios</option>
+                  <option value="7">Bombeo y Lavado Industrial</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-4">
+                <label class="sb-form-label" for="add-tool-brand">Marca <span class="text-danger">*</span>:</label>
+                <input type="text" id="add-tool-brand" class="sb-form-control" placeholder="Ej. Caterpillar" required>
+              </div>
+              <div class="col-md-4">
+                <label class="sb-form-label" for="add-tool-model">Modelo <span class="text-danger">*</span>:</label>
+                <input type="text" id="add-tool-model" class="sb-form-control" placeholder="Ej. 420F2" required>
+              </div>
+              <div class="col-md-4">
+                <label class="sb-form-label" for="add-tool-code">Código de Inventario / Serie <span class="text-danger">*</span>:</label>
+                <input type="text" id="add-tool-code" class="sb-form-control" placeholder="Ej. CAT-420-001" required>
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="sb-form-label" for="add-tool-price">Tarifa Diaria de Alquiler (COP) <span class="text-danger">*</span>:</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light text-success fw-bold">$</span>
+                  <input type="number" id="add-tool-price" class="sb-form-control" placeholder="280000" min="1000" step="1000" required>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <label class="sb-form-label" for="add-tool-deposit">Depósito de Garantía (COP) <span class="text-danger">*</span>:</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light text-dark fw-bold">$</span>
+                  <input type="number" id="add-tool-deposit" class="sb-form-control" placeholder="800000" min="0" step="1000" required>
+                </div>
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="sb-form-label" for="add-tool-spec-power">Especificación Técnica (Potencia / Capacidad) <span class="text-danger">*</span>:</label>
+                <input type="text" id="add-tool-spec-power" class="sb-form-control" placeholder="Ej. 93 HP / Balde 1.0 m3" required>
+              </div>
+              <div class="col-md-6">
+                <label class="sb-form-label" for="add-tool-spec-fuel">Fuente de Energía / Combustible <span class="text-danger">*</span>:</label>
+                <select id="add-tool-spec-fuel" class="sb-form-control" required>
+                  <option value="Diesel">Diesel</option>
+                  <option value="Gasolina">Gasolina</option>
+                  <option value="Eléctrico 220V/110V">Eléctrico 220V/110V</option>
+                  <option value="Batería Litio">Batería Litio</option>
+                  <option value="Neumático">Neumático</option>
+                  <option value="Manual / Estructural">Manual / Estructural</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-4">
+                <label class="sb-form-label" for="add-tool-lat">Latitud GPS (Patio) <span class="text-danger">*</span>:</label>
+                <input type="number" id="add-tool-lat" class="sb-form-control" placeholder="4.6534" step="0.0001" value="4.6534" required>
+              </div>
+              <div class="col-md-4">
+                <label class="sb-form-label" for="add-tool-lng">Longitud GPS (Patio) <span class="text-danger">*</span>:</label>
+                <input type="number" id="add-tool-lng" class="sb-form-control" placeholder="-74.0836" step="0.0001" value="-74.0836" required>
+              </div>
+              <div class="col-md-4">
+                <label class="sb-form-label">Ciudad Operativa:</label>
+                <input type="text" id="add-tool-city" class="sb-form-control" value="Bogotá" readonly>
+              </div>
+            </div>
+
+            <div class="mb-3 p-3 rounded-3 bg-light border">
+              <label class="sb-form-label d-flex align-items-center gap-2 mb-2" for="add-tool-image-file">
+                <i class="fa fa-camera text-success"></i> Fotografía Real de la Maquinaria <span class="text-danger">*</span>:
+              </label>
+              <div class="row g-3 align-items-center">
+                <div class="col-12 col-md-8">
+                  <input type="file" id="add-tool-image-file" class="sb-form-control mb-1" accept="image/png, image/jpeg, image/jpg, image/webp" required onchange="App.handleNewToolImageFile(this)">
+                  <div class="small text-muted">
+                    <i class="fa fa-info-circle me-1"></i> Formatos admitidos: PNG, JPG, JPEG o WEBP. Carga y optimización automática.
+                  </div>
+                </div>
+                <div class="col-12 col-md-4 text-center">
+                  <div class="rounded border p-1 position-relative d-flex align-items-center justify-content-center bg-white" style="height: 100px; max-height: 100px; overflow: hidden;">
+                    <img id="add-tool-preview-img" src="" alt="Previsualización de Fotografía" style="width: 100%; height: 100%; object-fit: contain; display: none;">
+                    <div id="add-tool-preview-placeholder" class="d-flex flex-column align-items-center justify-content-center h-100 w-100 text-muted small position-absolute" style="top: 0; left: 0; right: 0; bottom: 0;">
+                      <i class="fa fa-image fa-2x mb-1 text-secondary opacity-50"></i>
+                      <span>Sin fotografía adjunta</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="modal-footer px-0 pb-0 pt-2 border-0">
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+              <button type="submit" class="btn btn-sb-green px-4">
+                <i class="fa fa-cloud-upload-alt me-1"></i> Publicar Maquinaria
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Carrito de Alquiler (Sunbelt Rentals Style) -->
+  <div class="modal fade" id="cartModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content sb-modal">
+        <div class="modal-header border-bottom pb-3">
+          <div class="d-flex align-items-center gap-2">
+            <i class="fa fa-shopping-cart text-success fs-5"></i>
+            <h5 class="modal-title fw-bold text-dark mb-0">Carrito de Alquiler</h5>
+            <span class="badge bg-success ms-1 small" id="cart-modal-badge">0</span>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body p-4" id="cart-modal-body">
+          <!-- Renderizado dinámico por App.renderCartModal(): Vacío o Cotización Activa -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL BITÁCORA DE MANTENIMIENTO ==================== -->
+  <div class="modal fade" id="maintenanceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content sb-modal">
+        <div class="modal-header border-bottom pb-3">
+          <div class="d-flex align-items-center gap-2">
+            <i class="fa fa-wrench text-warning fs-5"></i>
+            <div>
+              <h5 class="modal-title fw-bold text-dark mb-0">Bitácora de Mantenimiento Técnico</h5>
+              <small class="text-muted" id="maint-tool-title">Maquinaria</small>
+            </div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body p-4">
+          <input type="hidden" id="maint-tool-id">
+          
+          <ul class="nav nav-pills mb-3" id="maint-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="tab-maint-history" data-bs-toggle="pill" data-bs-target="#pane-maint-history" type="button" role="tab">
+                <i class="fa fa-history me-1"></i> Historial Técnico
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="tab-maint-new" data-bs-toggle="pill" data-bs-target="#pane-maint-new" type="button" role="tab">
+                <i class="fa fa-plus-circle me-1"></i> Registrar Mantenimiento
+              </button>
+            </li>
+          </ul>
+
+          <div class="tab-content">
+            <div class="tab-pane fade show active" id="pane-maint-history" role="tabpanel">
+              <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Tipo</th>
+                      <th>Descripción</th>
+                      <th>Técnico</th>
+                      <th>Costo</th>
+                      <th>Fecha</th>
+                      <th>Próximo</th>
+                    </tr>
+                  </thead>
+                  <tbody id="maint-history-table">
+                    <tr><td colspan="6" class="text-center text-muted py-3">Cargando bitácora...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="tab-pane fade" id="pane-maint-new" role="tabpanel">
+              <form id="form-register-maintenance" onsubmit="App.submitMaintenance(event)">
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold">Tipo de Mantenimiento</label>
+                    <select class="form-select form-select-sm" id="maint-type" required>
+                      <option value="PREVENTIVO">PREVENTIVO (Fluidos, filtros, engrase)</option>
+                      <option value="CORRECTIVO">CORRECTIVO (Reparación de falla mecánica)</option>
+                      <option value="OVERHAUL">OVERHAUL (Reconstrucción / Certificación)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold">Nombre del Técnico / Ingeniero</label>
+                    <input type="text" class="form-control form-control-sm" id="maint-technician" placeholder="ej. Ing. Carlos Mendoza" required>
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label small fw-bold">Descripción del Trabajo Realizado</label>
+                    <textarea class="form-control form-control-sm" id="maint-description" rows="2" placeholder="Detalle de componentes revisados, repuestos..." required></textarea>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold">Costo del Mantenimiento ($ COP)</label>
+                    <input type="number" class="form-control form-control-sm" id="maint-cost" min="0" step="1000" placeholder="ej. 350000" required>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold">Fecha del Próximo Mantenimiento</label>
+                    <input type="date" class="form-control form-control-sm" id="maint-next-date">
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label small fw-bold">Observaciones / Recomendaciones Técnicas</label>
+                    <input type="text" class="form-control form-control-sm" id="maint-notes" placeholder="ej. Equipo apto para 250 horas de trabajo continuo">
+                  </div>
+                  <div class="col-12">
+                    <div class="form-check form-switch">
+                      <input class="form-check-input" type="checkbox" id="maint-mark-status">
+                      <label class="form-check-label small" for="maint-mark-status">
+                        Poner la maquinaria en estado <strong>EN MANTENIMIENTO</strong>
+                      </label>
+                    </div>
+                  </div>
+                  <div class="col-12 text-end mt-3">
+                    <button type="submit" class="btn btn-sb-green">
+                      <i class="fa fa-save me-1"></i> Guardar en Bitácora
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL CREAR CATEGORÍA ==================== -->
+  <div class="modal fade" id="createCategoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content sb-modal">
+        <div class="modal-header border-bottom pb-3">
+          <div class="d-flex align-items-center gap-2">
+            <i class="fa fa-folder-plus text-success fs-5"></i>
+            <h5 class="modal-title fw-bold text-dark mb-0">Crear Nueva Categoría</h5>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body p-4">
+          <form id="form-create-category" onsubmit="App.submitCreateCategory(event)">
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Nombre de la Categoría</label>
+              <input type="text" class="form-control" id="cat-name" placeholder="ej. Compresión y Neumática" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Descripción</label>
+              <textarea class="form-control" id="cat-desc" rows="2" placeholder="ej. Compresores de aire de tornillo, martillos..."></textarea>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Icono FontAwesome</label>
+              <input type="text" class="form-control" id="cat-icon" value="fa-tools" placeholder="ej. fa-wind, fa-bolt, fa-truck-monster">
+            </div>
+            <div class="mb-3 form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="cat-active" checked>
+              <label class="form-check-label small" for="cat-active">Categoría Activa en Catálogo</label>
+            </div>
+            <div class="text-end mt-4">
+              <button type="submit" class="btn btn-sb-green w-100">
+                <i class="fa fa-check-circle me-1"></i> Guardar Categoría
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL CALIFICACIÓN DE ALQUILER ==================== -->
+  <div class="modal fade" id="ratingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content sb-modal">
+        <div class="modal-header border-bottom pb-3">
+          <div class="d-flex align-items-center gap-2">
+            <i class="fa fa-star text-warning fs-4"></i>
+            <div>
+              <h5 class="modal-title fw-bold text-dark mb-0">Calificar Alquiler Completado</h5>
+              <small class="text-muted" id="rating-tool-name">Maquinaria</small>
+            </div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body p-4">
+          <input type="hidden" id="rating-rental-id">
+          
+          <div class="text-center mb-4">
+            <p class="text-muted small mb-2">¿Cómo calificarías el desempeño del equipo y la experiencia en obra?</p>
+            <div id="rating-stars-container" class="d-flex justify-content-center gap-2 fs-2 cursor-pointer">
+              <i class="fa fa-star text-warning star-btn" data-value="1" onclick="App.setRatingScore(1)" style="cursor: pointer;"></i>
+              <i class="fa fa-star text-warning star-btn" data-value="2" onclick="App.setRatingScore(2)" style="cursor: pointer;"></i>
+              <i class="fa fa-star text-warning star-btn" data-value="3" onclick="App.setRatingScore(3)" style="cursor: pointer;"></i>
+              <i class="fa fa-star text-warning star-btn" data-value="4" onclick="App.setRatingScore(4)" style="cursor: pointer;"></i>
+              <i class="fa fa-star text-warning star-btn" data-value="5" onclick="App.setRatingScore(5)" style="cursor: pointer;"></i>
+            </div>
+            <div class="fw-bold text-success mt-2 fs-6" id="rating-score-label">5 Estrellas - Excelente rendimiento</div>
+            <input type="hidden" id="rating-score-val" value="5">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-dark">Comentario / Reseña Técnica del Cliente</label>
+            <textarea id="rating-comment" class="form-control" rows="3" placeholder="ej. Maquinaria en óptimas condiciones mecánicas, consumo eficiente y entrega puntual en el frente de obra."></textarea>
+          </div>
+
+          <div class="d-flex justify-content-end gap-2 mt-4">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="button" class="btn btn-sb-green" onclick="App.submitCalificacion()">
+              <i class="fa fa-paper-plane me-1"></i> Publicar Calificación
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL DE RESEÑAS DE MAQUINARIA ==================== -->
+  <div class="modal fade" id="toolReviewsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content sb-modal">
+        <div class="modal-header border-bottom pb-3">
+          <div class="d-flex align-items-center gap-2">
+            <i class="fa fa-star text-warning fs-4"></i>
+            <div>
+              <h5 class="modal-title fw-bold text-dark mb-0">Calificaciones y Reseñas de Clientes</h5>
+              <small class="text-muted" id="reviews-tool-title">Maquinaria</small>
+            </div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body p-4">
+          <!-- RESUMEN PROMEDIO -->
+          <div class="p-3 bg-light rounded-3 border d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+            <div>
+              <span class="h2 fw-bold text-dark mb-0" id="reviews-average-score">5.0</span>
+              <span class="text-warning fs-5 ms-1" id="reviews-average-stars">★★★★★</span>
+              <div class="small text-muted" id="reviews-total-count">0 calificaciones registradas</div>
+            </div>
+            <div class="small text-muted text-end">
+              <i class="fa fa-shield-alt text-success me-1"></i> Reseñas verificadas de clientes con alquileres completados
+            </div>
+          </div>
+
+          <!-- LISTA DE RESEÑAS -->
+          <div id="reviews-list-container" style="max-height: 380px; overflow-y: auto;">
+            <!-- Renderizado dinámico -->
+          </div>
+        </div>
+        <div class="modal-footer border-top">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Botón Flotante Amarillo de Atención y Asesoría Sunbelt Rentals -->
+  <button type="button" class="sb-floating-chat-btn" id="sb-floating-chat-btn" onclick="App.openChatSupport();" title="Atención al Cliente Sunbelt Rentals">
+    <i class="fa fa-comment-dots"></i>
+  </button>
+
+  <!-- Anunciador accesible para lectores de pantalla en eventos WebSocket en vivo -->
+  <div id="a11y-live-announcer" class="visually-hidden" aria-live="polite" role="status"></div>
+
+  <!-- Scripts: Bootstrap, Leaflet, SockJS, Stomp, SweetAlert2 -->
+  <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- Módulos de la Aplicación -->
+  <script defer src="js/api.js?v=5"></script>
+  <script defer src="js/websocket.js?v=6"></script>
+  <script defer src="js/map.js?v=6"></script>
+  <script defer src="js/app.js?v=8"></script>
+  <script type="module" src="js/hero3d.js?v=4"></script>
+</body>
+</html>
